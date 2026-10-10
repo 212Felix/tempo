@@ -5,6 +5,7 @@ import {
   PROFILE_ID, PLANNER_VERSION, commitGeneratedPlan, currentKey, friendlyDate, generatePlan, readinessLevel,
   type CompletedRecord, type ReadinessRecord, type ShiftRecord, type TrainingRecord,
 } from './engine'
+import { reviewSavedPlan } from './review'
 import './plan.css'
 
 export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]; shifts:Record<string,ShiftRecord>; refreshIndex:number}) {
@@ -14,6 +15,7 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   const [completed, setCompleted] = useState<CompletedRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
+  const [savingDate, setSavingDate] = useState<string | null>(null)
   const [manualRefresh, setManualRefresh] = useState(0)
   const [notice, setNotice] = useState('')
   const rangeId = days.join('|')
@@ -39,6 +41,8 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed}),
     [rangeId, shifts, profile, ready, existing, completed])
   const already = existing.filter(s => s.profileId === PROFILE_ID && days.includes(s.date))
+  const reviewIssues = useMemo(() => reviewSavedPlan({days, shifts, existing, completed, readiness:ready}), [rangeId, shifts, existing, completed, ready])
+  const seriousIssues = reviewIssues.filter(issue => issue.severity === 'konflikt').length
   // Vorher/Nachher ist nur eine Vorschau: Änderungen bleiben bis zur Bestätigung lokal ungespeichert.
   const comparisons = planned.flatMap(day => {
     if (!day.confirmed || day.protected || day.date < currentKey()) return []
@@ -55,10 +59,28 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   const commuteCount = sessions.filter(p => p.session?.sessionType === 'commute').length
   const important = planned.filter(p => p.session && ['long','quality'].includes(p.session.sessionType)).length
   const loadAlerts = planned.filter(p => p.date >= currentKey() && p.confirmed && p.recoveryFlag === 'recovery')
+  async function saveDay(date: string) {
+    if (loading || working) return
+    const day = planned.find(d => d.date === date)
+    if (!day || !day.confirmed || day.protected || day.date < currentKey()) return
+    const before = already.find(x => x.date === date && x.createdBy === PLANNER_VERSION && x.status === 'geplant' && !x.locked)
+    const label = day.session?.title ?? 'Ruhetag ohne zusätzliche TEMPO-Einheit'
+    if (!window.confirm(`${friendlyDate(date)} gezielt ändern?\n\nBisher: ${before?.title ?? 'Keine TEMPO-Einheit'}\nNeu: ${label}\n\nNur dieser eine Tag wird angepasst. Eigene und absolvierte Einträge bleiben geschützt.`)) return
+    setWorking(true)
+    setSavingDate(date)
+    try {
+      await commitGeneratedPlan([day], existing, completed)
+      setExisting(await listRecords<TrainingRecord>('plannedSessions'))
+      window.dispatchEvent(new Event('tempo:training-change'))
+      setNotice(`${friendlyDate(date)} aktualisiert ✓ · Andere Tage wurden nicht verändert.`)
+    } catch(error) {setNotice(`Tagesanpassung fehlgeschlagen: ${error instanceof Error ? error.message : String(error)}`)}
+    finally {setWorking(false); setSavingDate(null)}
+  }
   async function save() {
     if (loading || working) return
     if (!window.confirm(`TEMPO soll die Vorschläge für ${days.length} Tage übernehmen?\n\nBereits abgeschlossene oder manuell angelegte Einheiten bleiben geschützt. Noch nicht abgeschlossene, automatisch erzeugte Einheiten in diesem Zeitraum werden ersetzt. Nicht bestätigte Diensttage bleiben ohne festes Training.`)) return
     setWorking(true)
+    setSavingDate(null)
     try {
       const count = await commitGeneratedPlan(planned, existing, completed)
       setExisting(await listRecords<TrainingRecord>('plannedSessions'))
@@ -68,19 +90,29 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
     finally {setWorking(false)}
   }
   return <section className="panel tempo-plan">
-    <div className="eyebrow">PHASE 9 · ADAPTIVE PLANUNG MIT BESTÄTIGUNG</div>
+    <div className="eyebrow">PHASE 11 · TRAININGSABGLEICH MIT EINZELBESTÄTIGUNG</div>
     <h2>Trainingsplan vorschlagen</h2>
-    <p>Der Vorschlag berücksichtigt bestätigte Dienste, manuelle Termine und dokumentierte zusätzliche Belastung. Nach längeren oder intensiven Aktivitäten werden Folgetage vorsichtiger geplant. Keine automatische Änderung deiner eigenen Einheiten; noch keine vollständige Periodisierung oder medizinische Trainingsfreigabe.</p>
+    <p>Der Vorschlag berücksichtigt bestätigte Dienste, manuelle Termine und dokumentierte zusätzliche Belastung. Nach längeren oder intensiven Aktivitäten werden Folgetage vorsichtiger geplant. Gespeicherte Trainings werden auf mögliche Konflikte geprüft. Einzelne TEMPO-Tage kannst du gezielt übernehmen; eigene Einheiten werden nur markiert, nicht verändert. Noch keine vollständige Periodisierung oder medizinische Trainingsfreigabe.</p>
     {loading ? <p className="tempo-plan-muted">Vorschläge werden berechnet …</p> : <>
       <div className="tempo-plan-stats"><span><strong>{sessions.length}</strong> Einheiten</span><span><strong>{Math.floor(minutes/60)}:{String(minutes%60).padStart(2,'0')} h</strong> {commuteCount ? 'ohne Pendelzeit' : 'Vorschlag'}</span><span><strong>{important}</strong> Rad-Schwerpunkte</span></div>
       <div className={`tempo-plan-readiness tempo-plan-readiness-${currentReadiness}`} role="status"><strong>Readiness heute: {currentReadiness==='gruen'?'GRÜN':currentReadiness==='gelb'?'GELB':currentReadiness==='rot'?'ROT':'NOCH OFFEN'}</strong><span>{currentReadiness==='offen'?'Ohne abgeschlossenen Check-in keine grüne Freigabe.':currentReadiness==='rot'?'Heute Erholung bevorzugen; morgen erneut prüfen.':currentReadiness==='gelb'?'Heute Qualität und schwere Beine kritisch prüfen.':'Heute keine zusätzlichen Readiness-Warnsignale.'}</span></div>
       {ready?.date===currentKey() && ready.illness==='ja' && <div className="tempo-plan-warning">Heute wurden Beschwerden gemeldet. Falls Pendeln trotzdem nötig ist, bitte selbst kritisch prüfen; geplante Belastungen werden nicht als medizinische Freigabe verstanden.</div>}
       {loadAlerts.length > 0 && <div className="tempo-plan-load-alert" role="status"><strong>Belastung berücksichtigt</strong><p>Für {loadAlerts.length} bestätigte Folgetage empfiehlt TEMPO besondere Vorsicht oder Recovery. Bereits von dir festgelegte Einheiten bleiben unverändert und können mit einem Hinweis markiert sein.</p></div>}
       {unconfirmed > 0 && <div className="tempo-plan-warning">{unconfirmed} von {days.length} Diensten sind noch unbestätigt. An diesen Tagen plant TEMPO vorsichtshalber keine feste Einheit. Wochenenden sind bis zur Bestätigung nur Vorschläge.</div>}
+      <section className="tempo-plan-review" aria-label="Plan-Konfliktprüfung">
+        <div className="tempo-plan-changes-head"><strong>Dein gespeicherter Plan · Belastungscheck</strong><span>{reviewIssues.length} Hinweise · {seriousIssues} Konflikte</span></div>
+        {reviewIssues.length === 0 ? <p className="tempo-plan-review-empty">Für deine aktuell gespeicherten, noch geplanten Einheiten wurden im angezeigten Zeitraum keine offensichtlichen Konflikte erkannt. Fehlende Daten bedeuten keine Trainingsfreigabe.</p>
+          : <div className="tempo-plan-review-list">{reviewIssues.slice(0,16).map(issue => <div key={issue.id} className={`tempo-plan-review-issue ${issue.severity==='konflikt'?'is-conflict':'is-notice'}`}>
+              <div className="tempo-plan-review-head"><strong>{friendlyDate(issue.date)} · {issue.title}</strong><span>{issue.severity==='konflikt'?'Bitte prüfen':'Hinweis'}</span></div>
+              <p>{issue.explanation}</p><small>{issue.suggestion}</small>
+              {issue.protected && <em>Eigene Einheit geschützt · zum Bearbeiten „Tagestraining“ öffnen</em>}
+            </div>)}</div>}
+        <p className="tempo-plan-review-note">Dies ist eine vorsichtige Plausibilitätsprüfung, keine medizinische Freigabe. Noch kein automatisches Verschieben deiner eigenen Trainings.</p>
+      </section>
       <section className="tempo-plan-changes" aria-label="Änderungsvergleich">
         <div className="tempo-plan-changes-head"><strong>Änderungen gegenüber deinem gespeicherten Plan</strong><span>{comparisons.length} {comparisons.length===1?'Vorschlag':'Vorschläge'}</span></div>
-        {comparisons.length===0 ? <p>Keine Änderungen an bereits automatisch eingeplanten Einheiten erforderlich. Eventuell erscheinen neue Trainingsvorschläge nach vollständiger Dienstplanung.</p> : <div className="tempo-plan-comparison-list">{comparisons.slice(0,14).map(change=><div className="tempo-plan-comparison" key={change.date}><strong>{friendlyDate(change.date)}</strong><div><span>Bisher: {change.before}</span><span>Vorschlag: {change.after}</span></div><small>{change.reason}</small></div>)}</div>}
-        <p><strong>Nur Vorschau.</strong> „Plan übernehmen“ ersetzt ausschließlich noch offene TEMPO-Einheiten. Manuelle und absolvierte Einträge bleiben geschützt.</p>
+        {comparisons.length===0 ? <p>Keine Änderungen an bereits automatisch eingeplanten Einheiten erforderlich. Eventuell erscheinen neue Trainingsvorschläge nach vollständiger Dienstplanung.</p> : <div className="tempo-plan-comparison-list">{comparisons.slice(0,14).map(change=><div className="tempo-plan-comparison" key={change.date}><strong>{friendlyDate(change.date)}</strong><div><span>Bisher: {change.before}</span><span>Vorschlag: {change.after}</span></div><small>{change.reason}</small><button type="button" disabled={working} className="tempo-plan-one-button" onClick={() => void saveDay(change.date)}>{working && savingDate===change.date?'Wird gespeichert …':'Nur diesen Tag übernehmen'}</button></div>)}</div>}
+        <p><strong>Nur Vorschau.</strong> Du kannst einzelne Tage oder den gesamten Vorschlag übernehmen. Beides betrifft ausschließlich noch offene TEMPO-Einheiten. Manuelle und absolvierte Einträge bleiben geschützt.</p>
       </section>
       <div className="tempo-plan-grid">
         {planned.map(day => {

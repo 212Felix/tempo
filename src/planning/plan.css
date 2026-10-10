@@ -64,3 +64,19 @@
 .tempo-plan-comparison>div span:last-child{font-weight:650;color:#b9e6d3}
 .tempo-plan-comparison small{grid-column:2;font-size:10px;color:#a0afba;line-height:1.55}
 @media(max-width:530px){.tempo-plan-comparison{grid-template-columns:1fr}.tempo-plan-comparison small{grid-column:1}}
+
+/* Phase 11 · Prüfung des gespeicherten Plans und Einzelbestätigung */
+.tempo-plan-review{margin:16px 0;padding:16px;border:1px solid #ffffff2b;border-radius:14px;background:linear-gradient(135deg,#1c2833,#121b24)}
+.tempo-plan-review-empty,.tempo-plan-review-note{color:#adbfc9;font-size:12px;line-height:1.65;margin:9px 0}
+.tempo-plan-review-list{display:grid;gap:10px}
+.tempo-plan-review-issue{border-radius:11px;padding:12px 13px;border:1px solid #e7c36a55;background:#51422955;display:grid;gap:7px}
+.tempo-plan-review-issue.is-conflict{background:#60382e66;border-color:#df917488}
+.tempo-plan-review-head{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.tempo-plan-review-head strong{font-size:12px;color:#f4f0e8}
+.tempo-plan-review-head span{font-size:10px;color:#efcdb7;border:1px solid #ffffff30;border-radius:99px;padding:3px 7px}
+.tempo-plan-review-issue p{margin:0;color:#e1d8cd;font-size:12px;line-height:1.6}
+.tempo-plan-review-issue small{color:#eadbb1;font-size:11px;line-height:1.5}
+.tempo-plan-review-issue em{font-style:normal;color:#bcd8eb;font-size:10px}
+.tempo-plan-one-button{justify-self:start;grid-column:2;border-radius:9px;border:1px solid #9bc6d488;background:linear-gradient(140deg,#334b57,#253644);color:#d7edf5;font-weight:650;font-size:11px;min-height:38px;padding:8px 12px;cursor:pointer}
+.tempo-plan-one-button:disabled{opacity:.5;cursor:wait}
+@media(max-width:530px){.tempo-plan-one-button{grid-column:1}}
