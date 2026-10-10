@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import DatabasePanel from './db/DatabasePanel'
 import ReadinessPanel, { ReadinessHomeCard } from './db/ReadinessPanel'
+import ShiftCalendarPanel, { ShiftHomeCard } from './db/ShiftCalendarPanel'
 
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
@@ -27,7 +28,6 @@ const pages: PageInfo[] = [
 ]
 
 const primary: PageId[] = ['readiness', 'training', 'calendar', 'progress']
-const weekdays = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const }
@@ -71,17 +71,13 @@ function Home({ go }: { go: (id: PageId) => void }) {
       <ReadinessHomeCard onOpen={() => go('readiness')}/>
       <Card className="status-card"><div className="card-heading"><Eyebrow>HEUTIGES TRAINING</Eyebrow><Icon name="clock" size={17}/></div><h3>Noch nicht geplant</h3><p>Einheiten entstehen später aus Zielen, Diensten und Trainingshistorie.</p><button className="text-action" onClick={() => go('training')}>Training öffnen <Icon name="arrow" size={16}/></button></Card>
       <Card className="status-card"><div className="card-heading"><Eyebrow>NÄCHSTES ZIEL</Eyebrow><button className="icon-action" aria-label={eventsExpanded ? 'Events einklappen' : 'Events ausklappen'} aria-expanded={eventsExpanded} onClick={() => setEventsExpanded(!eventsExpanded)}><span className={eventsExpanded ? 'rotate' : ''}><Icon name="chevron" size={18}/></span></button></div><h3>Kein Event hinterlegt</h3><p>Trainingsabschnitt: noch nicht festgelegt</p>{eventsExpanded && <div className="expanded-note">Sobald du Ziele anlegst, erscheinen hier Eventname und verbleibende Tage.</div>}</Card>
-      <Card className="status-card amber-card"><div className="card-heading"><Eyebrow>DIENSTPLANUNG</Eyebrow><span className="mini-dot amber"/></div><h3>Planung ausstehend</h3><p>Später: 7–14 Tage im Voraus eintragen. Wochenenden werden zunächst als frei vorgeschlagen.</p><button className="text-action" onClick={() => go('calendar')}>Kalender öffnen <Icon name="arrow" size={16}/></button></Card>
+      <ShiftHomeCard onOpen={() => go('calendar')}/>
     </div>
     <div className="section-head"><h3>Schnellzugriff</h3><span>DEINE WERKZEUGE</span></div>
     <div className="shortcut-grid">{(['fueling', 'recovery', 'strength', 'metrics'] as PageId[]).map(id => { const page = pages.find(p => p.id === id)!; return <button className="shortcut" key={id} onClick={() => go(id)}><span className="shortcut-icon"><Icon name={page.icon} size={20}/></span><span>{page.name}</span><Icon name="arrow" size={16}/></button> })}</div>
   </>
 }
 
-function Calendar() {
-  const days = Array.from({length: 14}, (_, offset) => {const date = new Date(); date.setHours(12,0,0,0); date.setDate(date.getDate()+offset); const weekend = [0,6].includes(date.getDay()); return {date, weekend}})
-  return <><Card><div className="notice"><span className="mini-dot silver"/><div><strong>Vorschau · keine Daten gespeichert</strong><p>Die farbigen Tagesfelder zeigen künftig Dienstplanung und Trainingserfüllung. Aktuell werden noch keine Einheiten vergeben.</p></div></div></Card><div className="section-head"><h3>Kommende 14 Tage</h3><span>DIENSTVORSCHAU</span></div><div className="day-grid">{days.map(({date, weekend}) => <div key={date.toISOString()} className={`day-tile ${weekend ? 'free-tile' : 'open-tile'}`}><span className="day-top">{weekdays[date.getDay()]} {date.toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit'})}</span><strong>{weekend ? 'Frei' : 'Offen'}</strong><small>{weekend ? 'Vorschlag' : 'Dienst fehlt'}</small></div>)}</div><Card><Eyebrow>SPÄTERE LOGIK</Eyebrow><p className="muted">Frei: Training grundsätzlich möglich · Tagdienst: Arbeit, optionale Einheiten und Radpendeln · Einsatz: möglichst Recovery oder Pause. Großchallenges führen zu Entlastung davor und danach.</p></Card></>
-}
 
 function Placeholder({ id, go }: { id: PageId; go: (id: PageId) => void }) {
   const page = pages.find(p => p.id === id)!
@@ -112,11 +108,11 @@ export default function App() {
       <div className="brand"><div className="brand-symbol"><span/></div><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
       <div className="sidebar-caption">DEIN WORKSPACE</div>
       <nav aria-label="Hauptmenü">{pages.map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page === item.id && <span className="active-marker"/>}</button>)}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.3 · Readiness & Datenbank</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.4 · Dienstplanung</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 3</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 4</span></header>
       <main className="content"><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <Calendar/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>
     </div>
