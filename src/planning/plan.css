@@ -36,3 +36,10 @@
 .tempo-workout-head .tempo-manual-actions{margin-top:20px;margin-bottom:0}
 .tempo-workout-detail .tempo-workout-badges{margin:13px 0;flex-wrap:wrap}
 .tempo-workout-detail .tempo-workout-badges span{overflow-wrap:anywhere}
+
+/* Phase 7: conservative load guidance, without interfering with bubble ratings. */
+.tempo-plan-load-alert{border:1px solid #74ba9d78;border-radius:12px;padding:15px 17px;margin-bottom:15px;background:linear-gradient(135deg,#1b3a35,#1b292d);color:#d9f1e5;font-size:12px;line-height:1.6}
+.tempo-plan-load-alert p{margin:5px 0 0;color:#bbd8ce}
+.tempo-plan-load-note{border:1px solid #bca05b70;border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:4px;background:#49402950;color:#f0d9a4;font-size:11px;line-height:1.5}
+.tempo-plan-load-note.is-high{border-color:#da9f607a;background:#5b392c66}
+.tempo-plan-load-note span{font-size:10px;color:#dfccbc}

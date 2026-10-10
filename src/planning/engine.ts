@@ -1,4 +1,5 @@
 import type { ProfileRecord, TempoRecord } from '../db/types'
+import { createLoadCalendar, type LoadCalendar } from './load'
 
 /** Conservative starter scheduling rules, intentionally transparent and changeable. */
 export const PLANNER_VERSION = 'tempo-planner-v1'
@@ -52,7 +53,7 @@ export type CompletedRecord = TempoRecord & {
   notes?: string
   source?: 'manuell' | 'plan' | 'import'
 }
-export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean }
+export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[] }
 
 const sDate = (key: string) => {
   const [year, month, day] = key.split('-').map(Number)
@@ -117,6 +118,9 @@ export function generatePlan(args: {
 }): PlanDay[] {
   const { days, shifts, profile, existing, completed } = args
   const today = currentKey()
+  const loadCalendar: LoadCalendar = createLoadCalendar(
+    days, completed.filter(x => x.profileId === PROFILE_ID), existing.filter(x => x.profileId === PROFILE_ID), args.readiness
+  )
   const lockedDates = new Set<string>()
   for (const item of existing) {
     if (item.profileId !== PROFILE_ID) continue
@@ -156,7 +160,7 @@ export function generatePlan(args: {
   days.forEach(date => {
     const shift = shifts[date]
     const confirmed = isConfirmed(shift)
-    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date)})
+    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? []})
   })
   const put = (date: string, item: TrainingRecord) => {
     const day = map.get(date)!
@@ -185,6 +189,13 @@ export function generatePlan(args: {
     if (day.shift === 'tagdienst' && shift?.commute && shift.commute !== 'nein') {
       const km = (profile?.commuteOneWayKm ?? 0) * (shift.commute === 'beide' ? 2 : 1)
       put(date, candidate(date, 'commute', profile, km, Boolean(shift.homeIntervals)))
+      return
+    }
+    if (loadCalendar[date]?.level === 'recovery') {
+      const item = candidate(date, 'recovery', profile)
+      item.description = 'Regeneration nach dokumentierter Belastung oder aufgrund der Tagesform; vollständige Pause ist ebenfalls möglich.'
+      item.notes = loadCalendar[date].reasons.join(' · ')
+      put(date, item)
     }
   })
   const readinessToday = args.readiness?.date === today ? readinessLevel(args.readiness) : 'offen'
@@ -202,34 +213,45 @@ export function generatePlan(args: {
     const select = (predicate: (date:string)=>boolean, score: (date:string)=>number): string | undefined =>
       week.filter(date => canUse(date) && predicate(date)).sort((a,b) => score(b)-score(a) || a.localeCompare(b))[0]
     // Long bike ride prefers a confirmed free day and distance from commute.
-    const longDate = select(date => map.get(date)!.shift === 'frei' && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10)
+    const longDate = select(date => map.get(date)!.shift === 'frei' && loadCalendar[date]?.level === 'none' && !nearbyHeavy(date) && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10)
     if (longDate) put(longDate, candidate(longDate, 'long', profile, undefined, false, weekNumber))
     // One controlled quality session, only if there is a suitable slot.
     const qualityDate = select(date => {
       const shift = shifts[date]
-      return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
+      return loadCalendar[date]?.level === 'none' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
         !nearbyHeavy(date) && !nearType(date, ['commute','long'], 1) && !(date === today && readinessToday !== 'gruen')
     }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 3)
     if (qualityDate) put(qualityDate, candidate(qualityDate, 'quality', profile))
-    // Up to two full-body strength sessions, at least two days apart.
-    for (const type of ['strength-a','strength-b'] as const) {
-      const strengthDate = select(date => {
+    // Up to two strength sessions if enough suitable days exist. Chronological
+    // assignment and the last documented strength type determine A/B alternation.
+    for (let slot = 0; slot < 2; slot++) {
+      const strengthDate = week.filter(date => {
         const shift = shifts[date]
-        return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workStrength)) &&
+        return canUse(date) && loadCalendar[date]?.level === 'none' &&
+          (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workStrength)) &&
           !nearType(date, ['long','commute','quality'], 1) && !nearType(date, ['strength-a','strength-b'], 1) &&
           !(date === today && readinessToday === 'gelb')
-      }, date => (shifts[date]?.shift === 'tagdienst' ? 8 : 0) - index(date)/100)
-      if (strengthDate) put(strengthDate, candidate(strengthDate, type, profile))
+      }).sort((a,b) => a.localeCompare(b))[0]
+      if (!strengthDate) break
+      const last = [
+        ...completed.filter(x => x.profileId === PROFILE_ID && x.date < strengthDate && normalize(x.sessionType, x.durationMin, x.distanceKm).startsWith('strength')).map(x => ({date:x.date,type:normalize(x.sessionType, x.durationMin, x.distanceKm)})),
+        ...existing.filter(x => x.profileId === PROFILE_ID && x.date < strengthDate &&
+          (x.createdBy !== PLANNER_VERSION || x.locked || x.status !== 'geplant') &&
+          normalize(x.sessionType, x.durationMin, x.expectedKm).startsWith('strength')).map(x => ({date:x.date,type:normalize(x.sessionType, x.durationMin, x.expectedKm)})),
+        ...[...map.values()].filter(x => x.date < strengthDate && x.session && x.session.sessionType.startsWith('strength')).map(x => ({date:x.date,type:x.session!.sessionType})),
+      ].sort((a,b) => a.date.localeCompare(b.date)).at(-1)
+      const type:SessionKind = last?.type === 'strength-a' ? 'strength-b' : 'strength-a'
+      put(strengthDate,candidate(strengthDate,type,profile))
     }
     const runDate = select(date => {
       const shift = shifts[date]
-      return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workRun)) &&
+      return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workRun)) &&
         !nearType(date, ['long','commute'], 1)
     }, date => shiftRunScore(shifts[date]))
     if (runDate) put(runDate, candidate(runDate, 'run', profile, undefined, false, weekNumber))
     const easyDate = select(date => {
       const shift = shifts[date]
-      return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
+      return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
         !nearType(date, ['long','commute'], 1)
     }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 1)
     if (easyDate) put(easyDate, candidate(easyDate, 'endurance', profile))
