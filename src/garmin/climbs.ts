@@ -13,6 +13,15 @@ export type ClimbCandidate = {
   averageHrBpm?:number
 }
 
+/** Select up to eight prominent climbs, then display them in ridden order.
+ *  Prominence influences selection, never the chronological numbering. */
+export function selectClimbsInRideOrder(candidates: ClimbCandidate[]): ClimbCandidate[] {
+  const prominent = [...candidates]
+    .sort((a,b)=>b.riseM-a.riseM||b.distanceKm-a.distanceKm)
+    .slice(0,8)
+  return prominent.sort((a,b)=>a.startKm-b.startKm||a.endKm-b.endKm)
+}
+
 type Reading={point:FitPoint;height:number}
 const avg=(numbers:number[])=>numbers.length?Math.round(numbers.reduce((a,b)=>a+b,0)/numbers.length):undefined
 
@@ -62,5 +71,5 @@ export function findClimbCandidates(points:FitPoint[]):ClimbCandidate[]{
     }
   }
   close(valley,peak)
-  return found.sort((a,b)=>b.riseM-a.riseM||b.distanceKm-a.distanceKm).slice(0,8)
+  return selectClimbsInRideOrder(found)
 }
