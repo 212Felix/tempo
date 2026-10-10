@@ -26,7 +26,7 @@ const askAdd=(date:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-a
 const askEdit=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-edit',{detail:{kind:'planned',id}}))
 const askDone=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-finish',{detail:id}))
 
-export default function TrainingDayPanel({onOpenReadiness}:{onOpenReadiness:()=>void}){
+export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
   const [selected,setSelected]=useState('')
   const [loading,setLoading]=useState(true)
@@ -47,7 +47,7 @@ export default function TrainingDayPanel({onOpenReadiness}:{onOpenReadiness:()=>
   const atDate=entries.filter(x=>x.date===selectedDay)
   const pos=dates.indexOf(selectedDay)
   return <div className="tempo-workout">
-    <DailyDecisionPanel onOpenReadiness={onOpenReadiness}/>
+    <DailyDecisionPanel onOpenReadiness={onOpenReadiness} onOpenCalendar={onOpenCalendar}/>
     <section className="panel tempo-workout-head">
       <div className="eyebrow">TAGESTRAINING · DEIN KALENDER</div>
       <h2>Training selbst gestalten</h2>

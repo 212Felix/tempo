@@ -231,20 +231,24 @@ export default function ReadinessPanel() {
 }
 
 export function ReadinessHomeCard({ onOpen }: { onOpen: () => void }) {
-  const [state, setState] = useState<{ loading: boolean; title: string; description: string; level: string }>({ loading: true, title: 'Lädt …', description: 'Heutiger Check-in wird geprüft.', level: 'offen' })
+  const [state, setState] = useState<{ loading: boolean; title: string; description: string; level: 'offen' | 'gruen' | 'gelb' | 'rot' }>({ loading: true, title: 'Lädt …', description: 'Heutiger Check-in wird geprüft.', level: 'offen' })
   useEffect(() => {
     let active = true
-    void getRecord<DayEntry>('readinessEntries', `${PROFILE_ID}:${dateKey()}`)
-      .then(entry => {
-        if (!active) return
-        const score = evaluateReadiness({ ratings: entry?.ratings ?? {}, illness: entry?.illness ?? '' })
-        setState({ loading: false, title: entry ? score.title : 'Noch offen', description: entry ? score.reason : 'Dein heutiger Check-in wartet auf dich.', level: score.level })
-      })
-      .catch(() => { if (active) setState({ loading: false, title: 'Nicht verfügbar', description: 'Lokale Daten konnten nicht gelesen werden.', level: 'offen' }) })
-    return () => { active = false }
+    const load = () => {
+      void getRecord<DayEntry>('readinessEntries', `${PROFILE_ID}:${dateKey()}`)
+        .then(entry => {
+          if (!active) return
+          const score = evaluateReadiness({ ratings: entry?.ratings ?? {}, illness: entry?.illness ?? '' })
+          setState({ loading: false, title: entry ? score.title : 'Noch offen', description: entry ? score.reason : 'Dein heutiger Check-in wartet auf dich.', level: score.level })
+        })
+        .catch(() => { if (active) setState({ loading: false, title: 'Nicht verfügbar', description: 'Lokale Daten konnten nicht gelesen werden.', level: 'offen' }) })
+    }
+    load()
+    window.addEventListener('tempo:readiness-change',load)
+    return () => { active = false; window.removeEventListener('tempo:readiness-change',load) }
   }, [])
-  return <section className={`panel status-card tempo-ready-home ${state.level === 'gelb' || state.level === 'offen' ? 'amber-card' : ''}`}>
-    <div className="card-heading"><div className="eyebrow">READINESS</div><span className={`tempo-ready-light tempo-ready-light-${state.level}`}/></div>
+  return <section className={`panel status-card tempo-ready-home tempo-ready-home-${state.level}`}>
+    <div className="card-heading"><div className="eyebrow">DEINE READINESS</div><span className={`tempo-ready-light tempo-ready-light-${state.level}`}/></div>
     <h3>{state.title}</h3><p>{state.description}</p>
     <button type="button" className="text-action" onClick={onOpen}>{state.loading ? 'Bitte warten …' : 'Readiness öffnen'} →</button>
   </section>

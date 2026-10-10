@@ -12,3 +12,5 @@
 .tempo-daily-actions{margin-top:15px;display:flex;align-items:center;flex-wrap:wrap;gap:12px}
 .tempo-daily-actions button{background:#d0dde3;color:#1b2b36;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:730}
 .tempo-daily-actions span{color:#aebdc6;font-size:11px}
+
+.tempo-daily-actions .tempo-daily-plan-link{background:#213e49;color:#e5f7fc;border:1px solid #b5d5e064}

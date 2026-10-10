@@ -42,3 +42,31 @@
 .tempo-ready-light-gruen{background:#67cea2}.tempo-ready-light-gelb{background:#e2c171}.tempo-ready-light-rot{background:#db9291}
 .tempo-ready-home h3{font-size:19px;line-height:1.2}
 @media(max-width:520px){.tempo-ready-bubbles{justify-content:space-between;gap:7px}.tempo-ready-bubble{width:44px;height:44px;flex:0 0 44px}.tempo-ready-choice{padding:11px 12px}.tempo-ready-panel{padding:20px}}
+
+/* Phase 9: bewusst die gesamte Karte einfärben, ohne Bewertungsblasen umzudeuten. */
+.tempo-ready-result,.dashboard-grid .tempo-ready-home{
+  border:1px solid #ffffff2b;
+  border-left-width:1px;
+  transition:background .18s ease,border-color .18s ease;
+}
+.tempo-ready-result-gruen,.dashboard-grid .tempo-ready-home-gruen{
+  background:linear-gradient(135deg,#245742 0%,#1a4437 55%,#163229 100%);
+  border-color:#73d6a161;
+}
+.tempo-ready-result-gelb,.dashboard-grid .tempo-ready-home-gelb{
+  background:linear-gradient(135deg,#574827 0%,#403622 55%,#302c22 100%);
+  border-color:#e8c57570;
+}
+.tempo-ready-result-rot,.dashboard-grid .tempo-ready-home-rot{
+  background:linear-gradient(135deg,#613537 0%,#4b2e33 55%,#37282e 100%);
+  border-color:#e69a9a79;
+}
+.tempo-ready-result-offen,.dashboard-grid .tempo-ready-home-offen{
+  background:linear-gradient(145deg,#1a202a,#131923);
+  border-color:#ffffff21;
+}
+.tempo-ready-result-gruen p,.tempo-ready-result-gelb p,.tempo-ready-result-rot p,
+.tempo-ready-home-gruen p,.tempo-ready-home-gelb p,.tempo-ready-home-rot p{
+  color:#e0e9e8;
+}
+.tempo-ready-home .text-action{margin-top:auto}

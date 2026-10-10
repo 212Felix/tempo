@@ -1,4 +1,4 @@
-import type { CompletedRecord, ReadinessRecord, TrainingRecord } from './engine'
+import { readinessLevel, type CompletedRecord, type ReadinessRecord, type TrainingRecord } from './engine'
 
 /**
  * Belastungshinweise ohne medizinische Diagnose und ohne versteckte Änderungen.
@@ -86,12 +86,24 @@ export function createLoadCalendar(
     }
   }
   if (readiness && result[readiness.date]) {
-    const {ratings, illness} = readiness
-    if (illness === 'ja') note(readiness.date,'recovery','Krankheit/Auffälligkeit im Tages-Check-in gemeldet')
-    else if (ratings) {
-      const bad = Number((ratings.sleep ?? 5)<=2)+Number((ratings.energy??5)<=2)+Number((ratings.stress??1)>=4)+Number((ratings.fatigue??1)>=4)+Number((ratings.legs??1)>=4)
-      if (bad>=3) note(readiness.date,'recovery','Mehrere deutlich ungünstige Readiness-Werte')
-      else if (bad>=1) note(readiness.date,'caution','Mindestens ein deutlich ungünstiger Readiness-Wert')
+    const status = readinessLevel(readiness)
+    if (readiness.illness === 'ja') {
+      note(readiness.date,'recovery','Krankheit/Auffälligkeit im Tages-Check-in gemeldet')
+    } else if (status === 'rot') {
+      note(readiness.date,'recovery','Readiness ROT: mehrere ungünstige Signale – Erholung prüfen')
+    } else if (status === 'gelb') {
+      note(readiness.date,'caution','Readiness GELB: Umfang und Intensität heute überprüfen')
+    }
+  }
+  // Tages-Check-in bleibt zeitlich eng begrenzt: eine einzelne schlechte Nacht
+  // ist KEIN automatischer Grund für mehrere volle Ruhetage.
+  if (readiness && result[readiness.date] && readinessLevel(readiness) === 'rot') {
+    const [year, month, day] = readiness.date.split('-').map(Number)
+    const following = new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0,10)
+    if (result[following]) {
+      note(following, 'caution', readiness.illness === 'ja'
+        ? 'Beschwerden am Vortag gemeldet – Tagesform erneut prüfen, harte Belastung nicht voraussetzen'
+        : 'Deutlich eingeschränkte Readiness am Vortag – Morgencheck vor Intensität wiederholen')
     }
   }
   return result

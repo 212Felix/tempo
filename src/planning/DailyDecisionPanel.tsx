@@ -5,7 +5,7 @@ import {currentKey, PROFILE_ID, type CompletedRecord, type ReadinessRecord, type
 import './daily.css'
 
 /** Zeigt Hinweise für HEUTE. Keine automatische Änderung des Plans. */
-export default function DailyDecisionPanel({onOpenReadiness}:{onOpenReadiness:()=>void}) {
+export default function DailyDecisionPanel({onOpenReadiness,onOpenCalendar}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void}) {
   const [guidance,setGuidance] = useState<DailyGuidance | null>(null)
   const [error,setError] = useState('')
   const [revision,setRevision] = useState(0)
@@ -45,7 +45,7 @@ export default function DailyDecisionPanel({onOpenReadiness}:{onOpenReadiness:()
       {guidance.reason.map(text=><p className="tempo-daily-reason" key={text}>{text}</p>)}
       <p className="tempo-daily-recommendation">{guidance.recommendation}</p>
       {guidance.requiresReview && <div className="tempo-daily-warning" role="status"><strong>Geplante Einheit prüfen</strong><p>{guidance.conflictTitles.length ? guidance.conflictTitles.join(' · ') : 'Für heute ist ein belastender Trainingsreiz vorgesehen.'} bleibt gespeichert. TEMPO ändert nichts ohne deine Bestätigung.</p></div>}
-      <div className="tempo-daily-actions"><button type="button" onClick={onOpenReadiness}>{guidance.readiness==='offen'?'Check-in jetzt ausfüllen':'Readiness ansehen'}</button><span>Hinweis, keine automatische Freigabe oder Planänderung.</span></div>
+      <div className="tempo-daily-actions"><button type="button" onClick={onOpenReadiness}>{guidance.readiness==='offen'?'Check-in jetzt ausfüllen':'Readiness ansehen'}</button>{guidance.requiresReview && <button type="button" className="tempo-daily-plan-link" onClick={onOpenCalendar}>Neuplanung prüfen →</button>}<span>Hinweis, keine automatische Freigabe oder Planänderung.</span></div>
     </>}
   </section>
 }
