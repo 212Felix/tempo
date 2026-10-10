@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getRecord, listRecords, saveRecord } from './storage'
 import type { ProfileRecord, TempoRecord } from './types'
 import './shift-calendar.css'
+import PlanPreview from '../planning/PlanPreview'
 
 const PROFILE_ID = 'local-primary-profile'
 type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
@@ -92,7 +93,7 @@ export function ShiftHomeCard({ onOpen }: {onOpen: () => void}) {
   return <section className={`panel status-card ${state.confirmed === 14 ? 'tempo-shift-home-complete' : 'amber-card'}`}>
     <div className="card-heading"><div className="eyebrow">DIENSTPLANUNG</div><span className={`mini-dot ${state.confirmed === 14 ? 'good-dot' : 'amber'}`}/></div>
     <h3>{state.loading ? 'Wird geladen …' : state.error ? 'Nicht verfügbar' : state.confirmed === 14 ? '14 Tage vorbereitet' : `${state.confirmed} von 14 Tagen geplant`}</h3>
-    <p>{state.error ? 'Dienstplanung konnte nicht gelesen werden.' : 'Wochenenden sind zunächst als Frei vorgeschlagen, bis du sie bestätigst. Der Trainingsplan berücksichtigt die Dienste erst nach der kommenden Planungsphase.'}</p>
+    <p>{state.error ? 'Dienstplanung konnte nicht gelesen werden.' : 'Wochenenden sind zunächst als Frei vorgeschlagen, bis du sie bestätigst. Nutze die 14-Tage-Ansicht, um anschließend einen Trainingsvorschlag zu erstellen.'}</p>
     <button type="button" className="text-action" onClick={onOpen}>Dienste eintragen →</button>
   </section>
 }
@@ -104,6 +105,7 @@ export default function ShiftCalendarPanel() {
   const [profileKm, setProfileKm] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [planRefresh, setPlanRefresh] = useState(0)
   const [feedback, setFeedback] = useState('Dienste werden geladen …')
   const start = useMemo(() => { const now = new Date(); return addDays(now, rangeOffset) }, [rangeOffset])
   const days = useMemo(() => Array.from({length:horizon}, (_, i) => formatKey(addDays(start, i))), [start, horizon])
@@ -150,6 +152,7 @@ export default function ShiftCalendarPanel() {
       const record = makeEntry(selectedDate, draft, previous)
       await saveRecord('shifts', record)
       setEntries(old => ({ ...old, [selectedDate]: record }))
+      setPlanRefresh(n => n + 1)
       setFeedback(`${displayDate(selectedDate, true)} · ${shiftName[draft.shift]} gespeichert ✓`)
     } catch (err) { setFeedback(`Speichern fehlgeschlagen: ${String(err)}`) }
     finally { setSaving(false) }
@@ -168,6 +171,7 @@ export default function ShiftCalendarPanel() {
         updates[date] = record
       }
       setEntries(old => ({ ...old, ...updates }))
+      setPlanRefresh(n => n + 1)
       setFeedback(`${Object.keys(updates).length} freie Wochenendtage bestätigt ✓`)
     } catch (err) { setFeedback(`Speichern fehlgeschlagen: ${String(err)}`) }
     finally { setSaving(false) }
@@ -243,6 +247,6 @@ export default function ShiftCalendarPanel() {
       <div className="tempo-shift-editor-actions"><button type="button" disabled={saving || loading} className="tempo-shift-save" onClick={() => void saveDay()}>{saving ? 'Wird gespeichert …' : 'Tag bestätigen & speichern'}</button></div>
     </section>}
     <div className="tempo-shift-feedback" role="status">{feedback}</div>
-    <section className="panel tempo-shift-footer"><div className="eyebrow">NÄCHSTER AUSBAUSCHRITT</div><h3>Trainingsplan an Dienste anpassen</h3><p>Deine Dienste werden bereits als Grundlage gespeichert. Die automatische Verteilung oder Verschiebung von Trainingseinheiten ist <strong>noch nicht aktiv</strong> und folgt in der nächsten Phase.</p></section>
+    <PlanPreview days={days} shifts={entries} refreshIndex={planRefresh}/>
   </div>
 }

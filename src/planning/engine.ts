@@ -1,0 +1,230 @@
+import type { ProfileRecord, TempoRecord } from '../db/types'
+
+/** Conservative starter scheduling rules, intentionally transparent and changeable. */
+export const PLANNER_VERSION = 'tempo-planner-v1'
+export const PROFILE_ID = 'local-primary-profile'
+export type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
+export type CommuteKind = 'nein' | 'hin' | 'zurueck' | 'beide'
+export type Priority = 'MUSS' | 'SOLL' | 'KANN'
+export type SessionKind = 'long' | 'quality' | 'endurance' | 'commute' | 'strength-a' | 'strength-b' | 'run' | 'recovery'
+
+export type ShiftRecord = TempoRecord & {
+  date: string
+  shift?: ShiftKind
+  commute?: CommuteKind
+  homeIntervals?: boolean
+  workStrength?: boolean
+  workRun?: boolean
+  afterWorkCycling?: boolean
+  afterWorkRide?: 'egal' | 'indoor' | 'outdoor'
+}
+export type ReadinessRecord = TempoRecord & {
+  date: string
+  ratings?: { sleep?: number; energy?: number; stress?: number; fatigue?: number; legs?: number }
+  illness?: '' | 'ja' | 'nein'
+}
+export type TrainingRecord = TempoRecord & {
+  date: string
+  sessionType: SessionKind
+  title: string
+  durationMin: number
+  priority: Priority
+  description: string
+  target: string
+  notes?: string
+  expectedKm?: number
+  status: 'geplant' | 'erledigt' | 'nicht-erledigt'
+  createdBy?: string
+  locked?: boolean
+}
+export type CompletedRecord = TempoRecord & {
+  date: string
+  plannedSessionId?: string
+}
+export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean }
+
+const sDate = (key: string) => {
+  const [year, month, day] = key.split('-').map(Number)
+  return new Date(year, month - 1, day, 12)
+}
+const isWeekend = (key: string) => [0,6].includes(sDate(key).getDay())
+export const currentKey = () => {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+}
+export const friendlyDate = (key: string) => new Intl.DateTimeFormat('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'}).format(sDate(key))
+export const isConfirmed = (shift?: ShiftRecord) => Boolean(shift && shift.shift && shift.shift !== 'offen')
+
+export function readinessLevel(entry?: ReadinessRecord): 'offen' | 'gruen' | 'gelb' | 'rot' {
+  const r = entry?.ratings
+  if (!r || !([r.sleep, r.energy, r.stress, r.fatigue, r.legs].every(x => Number.isInteger(x) && x! >= 1 && x! <= 5)) || !entry?.illness) return 'offen'
+  if (entry.illness === 'ja') return 'rot'
+  const unfavorable = Number(r.sleep! <= 2) + Number(r.energy! <= 2) + Number(r.stress! >= 4) + Number(r.fatigue! >= 4) + Number(r.legs! >= 4)
+  if (unfavorable >= 3 || (r.energy! <= 2 && r.fatigue! >= 4)) return 'rot'
+  const middling = [r.sleep, r.energy, r.stress, r.fatigue, r.legs].filter(n => n === 3).length
+  return unfavorable > 0 || middling >= 3 ? 'gelb' : 'gruen'
+}
+
+function session(date: string, type: SessionKind, title: string, durationMin: number, priority: Priority, description: string, target: string, notes?: string, expectedKm?: number): TrainingRecord {
+  return {
+    id: `auto:${PROFILE_ID}:${date}`,
+    profileId: PROFILE_ID, date, sessionType: type,
+    title, durationMin, priority, description, target, notes, expectedKm,
+    status: 'geplant', createdBy: PLANNER_VERSION,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  }
+}
+const wattText = (ftp?: number, lower = 0, upper = 0) => ftp && ftp > 0 ? `${Math.round(ftp * lower)}–${Math.round(ftp * upper)} W` : 'RPE / lockere Atmung (FTP noch offen)'
+function candidate(date: string, type: SessionKind, profile?: ProfileRecord, commuteKm?: number, homeIntervals?: boolean, weekIndex = 0): TrainingRecord {
+  const ftp = profile?.ftpWatts
+  if (type === 'commute') {
+    const km = commuteKm || 0
+    return session(date, type, 'Radpendeln', 0, 'SOLL',
+      'Arbeitsweg zählt als vollständiger Ausdauerreiz, kein zusätzliches Radtraining.',
+      `Hinfahrt locker · Z2 auf geeigneten Abschnitten (${wattText(ftp, .56, .73)})`,
+      homeIntervals ? 'Optional: Heimfahrt mit moderaten Belastungsabschnitten, nur bei Licht, sicherem Verkehr und guter Tagesform. Die Hinfahrt bleibt locker.' : 'Ohne Pflichtintervalle. Stadtabschnitte immer nach Verkehr und Sicherheit.',
+      km || undefined)
+  }
+  switch (type) {
+    case 'long': return session(date, type, 'Lange Grundlage', weekIndex ? 135 : 105, 'MUSS', 'Ausdauer und Belastungsverträglichkeit; kontrollierter Wiedereinstieg.', wattText(ftp, .56, .73), 'Keine Jagd nach Durchschnittswatt. Fueling üben. Nach hoher Vorbelastung verkürzen.')
+    case 'quality': return session(date, type, 'Tempo-Einstieg 2 × 8', 60, 'MUSS', 'Dosierter Qualitätsreiz; keine maximale Belastung.', `15 min Einrollen · 2 × 8 min bei ${wattText(ftp, .80, .88)} · 5 min locker · Ausrollen`, 'Nur bei guter Tagesform; auf der Rolle oder sicheren, zusammenhängenden Abschnitten.')
+    case 'strength-a': return session(date, type, 'Kraft A · Ganzkörper', 55, 'SOLL', 'Knie-/hüftdominant, Rücken, Brust, Core und Schulterpflege.', 'Saubere Technik, 2–3 Wiederholungen in Reserve', 'Mit Copenhagen Plank und Lateral Step-Down; kein schweres Überkopfdrücken.')
+    case 'strength-b': return session(date, type, 'Kraft B · Ganzkörper', 55, 'SOLL', 'Unilateral/Hüfte, Rücken, Brust, Core und Schulterpflege.', 'Kontrolliert, keine Sätze bis zum Versagen', 'Mit Cossack Squat und Side Plank mit Beinheben; Belastung vor Schlüssel-Radtraining reduzieren.')
+    case 'run': return session(date, type, 'Easy Run · Wiedereinstieg', weekIndex ? 35 : 30, 'SOLL', 'Ruhiger Lauf, keine Intervalle; Belastungsverträglichkeit aufbauen.', 'Herzfrequenz: locker / kontrolliert · RPE 3–4', 'Bei Unbehagen Gehpausen einbauen. Pace nicht erzwingen.')
+    case 'endurance': return session(date, type, 'Lockere Z2-Einheit', 65, 'SOLL', 'Grundlage ohne übermäßige Ermüdung.', wattText(ftp, .56, .73), 'Indoor oder draußen, bei Zeitdruck auf 40–45 min kürzbar.')
+    case 'recovery': return session(date, type, 'Recovery oder Pause', 15, 'KANN', 'Leichte Mobility; vollständige Pause ist ebenso sinnvoll.', 'Kein Trainingsdruck', 'Schulter/Brustöffnung, Hüfte, sanfte Bewegungen.')
+  }
+}
+
+export function generatePlan(args: {
+  days: string[]
+  shifts: Record<string, ShiftRecord>
+  profile?: ProfileRecord
+  readiness?: ReadinessRecord
+  existing: TrainingRecord[]
+  completed: CompletedRecord[]
+}): PlanDay[] {
+  const { days, shifts, profile, existing, completed } = args
+  const today = currentKey()
+  const lockedDates = new Set<string>()
+  for (const item of existing) {
+    if (item.profileId !== PROFILE_ID) continue
+    if (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant') lockedDates.add(item.date)
+  }
+  for (const item of completed) if (item.profileId === PROFILE_ID && item.date) lockedDates.add(item.date)
+  const map = new Map<string, PlanDay>()
+  const preassigned = new Set<string>()
+  const heavy = new Set<string>()
+  days.forEach(date => {
+    const shift = shifts[date]
+    const confirmed = isConfirmed(shift)
+    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date)})
+  })
+  const put = (date: string, item: TrainingRecord) => {
+    const day = map.get(date)!
+    day.session = item
+    preassigned.add(date)
+    if (['long', 'quality', 'strength-a', 'strength-b', 'commute'].includes(item.sessionType)) heavy.add(date)
+  }
+  const canUse = (date: string) => {
+    const day = map.get(date)
+    return !!day && date >= today && day.confirmed && !day.protected && !preassigned.has(date) && day.shift !== 'einsatz'
+  }
+  const index = (key: string) => days.indexOf(key)
+  const nearType = (date: string, types: SessionKind[], maxDistance: number) => {
+    const i = index(date)
+    return days.some((d,j) => Math.abs(i-j) <= maxDistance && map.get(d)?.session && types.includes(map.get(d)!.session!.sessionType))
+  }
+  // First: real duty-related load is mandatory to account for.
+  days.forEach(date => {
+    const day = map.get(date)!
+    const shift = shifts[date]
+    if (!day.confirmed || day.protected || date < today) return
+    if (day.shift === 'einsatz') { put(date, candidate(date, 'recovery', profile)); return }
+    if (day.shift === 'tagdienst' && shift?.commute && shift.commute !== 'nein') {
+      const km = (profile?.commuteOneWayKm ?? 0) * (shift.commute === 'beide' ? 2 : 1)
+      put(date, candidate(date, 'commute', profile, km, Boolean(shift.homeIntervals)))
+    }
+  })
+  const readinessToday = args.readiness?.date === today ? readinessLevel(args.readiness) : 'offen'
+  if (map.has(today) && readinessToday === 'rot' && map.get(today)!.confirmed && !map.get(today)!.protected && !preassigned.has(today)) {
+    put(today, candidate(today, 'recovery', profile))
+  }
+  // Rolling weeks (7 days each); entries are flexible, not fixed to weekdays.
+  for (let offset = 0; offset < days.length; offset += 7) {
+    const week = days.slice(offset, offset + 7)
+    const weekNumber = Math.floor(offset / 7)
+    const nearbyHeavy = (date: string, distance = 1) => {
+      const i = index(date)
+      return days.some((d,j) => Math.abs(i-j) <= distance && d !== date && heavy.has(d))
+    }
+    const select = (predicate: (date:string)=>boolean, score: (date:string)=>number): string | undefined =>
+      week.filter(date => canUse(date) && predicate(date)).sort((a,b) => score(b)-score(a) || a.localeCompare(b))[0]
+    // Long bike ride prefers a confirmed free day and distance from commute.
+    const longDate = select(date => map.get(date)!.shift === 'frei' && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10)
+    if (longDate) put(longDate, candidate(longDate, 'long', profile, undefined, false, weekNumber))
+    // One controlled quality session, only if there is a suitable slot.
+    const qualityDate = select(date => {
+      const shift = shifts[date]
+      return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
+        !nearbyHeavy(date) && !nearType(date, ['commute','long'], 1) && !(date === today && readinessToday !== 'gruen')
+    }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 3)
+    if (qualityDate) put(qualityDate, candidate(qualityDate, 'quality', profile))
+    // Up to two full-body strength sessions, at least two days apart.
+    for (const type of ['strength-a','strength-b'] as const) {
+      const strengthDate = select(date => {
+        const shift = shifts[date]
+        return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workStrength)) &&
+          !nearType(date, ['long','commute','quality'], 1) && !nearType(date, ['strength-a','strength-b'], 1) &&
+          !(date === today && readinessToday === 'gelb')
+      }, date => (shifts[date]?.shift === 'tagdienst' ? 8 : 0) - index(date)/100)
+      if (strengthDate) put(strengthDate, candidate(strengthDate, type, profile))
+    }
+    const runDate = select(date => {
+      const shift = shifts[date]
+      return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workRun)) &&
+        !nearType(date, ['long','commute'], 1)
+    }, date => shiftRunScore(shifts[date]))
+    if (runDate) put(runDate, candidate(runDate, 'run', profile, undefined, false, weekNumber))
+    const easyDate = select(date => {
+      const shift = shifts[date]
+      return (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
+        !nearType(date, ['long','commute'], 1)
+    }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 1)
+    if (easyDate) put(easyDate, candidate(easyDate, 'endurance', profile))
+    // All other confirmed days can be genuine rest days.
+  }
+  return days.map(d => map.get(d)!)
+}
+function shiftRunScore(shift?: ShiftRecord) { return shift?.shift === 'tagdienst' ? 6 : 2 }
+
+/** Only generated, incomplete records are replaceable, and only by explicit user action. */
+export async function commitGeneratedPlan(days: PlanDay[], existing: TrainingRecord[], completed: CompletedRecord[]): Promise<number> {
+  const { openTempoDatabase } = await import('../db/storage')
+  const db = await openTempoDatabase()
+  const range = new Set(days.map(x => x.date))
+  const locked = new Set<string>()
+  for (const entry of completed) if (entry.profileId === PROFILE_ID) locked.add(entry.date)
+  for (const item of existing) {
+    if (item.profileId === PROFILE_ID && (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant')) locked.add(item.date)
+  }
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('plannedSessions','readwrite')
+    const store = tx.objectStore('plannedSessions')
+    try {
+      for (const old of existing) {
+        if (old.profileId !== PROFILE_ID || !range.has(old.date) || locked.has(old.date)) continue
+        if (old.createdBy === PLANNER_VERSION && old.status === 'geplant' && !old.locked) store.delete(old.id)
+      }
+      const now = new Date().toISOString()
+      const toSave = days.filter(day => day.session && day.confirmed && !day.protected && !locked.has(day.date)).map(day => day.session!)
+      for (const item of toSave) {
+        const previous = existing.find(old => old.id === item.id)
+        store.put({...item, createdAt: previous?.createdAt ?? now, updatedAt: now})
+      }
+      tx.oncomplete = () => {db.close(); resolve(toSave.length)}
+      tx.onerror = () => {db.close(); reject(tx.error ?? new Error('Plan konnte nicht gespeichert werden'))}
+      tx.onabort = () => {db.close(); reject(tx.error ?? new Error('Plan-Speicherung abgebrochen'))}
+    } catch (error) { tx.abort(); db.close(); reject(error) }
+  })
+}

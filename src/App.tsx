@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import DatabasePanel from './db/DatabasePanel'
 import ReadinessPanel, { ReadinessHomeCard } from './db/ReadinessPanel'
 import ShiftCalendarPanel, { ShiftHomeCard } from './db/ShiftCalendarPanel'
+import TrainingDayPanel, { HomeTrainingCard } from './planning/TrainingDayPanel'
 
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
@@ -69,7 +70,7 @@ function Home({ go }: { go: (id: PageId) => void }) {
     <div className="hero"><span className="hero-glint"/><div className="eyebrow hero-eyebrow">DEIN TRAINING. DEIN RHYTHMUS.</div><h2>Train smarter.<br/><span>Stay consistent.</span></h2><p>Dein persönliches Trainingssystem – aufgebaut um Leistung, Erholung und echte Verfügbarkeit.</p><span className="hero-pill"><span className="pulse-dot"/> TEMPO · Grundgerüst</span></div>
     <div className="dashboard-grid">
       <ReadinessHomeCard onOpen={() => go('readiness')}/>
-      <Card className="status-card"><div className="card-heading"><Eyebrow>HEUTIGES TRAINING</Eyebrow><Icon name="clock" size={17}/></div><h3>Noch nicht geplant</h3><p>Einheiten entstehen später aus Zielen, Diensten und Trainingshistorie.</p><button className="text-action" onClick={() => go('training')}>Training öffnen <Icon name="arrow" size={16}/></button></Card>
+      <HomeTrainingCard onOpen={() => go('training')}/>
       <Card className="status-card"><div className="card-heading"><Eyebrow>NÄCHSTES ZIEL</Eyebrow><button className="icon-action" aria-label={eventsExpanded ? 'Events einklappen' : 'Events ausklappen'} aria-expanded={eventsExpanded} onClick={() => setEventsExpanded(!eventsExpanded)}><span className={eventsExpanded ? 'rotate' : ''}><Icon name="chevron" size={18}/></span></button></div><h3>Kein Event hinterlegt</h3><p>Trainingsabschnitt: noch nicht festgelegt</p>{eventsExpanded && <div className="expanded-note">Sobald du Ziele anlegst, erscheinen hier Eventname und verbleibende Tage.</div>}</Card>
       <ShiftHomeCard onOpen={() => go('calendar')}/>
     </div>
@@ -108,11 +109,11 @@ export default function App() {
       <div className="brand"><div className="brand-symbol"><span/></div><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
       <div className="sidebar-caption">DEIN WORKSPACE</div>
       <nav aria-label="Hauptmenü">{pages.map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page === item.id && <span className="active-marker"/>}</button>)}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.4 · Dienstplanung</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.5 · Trainingsentwurf</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 4</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 5</span></header>
       <main className="content"><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>
     </div>

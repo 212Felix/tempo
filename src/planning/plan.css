@@ -1,0 +1,33 @@
+.tempo-plan{margin-top:24px;max-width:1000px;padding:clamp(22px,3vw,32px)}
+.tempo-plan h2{font-size:clamp(22px,3vw,29px);letter-spacing:-.6px;margin:12px 0}
+.tempo-plan>p{font-size:12px;color:#a8b6c2;line-height:1.75}
+.tempo-plan>p strong{color:#e2ebf2}
+.tempo-plan-stats{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+.tempo-plan-stats span{flex:1;min-width:120px;border:1px solid #ffffff22;border-radius:12px;padding:15px;background:linear-gradient(140deg,#253440,#19232c);display:flex;gap:4px;flex-direction:column;font-size:11px;color:#a6b6c4}
+.tempo-plan-stats strong{color:#f0f6fa;font-size:18px;letter-spacing:-.3px}
+.tempo-plan-warning{background:linear-gradient(115deg,#4a3e25,#282720);border:1px solid #dfb96166;color:#f3dc9f;padding:13px;border-radius:12px;font-size:12px;line-height:1.6;margin-bottom:18px}
+.tempo-plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.tempo-plan-day{min-width:0;border:1px solid #ffffff22;border-radius:12px;padding:15px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(150deg,#263442,#17212b)}
+.tempo-plan-day.is-open{background:linear-gradient(150deg,#54472a,#29291f);border-color:#d8b65b88}
+.tempo-plan-day.is-rest{background:linear-gradient(150deg,#273b35,#1a2b29);border-color:#68a48c48}
+.tempo-plan-day.is-locked{background:linear-gradient(150deg,#2f343d,#1d252e);border-color:#aab8c75a}
+.tempo-plan-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:#dbe7ec}
+.tempo-plan-top span{font-size:10px;color:#b5c3ce}
+.tempo-plan-name{font-weight:720;font-size:14px;line-height:1.35;color:#eff5f8}
+.tempo-plan-sub{font-size:11px;color:#adc6d1;font-weight:670}
+.tempo-plan-day small{font-size:11px;line-height:1.6;color:#a0b0be}
+.tempo-plan-muted{color:#aebec9;font-size:12px;line-height:1.6}
+.tempo-plan-save{border:1px solid #a0cbd9a3;background:linear-gradient(150deg,#97b9c4,#729fae);border-radius:12px;color:#152531;padding:14px 22px;min-height:48px;font-size:13px;font-weight:780;max-width:100%}
+.tempo-plan-save:disabled{opacity:.6}
+.tempo-plan-feedback{font-size:12px;line-height:1.6;margin-top:12px;color:#b9d8cb;min-height:20px}
+.tempo-workout{max-width:850px}
+.tempo-workout-head h2{font-size:clamp(26px,3vw,38px);margin:16px 0 10px;letter-spacing:-.8px}
+.tempo-workout-head p,.tempo-workout-detail p{font-size:13px;line-height:1.75;color:#a8b9c7}
+.tempo-workout-nav{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:19px 0;flex-wrap:wrap}
+.tempo-workout-nav button{border:1px solid #ffffff25;border-radius:10px;padding:10px 12px;background:#ffffff12;font-size:12px;color:#c9d7e0}
+.tempo-workout-nav button:disabled{opacity:.4}
+.tempo-workout-nav strong{font-size:13px}
+.tempo-workout-badges{display:flex;gap:8px;flex-wrap:wrap}
+.tempo-workout-badges span{background:linear-gradient(145deg,#324655,#22303d);border:1px solid #ffffff22;border-radius:24px;padding:7px 10px;font-size:11px}
+.tempo-workout-detail h3{font-size:20px;margin:13px 0}
+@media(max-width:590px){.tempo-plan-grid{grid-template-columns:1fr}.tempo-workout-nav strong{order:-1;width:100%;text-align:center}}
