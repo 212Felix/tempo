@@ -147,7 +147,7 @@ export default function ReadinessPanel() {
       }
       await saveRecord('readinessEntries', readinessEntry)
       await saveRecord('shifts', shiftEntry)
-    }).then(() => { if (myRevision === revision.current) setStatus('Automatisch auf diesem Gerät gespeichert ✓') })
+    }).then(() => { window.dispatchEvent(new Event('tempo:readiness-change')); if (myRevision === revision.current) setStatus('Automatisch auf diesem Gerät gespeichert ✓') })
       .catch(e => { if (myRevision === revision.current) setStatus(`Speichern fehlgeschlagen: ${String(e)}`) })
   }
 

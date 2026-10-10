@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {listRecords} from '../db/storage'
 import {currentKey, friendlyDate, PROFILE_ID, type TrainingRecord} from './engine'
 import ManualTrainingPanel from './ManualTrainingPanel'
+import DailyDecisionPanel from './DailyDecisionPanel'
 import './plan.css'
 
 function HomeTrainingCard({onOpen}:{onOpen:()=>void}) {
@@ -25,7 +26,7 @@ const askAdd=(date:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-a
 const askEdit=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-edit',{detail:{kind:'planned',id}}))
 const askDone=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-finish',{detail:id}))
 
-export default function TrainingDayPanel(){
+export default function TrainingDayPanel({onOpenReadiness}:{onOpenReadiness:()=>void}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
   const [selected,setSelected]=useState('')
   const [loading,setLoading]=useState(true)
@@ -46,6 +47,7 @@ export default function TrainingDayPanel(){
   const atDate=entries.filter(x=>x.date===selectedDay)
   const pos=dates.indexOf(selectedDay)
   return <div className="tempo-workout">
+    <DailyDecisionPanel onOpenReadiness={onOpenReadiness}/>
     <section className="panel tempo-workout-head">
       <div className="eyebrow">TAGESTRAINING · DEIN KALENDER</div>
       <h2>Training selbst gestalten</h2>

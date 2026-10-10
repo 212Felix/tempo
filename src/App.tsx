@@ -109,11 +109,11 @@ export default function App() {
       <div className="brand"><div className="brand-symbol"><span/></div><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
       <div className="sidebar-caption">DEIN WORKSPACE</div>
       <nav aria-label="Hauptmenü">{pages.map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page === item.id && <span className="active-marker"/>}</button>)}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.7 · Belastungssteuerung</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.8 · Tagessteuerung</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 7</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 8</span></header>
       <main className="content"><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel onOpenReadiness={() => navigate('readiness')}/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>
     </div>

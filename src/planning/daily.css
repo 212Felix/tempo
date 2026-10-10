@@ -1,0 +1,14 @@
+.tempo-daily-decision{margin-bottom:18px;max-width:850px;padding:22px;background:linear-gradient(148deg,#253843,#141f2a);border:1px solid #97a8b83d}
+.tempo-daily-decision.tempo-daily-vorsicht,.tempo-daily-decision.tempo-daily-offen{background:linear-gradient(150deg,#453b2a,#1d242a);border-color:#e8bd6666}
+.tempo-daily-decision.tempo-daily-erholung{background:linear-gradient(150deg,#4b322b,#1e252a);border-color:#d89e7d7b}
+.tempo-daily-decision.tempo-daily-normal{background:linear-gradient(150deg,#244039,#18272b);border-color:#77baa07a}
+.tempo-daily-header{display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap;margin:11px 0}
+.tempo-daily-header h2{font-size:clamp(20px,2.4vw,26px);margin:0;letter-spacing:-.5px}
+.tempo-daily-header span{font-size:11px;color:#e0e5e8;letter-spacing:.9px;font-weight:700}
+.tempo-daily-reason{font-size:12px;line-height:1.6;color:#c1d1d8;margin:6px 0}
+.tempo-daily-recommendation{font-size:13px;line-height:1.65;color:#eff5f7;font-weight:540;margin:13px 0}
+.tempo-daily-warning{border:1px solid #f5c37b65;border-radius:10px;padding:12px;color:#f4d7ac;background:#493b2b66;font-size:12px;line-height:1.6}
+.tempo-daily-warning p{margin:4px 0 0;color:#ead2b8}
+.tempo-daily-actions{margin-top:15px;display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.tempo-daily-actions button{background:#d0dde3;color:#1b2b36;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:730}
+.tempo-daily-actions span{color:#aebdc6;font-size:11px}
