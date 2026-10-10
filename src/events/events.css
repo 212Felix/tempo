@@ -1,0 +1,24 @@
+.tempo-event-module{display:grid;gap:18px}
+.tempo-event-hero,.tempo-event-list,.tempo-event-form{padding:23px}
+.tempo-event-module h2{font-size:clamp(21px,3vw,27px);margin:9px 0 10px}
+.tempo-event-module h3{font-size:18px;margin-bottom:16px}
+.tempo-event-module p{color:#a6b4c2;font-size:13px;line-height:1.65}
+.tempo-event-hero p{max-width:790px}
+.tempo-event-entry{border:1px solid #ffffff16;background:#24303e65;border-radius:13px;padding:14px;margin-bottom:10px}
+.tempo-event-entry-top{display:flex;justify-content:space-between;gap:10px;align-items:start;margin-bottom:7px}
+.tempo-event-entry-top strong{font-size:15px}.tempo-event-entry-top span{background:#b7d2e724;border:1px solid #a6bdc64d;border-radius:12px;padding:3px 9px;font-size:11px;white-space:nowrap}
+.tempo-event-entry p{margin:4px 0}.tempo-event-entry a{display:inline-block;margin-top:8px;color:#a9d5e2;text-decoration:underline;font-size:12px}
+.tempo-event-form form{display:grid;gap:13px}
+.tempo-event-form label{display:grid;gap:7px;color:#b6c4d0;font-size:12px;font-weight:600}
+.tempo-event-form input,.tempo-event-form select,.tempo-event-form textarea{width:100%;min-width:0;border:1px solid #ffffff2e;border-radius:10px;background:#111923;color:#f1f6fa;padding:12px;font:inherit;outline-offset:3px;color-scheme:dark}
+.tempo-event-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.tempo-event-fields.triple{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tempo-event-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.tempo-event-actions button{background:#9abfcb;color:#12202c;padding:10px 13px;border-radius:11px;font-weight:700;font-size:12px}
+.tempo-event-actions button+button{background:#ffffff0c;color:#becbd7;border:1px solid #ffffff22}
+.tempo-event-actions button:disabled{opacity:.5}.tempo-event-muted,.tempo-event-hint{color:#9eaab8!important;font-size:12px!important;margin-top:8px!important}
+.tempo-next-event{padding:20px}.tempo-next-event .card-heading{align-items:center}.tempo-event-arrow{border-radius:20px;background:#ffffff12;border:1px solid #ffffff25;padding:2px 10px;font-size:19px;line-height:1.1}
+.tempo-event-expanded{margin-top:10px;padding-top:8px;border-top:1px solid #ffffff18}.tempo-event-expanded p{margin:8px 0;font-size:12px!important}.tempo-event-expanded button{margin-top:6px}
+.tempo-plan-event-summary{padding:12px 15px;border:1px solid #b5c9dc45;background:#92a8c914;border-radius:13px;margin:14px 0}.tempo-plan-event-summary p{margin:5px 0;font-size:12px;color:#c4d5df}
+.tempo-plan-event-note{background:#a8b8ca16;border:1px solid #b7cbe544;border-radius:10px;padding:10px;margin:11px 0;font-size:12px;line-height:1.5;color:#c9d8e5}
+.tempo-plan-event-note strong{display:block;color:#d4e6f0;margin-bottom:5px}.tempo-plan-event-note.event-recovery{background:#2e855a20;border-color:#66b58955}
+@media(max-width:600px){.tempo-event-hero,.tempo-event-list,.tempo-event-form{padding:16px}.tempo-event-fields.triple{grid-template-columns:repeat(2,minmax(0,1fr))}}

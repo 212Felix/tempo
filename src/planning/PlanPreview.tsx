@@ -7,12 +7,16 @@ import {
 } from './engine'
 import { reviewSavedPlan } from './review'
 import './plan.css'
+import { buildEventInfluences, type GoalEvent, type RouteEntry } from '../events/library'
+import '../events/events.css'
 
 export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]; shifts:Record<string,ShiftRecord>; refreshIndex:number}) {
   const [profile, setProfile] = useState<ProfileRecord | undefined>()
   const [ready, setReady] = useState<ReadinessRecord | undefined>()
   const [existing, setExisting] = useState<TrainingRecord[]>([])
   const [completed, setCompleted] = useState<CompletedRecord[]>([])
+  const [events, setEvents] = useState<GoalEvent[]>([])
+  const [routes, setRoutes] = useState<RouteEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
   const [savingDate, setSavingDate] = useState<string | null>(null)
@@ -32,16 +36,19 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
       getRecord<ReadinessRecord>('readinessEntries',`${PROFILE_ID}:${currentKey()}`),
       listRecords<TrainingRecord>('plannedSessions'),
       listRecords<CompletedRecord>('completedSessions'),
-    ]).then(([p,r,old,done]) => {
+      listRecords<GoalEvent>('events'),
+      listRecords<RouteEntry>('routes'),
+    ]).then(([p,r,old,done,ev,rt]) => {
       if (!live) return
-      setProfile(p); setReady(r); setExisting(old); setCompleted(done); setLoading(false)
+      setProfile(p); setReady(r); setExisting(old); setCompleted(done); setEvents(ev); setRoutes(rt); setLoading(false)
     }).catch(err => { if (live) {setLoading(false);setNotice(`Daten konnten nicht geladen werden: ${String(err)}`)} })
     return () => {live = false}
   }, [rangeId,refreshIndex,manualRefresh])
-  const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed}),
-    [rangeId, shifts, profile, ready, existing, completed])
+  const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed, events, routes}),
+    [rangeId, shifts, profile, ready, existing, completed, events, routes])
+  const eventInfluences = useMemo(() => buildEventInfluences(days,events,routes),[rangeId,events,routes])
   const already = existing.filter(s => s.profileId === PROFILE_ID && days.includes(s.date))
-  const reviewIssues = useMemo(() => reviewSavedPlan({days, shifts, existing, completed, readiness:ready}), [rangeId, shifts, existing, completed, ready])
+  const reviewIssues = useMemo(() => reviewSavedPlan({days, shifts, existing, completed, readiness:ready, events, routes}), [rangeId, shifts, existing, completed, ready, events, routes])
   const seriousIssues = reviewIssues.filter(issue => issue.severity === 'konflikt').length
   // Vorher/Nachher ist nur eine Vorschau: Änderungen bleiben bis zur Bestätigung lokal ungespeichert.
   const comparisons = planned.flatMap(day => {
@@ -50,7 +57,7 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
     const after = day.session
     if (!before && !after) return []
     if (before?.title === after?.title && before?.durationMin === after?.durationMin && before?.target === after?.target) return []
-    return [{date:day.date,before:before?.title ?? 'Frei / bisher ungeplant',after:after?.title ?? 'Pause / kein zusätzliches Training',reason:day.recoveryReasons?.[0] ?? (day.shift === 'einsatz' ? 'Einsatztag' : 'Anpassung an Dienst, Verfügbarkeit und Trainingsabstand')}]
+    return [{date:day.date,before:before?.title ?? 'Frei / bisher ungeplant',after:after?.title ?? 'Pause / kein zusätzliches Training',reason:day.eventInfluence?.note ?? day.recoveryReasons?.[0] ?? (day.shift === 'einsatz' ? 'Einsatztag' : 'Anpassung an Dienst, Verfügbarkeit und Trainingsabstand')}]
   })
   const currentReadiness = ready?.date === currentKey() ? readinessLevel(ready) : 'offen' 
   const unconfirmed = planned.filter(p => !p.confirmed).length
@@ -90,10 +97,12 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
     finally {setWorking(false)}
   }
   return <section className="panel tempo-plan">
-    <div className="eyebrow">PHASE 11 · TRAININGSABGLEICH MIT EINZELBESTÄTIGUNG</div>
+    <div className="eyebrow">PHASE 12 · TRAININGSABGLEICH MIT EVENTPLANUNG</div>
     <h2>Trainingsplan vorschlagen</h2>
-    <p>Der Vorschlag berücksichtigt bestätigte Dienste, manuelle Termine und dokumentierte zusätzliche Belastung. Nach längeren oder intensiven Aktivitäten werden Folgetage vorsichtiger geplant. Gespeicherte Trainings werden auf mögliche Konflikte geprüft. Einzelne TEMPO-Tage kannst du gezielt übernehmen; eigene Einheiten werden nur markiert, nicht verändert. Noch keine vollständige Periodisierung oder medizinische Trainingsfreigabe.</p>
+    <p>Der Vorschlag berücksichtigt bestätigte Dienste, manuelle Termine und dokumentierte zusätzliche Belastung. Nach längeren oder intensiven Aktivitäten werden Folgetage vorsichtiger geplant. Gespeicherte Trainings werden auf mögliche Konflikte geprüft. Einzelne TEMPO-Tage kannst du gezielt übernehmen; eigene Einheiten werden nur markiert, nicht verändert. Bestätigte Eventtermine können zusätzlich Vor-/Nachentlastung auslösen. Keine vollständige Periodisierung oder medizinische Trainingsfreigabe.</p>
     {loading ? <p className="tempo-plan-muted">Vorschläge werden berechnet …</p> : <>
+      {Object.values(eventInfluences).length>0 && <div className="tempo-plan-event-summary"><strong>Eventsteuerung aktiv</strong><p>Bestätigte Ziele erhalten einen geschützten Höhepunkttag sowie vorläufige Entlastung davor und danach. Die Challenge selbst ist noch keine absolvierte Fahrt und muss später dokumentiert werden. Eigene Termine bleiben erhalten.</p></div>}
+      {events.some(e=>e.profileId===PROFILE_ID && e.status!=='bestaetigt' && e.status!=='abgeschlossen') && <div className="tempo-plan-warning">Ziele mit offenem Startplatz oder flexiblem Termin sind gespeichert, verursachen aber noch keinen festen Taper.</div>}
       <div className="tempo-plan-stats"><span><strong>{sessions.length}</strong> Einheiten</span><span><strong>{Math.floor(minutes/60)}:{String(minutes%60).padStart(2,'0')} h</strong> {commuteCount ? 'ohne Pendelzeit' : 'Vorschlag'}</span><span><strong>{important}</strong> Rad-Schwerpunkte</span></div>
       <div className={`tempo-plan-readiness tempo-plan-readiness-${currentReadiness}`} role="status"><strong>Readiness heute: {currentReadiness==='gruen'?'GRÜN':currentReadiness==='gelb'?'GELB':currentReadiness==='rot'?'ROT':'NOCH OFFEN'}</strong><span>{currentReadiness==='offen'?'Ohne abgeschlossenen Check-in keine grüne Freigabe.':currentReadiness==='rot'?'Heute Erholung bevorzugen; morgen erneut prüfen.':currentReadiness==='gelb'?'Heute Qualität und schwere Beine kritisch prüfen.':'Heute keine zusätzlichen Readiness-Warnsignale.'}</span></div>
       {ready?.date===currentKey() && ready.illness==='ja' && <div className="tempo-plan-warning">Heute wurden Beschwerden gemeldet. Falls Pendeln trotzdem nötig ist, bitte selbst kritisch prüfen; geplante Belastungen werden nicht als medizinische Freigabe verstanden.</div>}
@@ -121,10 +130,11 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
           const protectedEntry = fixed[0]
           return <div key={day.date} className={`tempo-plan-day ${!day.confirmed?'is-open':item?.sessionType === 'recovery'?'is-rest':day.protected?'is-locked':'is-ready'}`}>
             <div className="tempo-plan-top"><strong>{friendlyDate(day.date)}</strong><span>{day.confirmed ? (day.shift==='frei'?'Frei':day.shift==='tagdienst'?'Tagdienst':'Einsatz') : 'Dienst offen'}</span></div>
-            {!day.confirmed ? <><div className="tempo-plan-name">Dienst bestätigen</div><small>Kein festes Training</small></>
+            {day.eventInfluence?.phase==='event' ? <><div className="tempo-plan-name">🏁 {day.eventInfluence.eventName}</div><small>Geplanter Höhepunkt · keine zusätzliche TEMPO-Einheit · nicht automatisch als absolviert verbucht</small></> : !day.confirmed ? <><div className="tempo-plan-name">Dienst bestätigen</div><small>Kein festes Training</small></>
               : day.protected ? <><div className="tempo-plan-name">{protectedEntry?.title || 'Bereits dokumentiert'}</div><small>{fixed.length > 1 ? `${fixed.length} Einheiten auf diesem Tag bleiben geschützt` : 'Bestehende Einheit bleibt geschützt'}</small></>
               : item ? <><div className="tempo-plan-name">{item.sessionType==='commute'?'🚲 ':item.sessionType.startsWith('strength')?'🏋️ ':item.sessionType==='run'?'🏃 ':item.sessionType==='recovery'?'🧘 ':'🚴 '}{item.title}</div><div className="tempo-plan-sub">{item.durationMin ? `${item.durationMin} min` : 'Dauer offen'} · {item.priority}{item.expectedKm ? ` · ${item.expectedKm} km` : ''}</div><small>{item.sessionType==='commute' ? item.notes : item.description}</small></>
               : <><div className="tempo-plan-name">Ruhetag / frei</div><small>Belastung bewusst offenlassen</small></>}
+            {day.eventInfluence && <div className={`tempo-plan-event-note ${day.eventInfluence.phase==='recovery'?'event-recovery':''}`}><strong>{day.eventInfluence.phase==='event'?'Höhepunkt':day.eventInfluence.phase==='rest-before'?'Vorbereitung: Ruhetag':day.eventInfluence.phase==='recovery'?'Nachbereitung / Recovery':'Reduzierte Belastung vor Event'}</strong>{day.eventInfluence.note}{day.shift==='tagdienst' && shifts[day.date]?.commute && shifts[day.date]?.commute !== 'nein' ? ' · Achtung: eingetragenes Radpendeln zählt als Belastung, nicht als Erholung.' : ''}{day.protected?' · Dein eigener Trainingseintrag bleibt geschützt.':''}</div>}
             {day.confirmed && day.recoveryFlag && day.recoveryFlag !== 'none' && <div className={`tempo-plan-load-note ${day.recoveryFlag === 'recovery' ? 'is-high' : 'is-mild'}`}><strong>{day.recoveryFlag === 'recovery' ? 'Regeneration bevorzugt' : 'Belastung beachten'}</strong><span>{day.recoveryReasons?.join(' · ')}</span>{day.protected && <span>Deine gespeicherte Einheit bleibt geschützt. Belastung und Termin bitte selbst prüfen.</span>}</div>}
             {day.confirmed && <button type="button" className="tempo-plan-manual-button" onClick={() => window.dispatchEvent(new CustomEvent('tempo:manual-add',{detail:day.date}))}>＋ Eigenes Training</button>}
           </div>

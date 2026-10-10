@@ -1,4 +1,5 @@
 import { createLoadCalendar } from './load'
+import { buildEventInfluences, type GoalEvent, type RouteEntry } from '../events/library'
 import { currentKey, isConfirmed, readinessLevel,
   type CompletedRecord, type ReadinessRecord, type ShiftRecord, type TrainingRecord,
   PROFILE_ID } from './engine'
@@ -30,10 +31,13 @@ export function reviewSavedPlan(input: {
   existing: TrainingRecord[]
   completed: CompletedRecord[]
   readiness?: ReadinessRecord
+  events?: GoalEvent[]
+  routes?: RouteEntry[]
 }): ReviewIssue[] {
   const { days, shifts, existing, completed, readiness } = input
   const today = currentKey()
   const active = existing.filter(item => item.profileId === PROFILE_ID && item.status === 'geplant' && days.includes(item.date) && item.date >= today)
+  const eventInfluences = buildEventInfluences(days,input.events??[],input.routes??[])
   const load = createLoadCalendar(days, completed.filter(x => x.profileId === PROFILE_ID), existing.filter(x => x.profileId === PROFILE_ID), readiness)
   const issues: ReviewIssue[] = []
   const add = (date: string, id: string, severity: ReviewIssue['severity'], title: string, explanation: string, suggestion: string, protectedEntry: boolean) => {
@@ -46,8 +50,14 @@ export function reviewSavedPlan(input: {
     const items = active.filter(x => x.date === date)
     if (!items.length) continue
     const shift = shifts[date]
+    const event = eventInfluences[date]
     const protectedEntry = items.some(x => x.locked || x.createdBy === 'tempo-user')
     const strenuous = items.filter(demanding)
+    if (event && shift?.shift==='tagdienst' && shift.commute && shift.commute !== 'nein') add(date,'event-commute','hinweis','Radpendeln im Eventfenster','Radpendeln fällt in Vor-/Nachbereitung eines Höhepunkts.','Diesen Pendeltag als reale Belastung bewerten und bei Bedarf eine Fahrtalternative suchen.',protectedEntry)
+    if (event?.phase==='event') add(date,'event','konflikt','Eventtag und weiteres Training',event.note,'Keine zusätzliche harte Einheit fest einplanen. Eigenes Training bleibt geschützt.',protectedEntry)
+    else if (event?.phase==='recovery' && strenuous.length) add(date,'post-event','konflikt','Erholung nach Event',event.note,'Belastendes Training verschieben oder reduzieren; subjektive Erholung prüfen.',protectedEntry)
+    else if (event?.phase==='rest-before' && strenuous.length) add(date,'pre-event','konflikt','Ruhetag vor Event',event.note,'Belastung reduzieren und Vorbereitungsruhe schützen.',protectedEntry)
+    else if (event?.phase==='taper' && strenuous.length) add(date,'taper','hinweis','Entlastung vor Event',event.note,'Keine zusätzliche harte Trainingseinheit erzwingen.',protectedEntry)
     if (!isConfirmed(shift)) {
       add(date,'unconfirmed','hinweis','Dienst nicht bestätigt',
         'Für diesen Tag sind bereits Trainings gespeichert, der Dienst ist aber noch offen.',

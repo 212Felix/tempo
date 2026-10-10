@@ -1,5 +1,6 @@
 import type { ProfileRecord, TempoRecord } from '../db/types'
 import { createLoadCalendar, type LoadCalendar } from './load'
+import { buildEventInfluences, type EventInfluence, type GoalEvent, type RouteEntry } from '../events/library'
 
 /** Conservative starter scheduling rules, intentionally transparent and changeable. */
 export const PLANNER_VERSION = 'tempo-planner-v1'
@@ -53,7 +54,7 @@ export type CompletedRecord = TempoRecord & {
   notes?: string
   source?: 'manuell' | 'plan' | 'import'
 }
-export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[] }
+export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence }
 
 const sDate = (key: string) => {
   const [year, month, day] = key.split('-').map(Number)
@@ -115,9 +116,12 @@ export function generatePlan(args: {
   readiness?: ReadinessRecord
   existing: TrainingRecord[]
   completed: CompletedRecord[]
+  events?: GoalEvent[]
+  routes?: RouteEntry[]
 }): PlanDay[] {
   const { days, shifts, profile, existing, completed } = args
   const today = currentKey()
+  const eventInfluences = buildEventInfluences(days, args.events ?? [], args.routes ?? [])
   const loadCalendar: LoadCalendar = createLoadCalendar(
     days, completed.filter(x => x.profileId === PROFILE_ID), existing.filter(x => x.profileId === PROFILE_ID), args.readiness
   )
@@ -160,7 +164,7 @@ export function generatePlan(args: {
   days.forEach(date => {
     const shift = shifts[date]
     const confirmed = isConfirmed(shift)
-    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? []})
+    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date]})
   })
   const put = (date: string, item: TrainingRecord) => {
     const day = map.get(date)!
@@ -184,13 +188,31 @@ export function generatePlan(args: {
   days.forEach(date => {
     const day = map.get(date)!
     const shift = shifts[date]
-    if (!day.confirmed || day.protected || date < today) return
-    if (day.shift === 'einsatz') { put(date, candidate(date, 'recovery', profile)); return }
+    if (date < today) return
+    // Ein bestätigter Höhepunkt ist ein fester Kalendereintrag und wird nicht mit einem
+    // zusätzlichen TEMPO-Workout überplant. Als absolvierte Aktivität separat protokollieren.
+    if (day.eventInfluence?.phase === 'event') {
+      preassigned.add(date)
+      heavy.add(date)
+      return
+    }
+    if (!day.confirmed || day.protected) return
+    // Radpendeln ist echte Dienstbelastung und darf nicht als Erholung verbucht werden.
+    // Wenn es auf eine Event-Entlastung fällt, wird im Kalender ein Konflikthinweis angezeigt.
     if (day.shift === 'tagdienst' && shift?.commute && shift.commute !== 'nein') {
       const km = (profile?.commuteOneWayKm ?? 0) * (shift.commute === 'beide' ? 2 : 1)
       put(date, candidate(date, 'commute', profile, km, Boolean(shift.homeIntervals)))
       return
     }
+    // Vor und nach einem bestätigten Höhepunkt nur Recovery / Pause vorschlagen.
+    if (day.eventInfluence?.phase === 'rest-before' || day.eventInfluence?.phase === 'recovery') {
+      const item = candidate(date,'recovery',profile)
+      item.description = day.eventInfluence.note
+      item.notes = day.eventInfluence.note
+      put(date,item)
+      return
+    }
+    if (day.shift === 'einsatz') { put(date, candidate(date, 'recovery', profile)); return }
     if (loadCalendar[date]?.level === 'recovery') {
       const item = candidate(date, 'recovery', profile)
       item.description = 'Regeneration nach dokumentierter Belastung oder aufgrund der Tagesform; vollständige Pause ist ebenfalls möglich.'
@@ -213,12 +235,12 @@ export function generatePlan(args: {
     const select = (predicate: (date:string)=>boolean, score: (date:string)=>number): string | undefined =>
       week.filter(date => canUse(date) && predicate(date)).sort((a,b) => score(b)-score(a) || a.localeCompare(b))[0]
     // Long bike ride prefers a confirmed free day and distance from commute.
-    const longDate = select(date => map.get(date)!.shift === 'frei' && loadCalendar[date]?.level === 'none' && !nearbyHeavy(date) && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10)
+    const longDate = select(date => !eventInfluences[date] && map.get(date)!.shift === 'frei' && loadCalendar[date]?.level === 'none' && !nearbyHeavy(date) && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10)
     if (longDate) put(longDate, candidate(longDate, 'long', profile, undefined, false, weekNumber))
     // One controlled quality session, only if there is a suitable slot.
     const qualityDate = select(date => {
       const shift = shifts[date]
-      return loadCalendar[date]?.level === 'none' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
+      return !eventInfluences[date] && loadCalendar[date]?.level === 'none' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
         !nearbyHeavy(date) && !nearType(date, ['commute','long'], 1) && !(date === today && readinessToday !== 'gruen')
     }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 3)
     if (qualityDate) put(qualityDate, candidate(qualityDate, 'quality', profile))
@@ -227,7 +249,7 @@ export function generatePlan(args: {
     for (let slot = 0; slot < 2; slot++) {
       const strengthDate = week.filter(date => {
         const shift = shifts[date]
-        return canUse(date) && loadCalendar[date]?.level === 'none' &&
+        return canUse(date) && !eventInfluences[date] && loadCalendar[date]?.level === 'none' &&
           (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workStrength)) &&
           !nearType(date, ['long','commute','quality'], 1) && !nearType(date, ['strength-a','strength-b'], 1) &&
           !(date === today && readinessToday === 'gelb')
