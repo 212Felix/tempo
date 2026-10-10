@@ -1,7 +1,8 @@
-import {useMemo} from 'react'
+import {useEffect,useMemo,useState} from 'react'
 import type {FitTrace} from './fit'
 import type {GarminActivity} from './csv'
 import {findClimbCandidates} from './climbs'
+import ClimbDetail from './ClimbDetail'
 import './insights.css'
 
 const formatDuration=(seconds:number|undefined)=>{
@@ -11,6 +12,8 @@ const formatDuration=(seconds:number|undefined)=>{
 }
 const value=(n:number|undefined,unit:string)=>n===undefined?'–':`${new Intl.NumberFormat('de-DE',{maximumFractionDigits:1}).format(n)} ${unit}`
 export default function FitInsights({trace,activity}:{trace:FitTrace;activity?:GarminActivity}){
+  const [expanded,setExpanded]=useState<number|null>(null)
+  useEffect(()=>{setExpanded(null)},[trace.id])
   const elapsed=trace.elapsedSeconds ?? (trace.points.length>1?trace.points[trace.points.length-1].sec:undefined)
   const timer=trace.timerSeconds
   // CSV "Zeit" is not guaranteed to be precisely the FIT timer-time or moving-time.
@@ -28,11 +31,17 @@ export default function FitInsights({trace,activity}:{trace:FitTrace;activity?:G
     </div>
     <p className="tempo-fit-insights-note">Die Zeitachse der Leistungsgrafik zeigt die <strong>Gesamtzeit</strong>. Bei gestopptem Garmin-Timer können zwischen Messpunkten längere Lücken liegen. TEMPO interpoliert diese Lücken nicht und wertet sie nicht als zusätzliche Trainingsleistung.</p>
     <h4>Mögliche Anstiegsabschnitte</h4>
-    {climbs.length? <div className="tempo-climbs-list">{climbs.map((climb,i)=><div className="tempo-climb-item" key={`${climb.startKm}-${i}`}>
-      <div className="tempo-climb-head"><strong>Anstiegskandidat {i+1}</strong><small>km {value(climb.startKm,'')} – {value(climb.endKm,'')}</small></div>
-      <div className="tempo-climb-details"><span>{value(climb.distanceKm,'km')}</span><span>+{value(climb.riseM,'hm')}</span><span>Ø {value(climb.gradePct,'%')}</span><span>{formatDuration(climb.elapsedSeconds)}</span></div>
-      <small>{climb.averagePowerW!==undefined?`Ø ${climb.averagePowerW} W`: 'Keine Wattwerte'} · {climb.averageHrBpm!==undefined?`Ø ${climb.averageHrBpm} bpm`:'kein Puls'} (5-Sekunden-Stichprobe)</small>
-    </div>)}</div>:<p className="tempo-fit-insights-note">Keine hinreichend klaren Anstiegskandidaten aus den gespeicherten Höhen- und Distanzpunkten ermittelt.</p>}
+    {climbs.length?<div className="tempo-climbs-list">{climbs.map((climb,i)=>{
+      const open=expanded===i
+      return <div className="tempo-climb-item" key={`${climb.startKm}-${climb.endKm}-${i}`}>
+        <button type="button" className="tempo-climb-toggle" aria-expanded={open} onClick={()=>setExpanded(open?null:i)}>
+          <span className="tempo-climb-head"><strong>Anstiegskandidat {i+1}</strong><small>km {value(climb.startKm,'')} – {value(climb.endKm,'')}</small></span>
+          <span className="tempo-climb-details"><span>{value(climb.distanceKm,'km')}</span><span>+{value(climb.riseM,'hm')}</span><span>Ø {value(climb.gradePct,'%')}</span><span>{formatDuration(climb.elapsedSeconds)}</span></span>
+          <span className="tempo-climb-footer"><small>{climb.averagePowerW!==undefined?`Ø ${climb.averagePowerW} W`:'Keine Wattwerte'} · {climb.averageHrBpm!==undefined?`Ø ${climb.averageHrBpm} bpm`:'kein Puls'} (5-Sekunden-Stichprobe)</small><span>{open?'Details schließen ↑':'Watt & Puls ansehen ↓'}</span></span>
+        </button>
+        {open&&<ClimbDetail trace={trace} climb={climb}/>}
+      </div>
+    })}</div>:<p className="tempo-fit-insights-note">Keine hinreichend klaren Anstiegskandidaten aus den gespeicherten Höhen- und Distanzpunkten ermittelt.</p>}
     <p className="tempo-fit-insights-note"><strong>Vorläufige Analyse:</strong> Die Erkennung nutzt geglättete Höhenwerte und 5-Sekunden-Stichproben. Steigung und Leistung sind Näherungswerte. Ein Streckenabschnitt gilt damit noch <strong>nicht</strong> als sicherer oder geeigneter Intervallort; GPS, Verkehr, Untergrund und Licht müssen später separat geprüft werden.</p>
   </section>
 }
