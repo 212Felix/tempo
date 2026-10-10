@@ -1,0 +1,17 @@
+TEMPO – ERSTER UPLOAD (für Einsteiger)
+
+1. Diese ZIP-Datei auf dem Mac herunterladen.
+2. Auf die ZIP-Datei doppelklicken. Es entsteht der Ordner "tempo-starter".
+3. GitHub.dev darf offen bleiben. In einem NEUEN Browser-Tab github.com aufrufen.
+4. Dein Repository "tempo" öffnen (nicht github.dev, sondern github.com).
+5. Oben über der Dateiliste "Add file" (Datei hinzufügen) -> "Upload files" (Dateien hochladen) klicken.
+6. Im Finder den entpackten Ordner tempo-starter öffnen.
+7. ALLE enthaltenen Dateien und die Ordner "src", "public", "docs" auswählen und auf die Upload-Fläche ziehen.
+   WICHTIG: NICHT die ZIP-Datei als einzelne Datei hochladen!
+   WICHTIG: Die Dateien müssen direkt im Repository landen, nicht in einem zusätzlichen "tempo-starter"-Unterordner.
+8. Unten auf "Commit changes" klicken und bestätigen.
+9. Hier im Chat schreiben: "Dateien hochgeladen".
+
+Sollte das Hochladen ganzer Ordner im Browser nicht funktionieren, nicht improvisieren: einfach hier Bescheid sagen.
+
+HINWEIS: Dies ist Phase 1 (UI-Vorschau), noch KEINE aktive Trainingsdatenbank.

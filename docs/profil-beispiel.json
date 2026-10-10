@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "profileName": "",
+  "sportPriorities": { "cycling": 0, "running": 0, "strength": 0 },
+  "referenceValues": { "weightKg": null, "ftpWatts": null, "maxHeartRateBpm": null },
+  "cyclingCommute": { "oneWayKm": null },
+  "events": [],
+  "note": "Nur ein Datenmodell-Entwurf. Noch kein Importformat und keine aktiven Werte."
+}
