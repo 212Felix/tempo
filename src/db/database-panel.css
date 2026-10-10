@@ -1,0 +1,19 @@
+.tempo-db{display:grid;gap:20px;max-width:960px}
+.tempo-db-panel{padding:clamp(20px,3vw,30px);display:grid;gap:16px}
+.tempo-db-panel h2{font-size:clamp(20px,2vw,26px);font-weight:650;letter-spacing:-.5px}
+.tempo-db-panel p{color:#a2aebb;font-size:14px;line-height:1.65;max-width:660px}
+.tempo-db-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin:5px 0}
+.tempo-db-fields label{display:grid;gap:8px;color:#b6c4cf;font-size:13px;font-weight:600}
+.tempo-db-fields input{width:100%;min-width:0;border-radius:12px;border:1px solid #ffffff25;background:#111923;padding:13px 14px;color:#f6f8fc;font:inherit;font-size:15px}
+.tempo-db-fields input:focus-visible{outline:2px solid #9cb9d0;outline-offset:1px}
+.tempo-db-primary,.tempo-db-actions button,.tempo-db-import{display:inline-flex;align-items:center;justify-content:center;border-radius:12px;min-height:46px;padding:12px 18px;font-weight:650;font-size:13px}
+.tempo-db-primary{background:linear-gradient(120deg,#9db8ce,#d2dae2);color:#16202a;justify-self:start;box-shadow:0 3px 20px #10182050}
+.tempo-db-actions{display:flex;flex-wrap:wrap;gap:12px}
+.tempo-db-actions button,.tempo-db-import{background:#25313e;border:1px solid #ffffff22;color:#eaf1f8;cursor:pointer}
+.tempo-db-primary:disabled,.tempo-db-actions button:disabled,.tempo-db-import.disabled{opacity:.6;cursor:not-allowed}
+.tempo-db-import input{display:none}
+.tempo-db-stats{display:grid;grid-template-columns:auto 1fr auto 1fr;align-items:center;gap:9px 12px;border-radius:14px;background:#121a23;border:1px solid #ffffff12;padding:17px 19px}
+.tempo-db-stats strong{font-size:26px;font-weight:670;color:#e5f2fa}.tempo-db-stats span{font-size:12px;color:#9dabb8}
+.tempo-db-message{background:#20312d;border:1px solid #7dcab63b;color:#b9e6d7;padding:12px 15px;border-radius:12px;font-size:13px;line-height:1.5}
+.tempo-db-panel .tempo-db-warning{color:#e7c784;font-size:12px}
+@media(max-width:650px){.tempo-db-fields{grid-template-columns:1fr}.tempo-db-stats{grid-template-columns:auto 1fr}.tempo-db-actions{flex-direction:column}.tempo-db-primary,.tempo-db-actions button,.tempo-db-import{width:100%}}
