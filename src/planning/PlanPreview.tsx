@@ -14,8 +14,14 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   const [completed, setCompleted] = useState<CompletedRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
+  const [manualRefresh, setManualRefresh] = useState(0)
   const [notice, setNotice] = useState('')
   const rangeId = days.join('|')
+  useEffect(() => {
+    const onChanged = () => setManualRefresh(n=>n+1)
+    window.addEventListener('tempo:training-change',onChanged)
+    return () => window.removeEventListener('tempo:training-change',onChanged)
+  },[])
   useEffect(() => {
     let live = true
     setLoading(true)
@@ -29,7 +35,7 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
       setProfile(p); setReady(r); setExisting(old); setCompleted(done); setLoading(false)
     }).catch(err => { if (live) {setLoading(false);setNotice(`Daten konnten nicht geladen werden: ${String(err)}`)} })
     return () => {live = false}
-  }, [rangeId,refreshIndex])
+  }, [rangeId,refreshIndex,manualRefresh])
   const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed}),
     [rangeId, shifts, profile, ready, existing, completed])
   const already = existing.filter(s => s.profileId === PROFILE_ID && days.includes(s.date))
@@ -60,16 +66,19 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
       <div className="tempo-plan-grid">
         {planned.map(day => {
           const item = day.session
-          const protectedEntry = day.protected ? already.find(x => x.date === day.date) : undefined
+          const fixed = day.protected ? already.filter(x => x.date === day.date) : []
+          const protectedEntry = fixed[0]
           return <div key={day.date} className={`tempo-plan-day ${!day.confirmed?'is-open':item?.sessionType === 'recovery'?'is-rest':day.protected?'is-locked':'is-ready'}`}>
             <div className="tempo-plan-top"><strong>{friendlyDate(day.date)}</strong><span>{day.confirmed ? (day.shift==='frei'?'Frei':day.shift==='tagdienst'?'Tagdienst':'Einsatz') : 'Dienst offen'}</span></div>
             {!day.confirmed ? <><div className="tempo-plan-name">Dienst bestätigen</div><small>Kein festes Training</small></>
-              : day.protected ? <><div className="tempo-plan-name">{protectedEntry?.title || 'Bereits dokumentiert'}</div><small>Bestehende Einheit bleibt geschützt</small></>
+              : day.protected ? <><div className="tempo-plan-name">{protectedEntry?.title || 'Bereits dokumentiert'}</div><small>{fixed.length > 1 ? `${fixed.length} Einheiten auf diesem Tag bleiben geschützt` : 'Bestehende Einheit bleibt geschützt'}</small></>
               : item ? <><div className="tempo-plan-name">{item.sessionType==='commute'?'🚲 ':item.sessionType.startsWith('strength')?'🏋️ ':item.sessionType==='run'?'🏃 ':item.sessionType==='recovery'?'🧘 ':'🚴 '}{item.title}</div><div className="tempo-plan-sub">{item.durationMin ? `${item.durationMin} min` : 'Dauer offen'} · {item.priority}{item.expectedKm ? ` · ${item.expectedKm} km` : ''}</div><small>{item.sessionType==='commute' ? item.notes : item.description}</small></>
               : <><div className="tempo-plan-name">Ruhetag / frei</div><small>Belastung bewusst offenlassen</small></>}
+            {day.confirmed && <button type="button" className="tempo-plan-manual-button" onClick={() => window.dispatchEvent(new CustomEvent('tempo:manual-add',{detail:day.date}))}>＋ Eigenes Training</button>}
           </div>
         })}
       </div>
+      <p className="tempo-plan-muted">Manuelle Termine und freie Aktivitäten werden bei der Neuplanung geschützt. Ein bereits ausgeführtes oder manuell eingetragenes Workout gilt als Belastung auch für benachbarte Tage. Änderungen am gespeicherten Plan erfolgen erst nach Bestätigung.</p>
       <p className="tempo-plan-muted">Einheiten bleiben Empfehlungen. Readiness wird morgens erneut geprüft. Ein Einsatz erhält nur Recovery/Pause. Volle Pendeltage werden als eigener Ausdauerreiz gerechnet; bei Hin + Rück bleibt die Hinfahrt locker.</p>
       <button type="button" className="tempo-plan-save" disabled={working || loading} onClick={() => void save()}>{working?'Plan wird gespeichert …':'Vorschläge prüfen & Plan übernehmen'}</button>
       <div className="tempo-plan-feedback" role="status">{notice || 'Nichts wird automatisch überschrieben. Erst deine Bestätigung speichert die Vorschläge.'}</div>

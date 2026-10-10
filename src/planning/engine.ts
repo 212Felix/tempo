@@ -7,6 +7,7 @@ export type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
 export type CommuteKind = 'nein' | 'hin' | 'zurueck' | 'beide'
 export type Priority = 'MUSS' | 'SOLL' | 'KANN'
 export type SessionKind = 'long' | 'quality' | 'endurance' | 'commute' | 'strength-a' | 'strength-b' | 'run' | 'recovery'
+export type ManualSessionKind = 'manual-cycling' | 'manual-running' | 'manual-strength' | 'manual-swimming' | 'manual-martial' | 'manual-mobility'
 
 export type ShiftRecord = TempoRecord & {
   date: string
@@ -25,7 +26,7 @@ export type ReadinessRecord = TempoRecord & {
 }
 export type TrainingRecord = TempoRecord & {
   date: string
-  sessionType: SessionKind
+  sessionType: SessionKind | ManualSessionKind
   title: string
   durationMin: number
   priority: Priority
@@ -33,6 +34,8 @@ export type TrainingRecord = TempoRecord & {
   target: string
   notes?: string
   expectedKm?: number
+  elevationM?: number
+  rpe?: number
   status: 'geplant' | 'erledigt' | 'nicht-erledigt'
   createdBy?: string
   locked?: boolean
@@ -40,6 +43,14 @@ export type TrainingRecord = TempoRecord & {
 export type CompletedRecord = TempoRecord & {
   date: string
   plannedSessionId?: string
+  sessionType?: SessionKind | ManualSessionKind
+  title?: string
+  durationMin?: number
+  distanceKm?: number
+  elevationM?: number
+  rpe?: number
+  notes?: string
+  source?: 'manuell' | 'plan' | 'import'
 }
 export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean }
 
@@ -115,6 +126,33 @@ export function generatePlan(args: {
   const map = new Map<string, PlanDay>()
   const preassigned = new Set<string>()
   const heavy = new Set<string>()
+  const fixedTypes = new Map<string, SessionKind[]>()
+  const markFixed = (date: string, type: SessionKind) => {
+    const list = fixedTypes.get(date) ?? []
+    list.push(type)
+    fixedTypes.set(date, list)
+  }
+  const normalize = (type?: TrainingRecord['sessionType'], min?: number, km?: number): SessionKind => {
+    if (type === 'manual-strength') return 'strength-a'
+    if (type === 'manual-running') return 'run'
+    if (type === 'manual-cycling') return (min ?? 0) >= 120 || (km ?? 0) >= 60 ? 'long' : 'endurance'
+    if (type === 'manual-mobility') return 'recovery'
+    if (type === 'manual-martial') return 'quality'
+    if (type === 'manual-swimming') return 'endurance'
+    return (type ?? 'recovery') as SessionKind
+  }
+  // Bereits eingetragene und absolvierte Belastungen beeinflussen auch Nachbartage.
+  for (const item of existing) if (item.profileId === PROFILE_ID && days.includes(item.date) &&
+    (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant')) {
+    const type = normalize(item.sessionType, item.durationMin, item.expectedKm)
+    markFixed(item.date, type)
+    if (['long','quality','strength-a','strength-b','commute'].includes(type)) heavy.add(item.date)
+  }
+  for (const item of completed) if (item.profileId === PROFILE_ID && days.includes(item.date)) {
+    const type = normalize(item.sessionType, item.durationMin, item.distanceKm)
+    markFixed(item.date, type)
+    if (['long','quality','strength-a','strength-b','commute'].includes(type) || (item.rpe ?? 0) >= 7) heavy.add(item.date)
+  }
   days.forEach(date => {
     const shift = shifts[date]
     const confirmed = isConfirmed(shift)
@@ -133,7 +171,10 @@ export function generatePlan(args: {
   const index = (key: string) => days.indexOf(key)
   const nearType = (date: string, types: SessionKind[], maxDistance: number) => {
     const i = index(date)
-    return days.some((d,j) => Math.abs(i-j) <= maxDistance && map.get(d)?.session && types.includes(map.get(d)!.session!.sessionType))
+    return days.some((d,j) => Math.abs(i-j) <= maxDistance && (
+      (map.get(d)?.session && types.includes(map.get(d)!.session!.sessionType as SessionKind)) ||
+      (fixedTypes.get(d) ?? []).some(t => types.includes(t))
+    ))
   }
   // First: real duty-related load is mandatory to account for.
   days.forEach(date => {

@@ -3,6 +3,7 @@ import { getRecord, listRecords, saveRecord } from './storage'
 import type { ProfileRecord, TempoRecord } from './types'
 import './shift-calendar.css'
 import PlanPreview from '../planning/PlanPreview'
+import ManualTrainingPanel from '../planning/ManualTrainingPanel'
 
 const PROFILE_ID = 'local-primary-profile'
 type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
@@ -153,6 +154,7 @@ export default function ShiftCalendarPanel() {
       await saveRecord('shifts', record)
       setEntries(old => ({ ...old, [selectedDate]: record }))
       setPlanRefresh(n => n + 1)
+      window.dispatchEvent(new Event('tempo:shift-change'))
       setFeedback(`${displayDate(selectedDate, true)} · ${shiftName[draft.shift]} gespeichert ✓`)
     } catch (err) { setFeedback(`Speichern fehlgeschlagen: ${String(err)}`) }
     finally { setSaving(false) }
@@ -172,6 +174,7 @@ export default function ShiftCalendarPanel() {
       }
       setEntries(old => ({ ...old, ...updates }))
       setPlanRefresh(n => n + 1)
+      window.dispatchEvent(new Event('tempo:shift-change'))
       setFeedback(`${Object.keys(updates).length} freie Wochenendtage bestätigt ✓`)
     } catch (err) { setFeedback(`Speichern fehlgeschlagen: ${String(err)}`) }
     finally { setSaving(false) }
@@ -244,9 +247,12 @@ export default function ShiftCalendarPanel() {
           <p className="tempo-shift-tip">Bei Hin + Rück: Hinfahrt locker. Strukturierte Anteile höchstens auf geeigneten freien Abschnitten der Heimfahrt – nur bei Tageslicht, sicheren Bedingungen und ausreichender Erholung.</p>
         </>}
       </div>}
-      <div className="tempo-shift-editor-actions"><button type="button" disabled={saving || loading} className="tempo-shift-save" onClick={() => void saveDay()}>{saving ? 'Wird gespeichert …' : 'Tag bestätigen & speichern'}</button></div>
+      <div className="tempo-shift-editor-actions"><button type="button" disabled={saving || loading} className="tempo-shift-save" onClick={() => void saveDay()}>{saving ? 'Wird gespeichert …' : 'Tag bestätigen & speichern'}</button>
+        <button type="button" className="tempo-shift-choice" onClick={() => window.dispatchEvent(new CustomEvent('tempo:manual-add',{detail:selectedDate}))}>＋ Eigenes Training für diesen Tag</button>
+      </div>
     </section>}
     <div className="tempo-shift-feedback" role="status">{feedback}</div>
+    <ManualTrainingPanel days={days}/>
     <PlanPreview days={days} shifts={entries} refreshIndex={planRefresh}/>
   </div>
 }
