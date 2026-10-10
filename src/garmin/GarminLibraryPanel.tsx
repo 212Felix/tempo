@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { deleteRecord, listRecords, openTempoDatabase } from '../db/storage'
+import { deleteRecord, getRecord, listRecords, openTempoDatabase } from '../db/storage'
+import FitImportPanel from './FitImportPanel'
+import FitChart from './FitChart'
+import type { FitTrace } from './fit'
 import { parseGarminCsv, type GarminActivity, type CsvParseResult } from './csv'
 import './garmin.css'
 
@@ -18,16 +21,17 @@ export default function GarminLibraryPanel(){
   const [showAll,setShowAll]=useState(false)
   const [selected,setSelected]=useState<string|null>(null)
   const [batchId,setBatchId]=useState('')
+  const [chosenTrace,setChosenTrace]=useState<FitTrace|null>(null)
 
   async function refresh(){
-    const list=(await listRecords<GarminActivity>('externalActivities')).filter(x=>x.profileId===PROFILE_ID&&x.source==='garmin-csv')
+    const list=(await listRecords<GarminActivity>('externalActivities')).filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'))
       .sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id))
     setStored(list)
     return list
   }
   useEffect(()=>{let live=true;void listRecords<GarminActivity>('externalActivities').then(rows=>{
     if(!live)return
-    const data=rows.filter(x=>x.profileId===PROFILE_ID&&x.source==='garmin-csv').sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id))
+    const data=rows.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit')).sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id))
     setStored(data);setNotice(data.length?`${data.length} importierte Garmin-Aktivitäten lokal verfügbar.`:'Noch keine Garmin-Aktivitäten importiert.')
   }).catch(error=>{if(live)setNotice('Datenbankfehler: '+String(error))});return()=>{live=false}},[])
 
@@ -70,10 +74,21 @@ export default function GarminLibraryPanel(){
     }catch(error){setNotice(`Speichern fehlgeschlagen: ${error instanceof Error?error.message:String(error)}`)}
     finally{setBusy(false)}
   }
+  useEffect(()=>{
+    let live=true
+    const record=stored.find(x=>x.id===selected)
+    if(!record||typeof record.fitSeriesId!=='string'){setChosenTrace(null);return}
+    void getRecord<FitTrace>('performanceEntries',record.fitSeriesId).then(x=>{if(live)setChosenTrace(x??null)}).catch(()=>{if(live)setChosenTrace(null)})
+    return()=>{live=false}
+  },[selected,stored])
   async function remove(id:string){
     if(!window.confirm('Nur diesen importierten Garmin-Eintrag aus TEMPO löschen? Garmin Connect bleibt unverändert.'))return
     setBusy(true)
-    try{await deleteRecord('externalActivities',id);await refresh();setSelected(null);setNotice('Eintrag aus TEMPO entfernt. Garmin Connect bleibt unverändert.')}
+    try{
+      const record=stored.find(x=>x.id===id)
+      if(record && typeof record.fitSeriesId==='string')await deleteRecord('performanceEntries',record.fitSeriesId)
+      await deleteRecord('externalActivities',id);await refresh();setSelected(null);setChosenTrace(null);setNotice('Eintrag samt FIT-Verlauf aus TEMPO entfernt. Garmin Connect bleibt unverändert.')
+    }
     catch(error){setNotice('Löschen fehlgeschlagen: '+String(error))}
     finally{setBusy(false)}
   }
@@ -104,6 +119,7 @@ export default function GarminLibraryPanel(){
         <div className="tempo-garmin-actions"><button type="button" className="tempo-garmin-button" disabled={busy||!preview.activities.length} onClick={()=>void storeCsv()}>Nur neue Aktivitäten importieren</button><button type="button" className="tempo-garmin-muted-button" disabled={busy} onClick={()=>setPreview(null)}>Abbrechen</button></div>
       </div>}
       <div className="tempo-garmin-status" role="status">{busy?'TEMPO verarbeitet die Datei …':notice}</div>
+      <FitImportPanel onSaved={id=>{void refresh().then(()=>setSelected(id))}}/>
     </div>
     <div className="tempo-garmin-panel">
       <div className="eyebrow">HISTORIE · ALLE SPORTARTEN</div>
@@ -113,12 +129,12 @@ export default function GarminLibraryPanel(){
       </div>
       {!shown.length?<p className="tempo-garmin-empty">Keine Aktivitäten in dieser Kategorie gespeichert.</p>:
       <div className="tempo-garmin-list">{subset.map(x=><button key={x.id} className={selected===x.id?'selected':''} onClick={()=>setSelected(selected===x.id?null:x.id)}>
-        <span><strong>{formatDate(x.date)}</strong><small>{names[x.sport]} · {x.title}</small></span>
+        <span><strong>{formatDate(x.date)}</strong><small>{names[x.sport]} · {x.title}{typeof x.fitSeriesId==='string'?' · FIT ✓':''}</small></span>
         <span>{x.distanceKm==null?'–':formatNumber(x.distanceKm)+' km'}<small>{formatNumber(x.durationMin,{maximumFractionDigits:0})} min{x.elevationM!=null?` · ${formatNumber(x.elevationM,{maximumFractionDigits:0})} hm`:''}</small></span>
       </button>)}</div>}
       {!showAll&&shown.length>30&&<button className="tempo-garmin-muted-button" onClick={()=>setShowAll(true)}>Alle {shown.length} anzeigen</button>}
       {chosen&&<div className="tempo-garmin-detail">
-        <h3>{chosen.title}</h3><p>{formatDate(chosen.date)} · {names[chosen.sport]} · Garmin CSV</p>
+        <h3>{chosen.title}</h3><p>{formatDate(chosen.date)} · {names[chosen.sport]} · {chosen.source==='garmin-fit'?'Garmin FIT':'Garmin CSV'}{chosenTrace?' + FIT-Verlauf':''}</p>
         <div className="tempo-garmin-detail-grid">
           <span>Distanz <strong>{chosen.distanceKm==null?'–':formatNumber(chosen.distanceKm)+' km'}</strong></span>
           <span>Dauer <strong>{formatNumber(chosen.durationMin)} min</strong></span>
@@ -127,9 +143,10 @@ export default function GarminLibraryPanel(){
           <span>Ø HF <strong>{chosen.avgHrBpm==null?'–':formatNumber(chosen.avgHrBpm,{maximumFractionDigits:0})+' bpm'}</strong></span>
           <span>NP <strong>{chosen.normalizedPowerW==null?'–':formatNumber(chosen.normalizedPowerW,{maximumFractionDigits:0})+' W'}</strong></span>
         </div>
+        {chosenTrace&&<FitChart trace={chosenTrace}/>}
         <button className="tempo-garmin-danger" disabled={busy} onClick={()=>void remove(chosen.id)}>Diesen importierten Eintrag löschen</button>
       </div>}
     </div>
-    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Was kommt als Nächstes?</h3><p><strong>FIT-Originaldaten:</strong> Als nächste Ausbaustufe lesen wir Leistung, Puls, GPS und Höhenprofil im zeitlichen Verlauf ein. Damit können wir später echte Anstiege, Belastungszonen und 20-Minuten-Abschnitte vergleichen.</p><p><strong>Trainingsplanung:</strong> CSV-Einträge werden in dieser Version noch nicht automatisch als zusätzliche Belastung verbucht. Dadurch vermeiden wir Doppelzählungen mit deinen bereits dokumentierten Touren. Vor der automatischen Verknüpfung bauen wir einen Abgleich „Garmin-Aktivität ↔ TEMPO-Training“ ein.</p><p><strong>Datenschutz:</strong> Keine Anmeldung bei Garmin, keine Weitergabe der CSV, kein Server. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></div>
+    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Was kommt als Nächstes?</h3><p><strong>FIT-Originaldaten:</strong> Jetzt können Leistung, Puls, Kadenz und Höhenprofil im zeitlichen Verlauf lokal gespeichert und angezeigt werden. Eine automatische Anstiegssegmentierung und belastbare 20-Minuten-Vergleiche folgen später.</p><p><strong>Trainingsplanung:</strong> CSV-Einträge werden in dieser Version noch nicht automatisch als zusätzliche Belastung verbucht. Dadurch vermeiden wir Doppelzählungen mit deinen bereits dokumentierten Touren. Vor der automatischen Verknüpfung bauen wir einen Abgleich „Garmin-Aktivität ↔ TEMPO-Training“ ein.</p><p><strong>Datenschutz:</strong> Keine Anmeldung bei Garmin, keine Weitergabe der CSV- oder FIT-Datei, kein TEMPO-Server. FIT enthält gegebenenfalls private GPS-Daten. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></div>
   </section>
 }
