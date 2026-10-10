@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import DatabasePanel from './db/DatabasePanel'
+import ReadinessPanel, { ReadinessHomeCard } from './db/ReadinessPanel'
 
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
@@ -67,32 +68,13 @@ function Home({ go }: { go: (id: PageId) => void }) {
   return <>
     <div className="hero"><span className="hero-glint"/><div className="eyebrow hero-eyebrow">DEIN TRAINING. DEIN RHYTHMUS.</div><h2>Train smarter.<br/><span>Stay consistent.</span></h2><p>Dein persönliches Trainingssystem – aufgebaut um Leistung, Erholung und echte Verfügbarkeit.</p><span className="hero-pill"><span className="pulse-dot"/> TEMPO · Grundgerüst</span></div>
     <div className="dashboard-grid">
-      <Card className="status-card amber-card"><div className="card-heading"><Eyebrow>READINESS</Eyebrow><span className="mini-dot amber"/></div><h3>Noch offen</h3><p>Der tägliche Check-in wird mit der Datenbank verbunden.</p><button className="text-action" onClick={() => go('readiness')}>Readiness ansehen <Icon name="arrow" size={16}/></button></Card>
+      <ReadinessHomeCard onOpen={() => go('readiness')}/>
       <Card className="status-card"><div className="card-heading"><Eyebrow>HEUTIGES TRAINING</Eyebrow><Icon name="clock" size={17}/></div><h3>Noch nicht geplant</h3><p>Einheiten entstehen später aus Zielen, Diensten und Trainingshistorie.</p><button className="text-action" onClick={() => go('training')}>Training öffnen <Icon name="arrow" size={16}/></button></Card>
       <Card className="status-card"><div className="card-heading"><Eyebrow>NÄCHSTES ZIEL</Eyebrow><button className="icon-action" aria-label={eventsExpanded ? 'Events einklappen' : 'Events ausklappen'} aria-expanded={eventsExpanded} onClick={() => setEventsExpanded(!eventsExpanded)}><span className={eventsExpanded ? 'rotate' : ''}><Icon name="chevron" size={18}/></span></button></div><h3>Kein Event hinterlegt</h3><p>Trainingsabschnitt: noch nicht festgelegt</p>{eventsExpanded && <div className="expanded-note">Sobald du Ziele anlegst, erscheinen hier Eventname und verbleibende Tage.</div>}</Card>
       <Card className="status-card amber-card"><div className="card-heading"><Eyebrow>DIENSTPLANUNG</Eyebrow><span className="mini-dot amber"/></div><h3>Planung ausstehend</h3><p>Später: 7–14 Tage im Voraus eintragen. Wochenenden werden zunächst als frei vorgeschlagen.</p><button className="text-action" onClick={() => go('calendar')}>Kalender öffnen <Icon name="arrow" size={16}/></button></Card>
     </div>
     <div className="section-head"><h3>Schnellzugriff</h3><span>DEINE WERKZEUGE</span></div>
     <div className="shortcut-grid">{(['fueling', 'recovery', 'strength', 'metrics'] as PageId[]).map(id => { const page = pages.find(p => p.id === id)!; return <button className="shortcut" key={id} onClick={() => go(id)}><span className="shortcut-icon"><Icon name={page.icon} size={20}/></span><span>{page.name}</span><Icon name="arrow" size={16}/></button> })}</div>
-  </>
-}
-
-const dimensions = [
-  { key: 'sleep', name: 'Schlafqualität', polarity: 'positive', left: 'schlecht', right: 'sehr gut' },
-  { key: 'energy', name: 'Energie / Erholung', polarity: 'positive', left: 'niedrig', right: 'sehr gut' },
-  { key: 'stress', name: 'Stress', polarity: 'negative', left: 'gering', right: 'hoch' },
-  { key: 'fatigue', name: 'Müdigkeit', polarity: 'negative', left: 'gering', right: 'hoch' },
-  { key: 'legs', name: 'Beinempfinden', polarity: 'negative', left: 'frisch', right: 'sehr schwer' },
-] as const
-
-function Readiness() {
-  const [ratings, setRatings] = useState<Record<string, number>>({})
-  return <>
-    <Card><div className="notice"><span className="mini-dot silver"/><div><strong>Designvorschau</strong><p>Die Auswahl funktioniert bereits. Speichern und Trainingsbewertung ergänzen wir mit der Datenbank.</p></div></div></Card>
-    <Card><Eyebrow>MORGEN-CHECK-IN</Eyebrow><h2 className="card-title">Wie fühlst du dich heute?</h2>
-      {dimensions.map(dim => <div className="rating-row" key={dim.key}><div className="rating-top"><strong>{dim.name}</strong><span className="rating-ends">{dim.left} → {dim.right}</span></div><div className="bubble-row" role="group" aria-label={dim.name}>{[1,2,3,4,5].map(value => { const isGood = dim.polarity === 'positive' ? value >= 4 : value <= 2; const isBad = dim.polarity === 'positive' ? value <= 2 : value >= 4; const color = isGood ? 'good' : isBad ? 'bad' : 'medium'; return <button key={value} type="button" className={`bubble ${color} ${ratings[dim.key] === value ? 'selected' : ''}`} aria-pressed={ratings[dim.key] === value} onClick={() => setRatings({...ratings, [dim.key]: value})}>{value}</button>})}</div></div>)}
-    </Card>
-    <Card><Eyebrow>DIENST & AUSBLICK</Eyebrow><h3 className="card-title">Frei · Tagdienst · Einsatz</h3><p className="muted">Die Dienstwahl und Optionen wie Radpendeln (mit frei einstellbarer Streckenlänge) werden in Phase 2 angeschlossen.</p></Card>
   </>
 }
 
@@ -130,11 +112,11 @@ export default function App() {
       <div className="brand"><div className="brand-symbol"><span/></div><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
       <div className="sidebar-caption">DEIN WORKSPACE</div>
       <nav aria-label="Hauptmenü">{pages.map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page === item.id && <span className="active-marker"/>}</button>)}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.2 · Lokale Datenbank</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.3 · Readiness & Datenbank</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 2</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 3</span></header>
       <main className="content"><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <Readiness/> : page === 'calendar' ? <Calendar/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <Calendar/> : page === 'profile' ? <DatabasePanel/> : <Placeholder id={page} go={navigate}/>} 
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>
     </div>

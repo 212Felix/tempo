@@ -18,6 +18,7 @@ export default function DatabasePanel() {
   const [weight, setWeight] = useState('')
   const [ftp, setFtp] = useState('')
   const [maxHr, setMaxHr] = useState('')
+  const [commuteKm, setCommuteKm] = useState('')
   const [counts, setCounts] = useState<Record<StoreName, number> | null>(null)
   const [createdAt, setCreatedAt] = useState('')
   const [notice, setNotice] = useState('Datenbank wird geöffnet …')
@@ -32,6 +33,7 @@ export default function DatabasePanel() {
     setWeight(storedProfile?.weightKg == null ? '' : String(storedProfile.weightKg))
     setFtp(storedProfile?.ftpWatts == null ? '' : String(storedProfile.ftpWatts))
     setMaxHr(storedProfile?.maxHeartRateBpm == null ? '' : String(storedProfile.maxHeartRateBpm))
+    setCommuteKm(storedProfile?.commuteOneWayKm == null ? '' : String(storedProfile.commuteOneWayKm))
     setCreatedAt(storedProfile?.createdAt ?? '')
     setNotice(storedProfile ? 'Persönliches Profil lokal geladen.' : 'Datenbank bereit. Noch kein persönliches Profil angelegt.')
   }
@@ -46,6 +48,7 @@ export default function DatabasePanel() {
         setWeight(profile?.weightKg == null ? '' : String(profile.weightKg))
         setFtp(profile?.ftpWatts == null ? '' : String(profile.ftpWatts))
         setMaxHr(profile?.maxHeartRateBpm == null ? '' : String(profile.maxHeartRateBpm))
+        setCommuteKm(profile?.commuteOneWayKm == null ? '' : String(profile.commuteOneWayKm))
         setCreatedAt(profile?.createdAt ?? '')
         setNotice(profile ? 'Persönliches Profil lokal geladen.' : 'Datenbank bereit. Noch kein persönliches Profil angelegt.')
       })
@@ -59,6 +62,7 @@ export default function DatabasePanel() {
       const weightKg = parseOptionalNumber(weight, 'Gewicht', 500)
       const ftpWatts = parseOptionalNumber(ftp, 'FTP', 2000)
       const maxHeartRateBpm = parseOptionalNumber(maxHr, 'Maximale Herzfrequenz', 250)
+      const commuteOneWayKm = parseOptionalNumber(commuteKm, 'Arbeitsweg je Richtung', 300)
       const record: ProfileRecord = {
         id: PROFILE_ID,
         createdAt,
@@ -67,6 +71,7 @@ export default function DatabasePanel() {
         ...(weightKg !== undefined ? { weightKg } : {}),
         ...(ftpWatts !== undefined ? { ftpWatts } : {}),
         ...(maxHeartRateBpm !== undefined ? { maxHeartRateBpm } : {}),
+        ...(commuteOneWayKm !== undefined ? { commuteOneWayKm } : {}),
       }
       await saveRecord('profiles', record)
       await refresh()
@@ -123,6 +128,7 @@ export default function DatabasePanel() {
         <label>Gewicht (kg) <input type="text" inputMode="decimal" value={weight} onChange={e => setWeight(e.target.value)} placeholder="Noch nicht eingetragen" /></label>
         <label>FTP (W) <input type="text" inputMode="numeric" value={ftp} onChange={e => setFtp(e.target.value)} placeholder="Noch nicht eingetragen" /></label>
         <label>Maximale HF (bpm) <input type="text" inputMode="numeric" value={maxHr} onChange={e => setMaxHr(e.target.value)} placeholder="Noch nicht eingetragen" /></label>
+        <label>Radpendeln je Richtung (km) <input type="text" inputMode="decimal" value={commuteKm} onChange={e => setCommuteKm(e.target.value)} placeholder="z. B. 48" /></label>
       </div>
       <button className="tempo-db-primary" disabled={busy} onClick={() => void saveProfile()}>Profil lokal speichern</button>
     </section>

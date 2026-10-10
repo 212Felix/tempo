@@ -40,6 +40,7 @@ export type ProfileRecord = TempoRecord & {
   weightKg?: number
   ftpWatts?: number
   maxHeartRateBpm?: number
+  commuteOneWayKm?: number
 }
 
 export type TempoBackup = {
