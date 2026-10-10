@@ -1,7 +1,8 @@
 import { useEffect, useState,type ChangeEvent } from 'react'
 import { decodeFitFile,fitMatches,type FitDecoded,type FitTrace } from './fit'
 import FitChart from './FitChart'
-import { listRecords,openTempoDatabase } from '../db/storage'
+import FitInsights from './FitInsights'
+import { listRecords,openTempoDatabase,saveRecord } from '../db/storage'
 import type { GarminActivity } from './csv'
 import './fit.css'
 
@@ -13,6 +14,7 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
   const [matches,setMatches]=useState<GarminActivity[]>([])
   const [known,setKnown]=useState<GarminActivity[]>([])
   const [existingTraces,setExistingTraces]=useState<FitTrace[]>([])
+  const [refreshTrace,setRefreshTrace]=useState<FitTrace|null>(null)
   const [busy,setBusy]=useState(false)
   const [message,setMessage]=useState('Wähle eine Original-FIT-Datei. TEMPO prüft anschließend vorhandene CSV-Fahrten.')
   useEffect(()=>{let live=true;void Promise.all([
@@ -20,11 +22,14 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
   ]).then(([activities,traces])=>{if(!live)return;setKnown(activities.filter(x=>x.profileId===PROFILE_ID));setExistingTraces(traces.filter(x=>x.profileId===PROFILE_ID&&x.kind==='garmin-fit-trace'))}).catch(e=>{if(live)setMessage('Lesefehler: '+String(e))});return()=>{live=false}},[])
   async function openFile(e:ChangeEvent<HTMLInputElement>){
     const file=e.target.files?.[0];e.target.value='';if(!file)return
-    setBusy(true);setPreview(null)
+    setBusy(true);setPreview(null);setRefreshTrace(null)
     try{
       const decoded=await decodeFitFile(file)
-      if(existingTraces.some(t=>t.sha256===decoded.fingerprint)){
-        setMessage('Diese FIT-Datei ist bereits in TEMPO hinterlegt. Kein erneuter Import nötig.');return
+      const previous=existingTraces.find(t=>t.sha256===decoded.fingerprint)
+      if(previous){
+        setPreview(decoded);setRefreshTrace(previous);setCandidate(previous.activityId)
+        setMessage('Diese FIT-Datei ist bereits zugeordnet. Du kannst ihre Zeitmetadaten ergänzen, ohne eine weitere Aktivität anzulegen oder den Messverlauf zu duplizieren.')
+        return
       }
       const candidates=fitMatches(decoded,known.filter(x=>typeof x.fitSeriesId!=='string'))
       setPreview(decoded);setMatches(candidates)
@@ -39,11 +44,28 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
     if(!preview)return
     setBusy(true)
     const p=preview,now=new Date().toISOString()
+    if(refreshTrace){
+      try{
+        const updated:FitTrace={...refreshTrace,updatedAt:now,
+          ...(p.elapsedSeconds!==undefined?{elapsedSeconds:p.elapsedSeconds}:{}),
+          ...(p.timerSeconds!==undefined?{timerSeconds:p.timerSeconds}:{}),
+          ...(p.movingSeconds!==undefined?{movingSeconds:p.movingSeconds}:{})}
+        await saveRecord('performanceEntries',updated)
+        setExistingTraces(x=>x.map(t=>t.id===updated.id?updated:t));setPreview(null);setRefreshTrace(null)
+        setMessage('FIT-Zeitmetadaten aktualisiert. Die Aktivitätszahl und alle Messpunkte bleiben unverändert.')
+        onSaved(updated.activityId)
+      }catch(err){setMessage('Aktualisierung fehlgeschlagen: '+(err instanceof Error?err.message:String(err)))}
+      finally{setBusy(false)}
+      return
+    }
     const activityId=candidate==='new'?`garmin:fit:${PROFILE_ID}:${p.fingerprint.slice(0,32)}`:candidate
     const traceId=`garmin:fit-trace:${PROFILE_ID}:${p.fingerprint.slice(0,32)}`
     const trace:FitTrace={id:traceId,kind:'garmin-fit-trace',profileId:PROFILE_ID,createdAt:now,updatedAt:now,
       activityId,sha256:p.fingerprint,fileName:p.fileName,startedAt:p.startedAt,recordCount:p.recordCount,
-      sampleIntervalSeconds:5,points:p.records}
+      sampleIntervalSeconds:5,points:p.records,
+      ...(p.elapsedSeconds!==undefined?{elapsedSeconds:p.elapsedSeconds}:{}),
+      ...(p.timerSeconds!==undefined?{timerSeconds:p.timerSeconds}:{}),
+      ...(p.movingSeconds!==undefined?{movingSeconds:p.movingSeconds}:{}),}
     const newActivity:GarminActivity={id:activityId,createdAt:now,updatedAt:now,profileId:PROFILE_ID,
       source:'garmin-fit',date:p.date,startedAt:p.startedAt,title:`FIT · ${p.fileName.replace(/\.fit$/i,'')}`,
       sport:p.sport,activityType:p.sport,durationMin:Math.round(p.durationSeconds/6)/10,durationSeconds:p.durationSeconds,
@@ -81,7 +103,8 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
   }
   const tempTrace:FitTrace|undefined=preview?{id:'preview',profileId:PROFILE_ID,kind:'garmin-fit-trace',
     createdAt:'',updatedAt:'',activityId:'preview',sha256:preview.fingerprint,fileName:preview.fileName,
-    startedAt:preview.startedAt,recordCount:preview.recordCount,sampleIntervalSeconds:5,points:preview.records}:undefined
+    startedAt:preview.startedAt,recordCount:preview.recordCount,sampleIntervalSeconds:5,points:preview.records,
+    elapsedSeconds:preview.elapsedSeconds,timerSeconds:preview.timerSeconds,movingSeconds:preview.movingSeconds}:undefined
   return <div className="tempo-fit-import">
     <div className="tempo-garmin-import"><div><h3>2. Original-FIT-Datei einlesen</h3>
       <p>Garmin Connect → Aktivität → Zahnrad → Datei exportieren → ZIP entpacken → <strong>.fit</strong> auswählen. Verarbeitung nur auf diesem Gerät; auch GPS-Verläufe bleiben lokal.</p></div>
@@ -100,15 +123,17 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
       </div>
       {preview.warnings.map((w,i)=><p key={i} className="tempo-fit-warning">{w}</p>)}
       {tempTrace&&<FitChart trace={tempTrace}/>}
+      {tempTrace&&<FitInsights trace={tempTrace} activity={known.find(a=>a.id===candidate)}/>}
       <div className="tempo-fit-match"><label htmlFor="tempo-fit-link">Zuordnung zu deiner Aktivitätsbibliothek</label>
-        <select id="tempo-fit-link" value={candidate} onChange={e=>setCandidate(e.target.value)}>
+        <select id="tempo-fit-link" value={candidate} disabled={Boolean(refreshTrace)} onChange={e=>setCandidate(e.target.value)}>
+          {refreshTrace&&<option value={refreshTrace.activityId}>Bereits verknüpft: {known.find(a=>a.id===refreshTrace.activityId)?.title??refreshTrace.activityId}</option>}
           <option value="new">Als neue Aktivität anlegen (nur falls noch nicht vorhanden)</option>
           {known.filter(a=>a.source==='garmin-csv' && typeof a.fitSeriesId!=='string' && Math.abs(Date.parse(a.date+'T12:00:00Z')-Date.parse(preview.date+'T12:00:00Z'))<=86400000)
             .map(a=><option key={a.id} value={a.id}>{a.date} · {a.title} · {n(a.distanceKm,' km')}{matches.some(m=>m.id===a.id)?' ✓ passend':''}</option>)}
         </select>
-        <small>Bei einer bereits als CSV gespeicherten Fahrt unbedingt diese Aktivität auswählen. TEMPO hängt dann nur die FIT-Messwerte an; die Gesamtzahl bleibt unverändert.</small>
+        <small>{refreshTrace?'Die Originaldatei wurde schon importiert. Jetzt werden nur ergänzende Zeitangaben aus dem FIT-Sitzungsdatensatz gesichert.': 'Bei einer bereits als CSV gespeicherten Fahrt unbedingt diese Aktivität auswählen. TEMPO hängt dann nur die FIT-Messwerte an; die Gesamtzahl bleibt unverändert.'}</small>
       </div>
-      <div className="tempo-garmin-actions"><button type="button" className="tempo-garmin-button" disabled={busy} onClick={()=>void save()}>Zuordnung bestätigen & FIT speichern</button><button type="button" className="tempo-garmin-muted-button" disabled={busy} onClick={()=>setPreview(null)}>Abbrechen</button></div>
+      <div className="tempo-garmin-actions"><button type="button" className="tempo-garmin-button" disabled={busy} onClick={()=>void save()}>{refreshTrace?'FIT-Zeitangaben aktualisieren':'Zuordnung bestätigen & FIT speichern'}</button><button type="button" className="tempo-garmin-muted-button" disabled={busy} onClick={()=>setPreview(null)}>Abbrechen</button></div>
     </div>}
   </div>
 }

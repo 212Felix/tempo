@@ -22,6 +22,10 @@ export type FitTrace = TempoRecord & {
   startedAt: string
   sampleIntervalSeconds: number
   recordCount: number
+  /** FIT session values; missing on older imported traces. */
+  elapsedSeconds?: number
+  timerSeconds?: number
+  movingSeconds?: number
   points: FitPoint[]
 }
 export type FitDecoded = {
@@ -32,6 +36,9 @@ export type FitDecoded = {
   sport: GarminActivity['sport']
   distanceKm?: number
   durationSeconds: number
+  elapsedSeconds?: number
+  timerSeconds?: number
+  movingSeconds?: number
   elevationM?: number
   avgPowerW?: number
   avgHrBpm?: number
@@ -81,7 +88,12 @@ export function buildFitFromMessages(messages: Record<string, unknown>, fingerpr
   const start=dateOf(session.startTime)??entries[0].t
   const startMs=start.getTime()
   const endMs=entries[entries.length-1].t.getTime()
-  const durationSeconds=positive(session.totalTimerTime)??Math.max(1,Math.round((endMs-startMs)/1000))
+  const timerSeconds=positive(session.totalTimerTime)
+  const rawElapsed=Math.max(1,Math.round((endMs-startMs)/1000))
+  const sessionElapsed=positive(session.totalElapsedTime)
+  const elapsedSeconds=Math.max(rawElapsed,sessionElapsed??0)
+  const movingSeconds=positive(session.totalMovingTime)
+  const durationSeconds=timerSeconds??rawElapsed
   if(durationSeconds<10)throw new Error('Die Aktivität ist zu kurz für einen FIT-Verlauf.')
   const raw: FitPoint[]=entries.map(({x,t})=>{
     const point:FitPoint={sec:Math.max(0,Math.round((t.getTime()-startMs)/1000))}
@@ -118,6 +130,8 @@ export function buildFitFromMessages(messages: Record<string, unknown>, fingerpr
   if(!points.some(p=>p.lat!==undefined))warnings.push('Keine GPS-Koordinaten erkannt.')
   return {fingerprint,fileName,date:start.toISOString().slice(0,10),startedAt:start.toISOString(),
     sport:sportOf(session),durationSeconds:Math.round(durationSeconds),
+    elapsedSeconds, ...(timerSeconds!==undefined?{timerSeconds}:{}),
+    ...(movingSeconds!==undefined?{movingSeconds}:{}),
     distanceKm:sessionDistance!==undefined?sessionDistance/1000:lastDistance,
     elevationM:elevation, avgPowerW:positive(session.avgPower)??avg(power),maxPowerW:positive(session.maxPower)??(power.length?power.reduce((a,b)=>Math.max(a,b),0):undefined),
     avgHrBpm:positive(session.avgHeartRate)??avg(hrs),maxHrBpm:positive(session.maxHeartRate)??(hrs.length?hrs.reduce((a,b)=>Math.max(a,b),0):undefined),

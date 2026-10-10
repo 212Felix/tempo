@@ -16,7 +16,7 @@ export default function FitChart({trace}:{trace:FitTrace}){
     return {arr,min:Math.min(...nums),max:Math.max(...nums)}
   },[metric,trace])
   const valid=values.arr.length>2
-  const duration=Math.max(1,trace.points[trace.points.length-1]?.sec??1)
+  const duration=Math.max(1,trace.elapsedSeconds??0,trace.points[trace.points.length-1]?.sec??1)
   const range=Math.max(1,values.max-values.min)
   // Draw separate SVG segments where the sensor stops recording.
   const paths=useMemo(()=>{
@@ -45,8 +45,8 @@ export default function FitChart({trace}:{trace:FitTrace}){
         {[22,69,117,164].map(y=><line key={y} x1="16" y1={y} x2="784" y2={y} stroke="rgba(190,211,226,.13)"/>) }
         {paths.map((d,i)=><path key={i} d={d} fill="none" stroke={field.color} strokeWidth="2.3" strokeLinejoin="round" strokeLinecap="round" />)}
       </svg>
-      <div className="tempo-fit-legend"><span>0 h</span><span>{fmt(values.min)}–{fmt(values.max)} {field.unit}</span><span>{(duration/3600).toLocaleString('de-DE',{maximumFractionDigits:1})} h</span></div>
+      <div className="tempo-fit-legend"><span>0 h</span><span>{fmt(values.min)}–{fmt(values.max)} {field.unit}</span><span>{(duration/3600).toLocaleString('de-DE',{maximumFractionDigits:1})} h Gesamtzeit</span></div>
     </>:<p className="tempo-garmin-empty">Für diese Fahrt sind keine Daten zu {field.name.toLowerCase()} aufgezeichnet.</p>}
-    <p className="tempo-fit-note">Die Grafik ist eine heruntergerechnete Ansicht der FIT-Daten. Pausen oder fehlende Sensorwerte werden nicht ergänzt. Daraus werden noch keine automatischen Trainingsfreigaben abgeleitet.</p>
+    <p className="tempo-fit-note">Die horizontale Achse zeigt die Zeit seit Start, nicht ausschließlich die gefahrene Zeit. Pausen und fehlende Sensorwerte werden nicht ergänzt. Daraus werden noch keine automatischen Trainingsfreigaben abgeleitet.</p>
   </div>
 }
