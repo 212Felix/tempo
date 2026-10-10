@@ -1,0 +1,32 @@
+.tempo-climb-library{margin-top:20px}
+.tempo-climb-library-head,.tempo-climb-library-compare-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.tempo-climb-library-head h2,.tempo-climb-library-compare-heading h3{margin-top:0}
+.tempo-climb-library-head p{color:#a4b8c8;line-height:1.55;margin-top:5px}
+.tempo-climb-library-refresh{border:1px solid rgba(155,196,219,.27);background:rgba(150,192,219,.09);color:#d4e8f1;border-radius:10px;padding:9px 12px;cursor:pointer;white-space:nowrap}
+.tempo-climb-library-refresh:disabled{opacity:.42;cursor:default}
+.tempo-climb-library-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.tempo-climb-library-overview>div{background:rgba(145,186,210,.08);border:1px solid rgba(155,192,216,.14);padding:14px;border-radius:12px}
+.tempo-climb-library-overview strong,.tempo-climb-library-overview small{display:block}.tempo-climb-library-overview strong{font-size:23px}.tempo-climb-library-overview small{font-size:12px;color:#9fb6c4}
+.tempo-climb-library-note{color:#a7bac8;font-size:13px;line-height:1.55}
+.tempo-climb-library-filters{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0 16px}
+.tempo-climb-library-filters button{border-radius:30px;border:1px solid rgba(152,185,204,.23);color:#a9bdca;padding:8px 12px;background:rgba(158,189,209,.08);cursor:pointer}
+.tempo-climb-library-filters button.active{border-color:#91c5df;background:rgba(132,181,210,.25);color:#eef7fb}
+.tempo-climb-library-list{display:grid;gap:7px;margin-bottom:13px}
+.tempo-climb-library-choice{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;gap:12px;color:#e5f0f5;padding:12px;border:1px solid rgba(151,187,204,.17);background:rgba(155,190,214,.06);border-radius:11px;cursor:pointer}
+.tempo-climb-library-choice.selected{background:rgba(120,176,206,.19);border-color:rgba(145,204,235,.55)}
+.tempo-climb-library-choice-title{display:flex;align-items:center;gap:10px;min-width:0}.tempo-climb-library-choice-title strong,.tempo-climb-library-choice-title small{display:block}.tempo-climb-library-choice-title strong{font-size:13px}.tempo-climb-library-choice-title small{font-size:12px;color:#a8bdc9}
+.tempo-climb-library-marker{display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;width:28px;height:28px;border-radius:10px;background:rgba(152,198,224,.21);color:#bce0f1;font-weight:800}
+.tempo-climb-library-choice-stats{flex-shrink:0;color:#bbccda;font-size:12px}
+.tempo-climb-library-compare{margin-top:20px;padding:16px;border:1px solid rgba(156,195,217,.19);border-radius:14px;background:rgba(6,19,30,.31)}
+.tempo-climb-library-compare-names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.tempo-climb-library-compare-names>div{display:grid;grid-template-columns:28px auto;column-gap:8px;row-gap:3px;align-items:center;background:rgba(151,190,211,.08);border-radius:10px;padding:10px;min-width:0}
+.tempo-climb-library-compare-names strong{font-size:13px}.tempo-climb-library-compare-names small{color:#9eb7c6;font-size:12px;grid-column:2}
+.tempo-climb-library-comparison{display:grid;gap:0;border:1px solid rgba(150,186,211,.18);border-radius:11px;overflow:hidden}
+.tempo-climb-library-comparison [role=row]{display:grid;grid-template-columns:1.5fr 1fr 1fr;align-items:center;border-bottom:1px solid rgba(150,186,211,.12)}
+.tempo-climb-library-comparison [role=row]:last-child{border-bottom:0}
+.tempo-climb-library-comparison [role=row]:first-child{background:rgba(158,191,211,.14)}
+.tempo-climb-library-comparison [role=cell],.tempo-climb-library-comparison [role=columnheader]{padding:9px;font-size:12px;overflow-wrap:anywhere}
+.tempo-climb-library-comparison [role=cell]:not(:first-child){font-weight:650}
+.tempo-climb-library-warning{margin-top:13px;background:rgba(187,144,64,.11);border:1px solid rgba(211,169,89,.28);border-radius:10px;padding:11px;color:#e2cda2;font-size:12px;line-height:1.5}
+.tempo-climb-library-warning p{margin:7px 0 0}
+@media(max-width:640px){.tempo-climb-library-head{flex-direction:column}.tempo-climb-library-choice{align-items:flex-start;flex-direction:column}.tempo-climb-library-choice-stats{padding-left:38px}.tempo-climb-library-compare{padding:11px}.tempo-climb-library-compare-names{grid-template-columns:1fr}}
