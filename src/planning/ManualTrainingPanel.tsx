@@ -1,3 +1,4 @@
+import {durationFor,parseHms} from '../time/duration'
 import {useEffect,useMemo,useRef,useState, type FormEvent, type ReactNode} from 'react'
 import {listRecords} from '../db/storage'
 import {canMatchPlan} from './reconcile'
@@ -10,7 +11,7 @@ import './manual.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 
 type Mode = 'planned' | 'completed'
-const showMinutes = (n?:number) => n ? `${n} min` : 'Dauer offen'
+const showMinutes = (entry:{durationMin?:number;durationSec?:number}) => entry.durationMin || entry.durationSec ? durationFor(entry) : 'Dauer offen'
 const toLabel=(record:TrainingRecord | CompletedRecord) => labelFor(record.sessionType)
 function Field({children}:{children:ReactNode}) {return <label className="tempo-manual-field">{children}</label>}
 const numInput = (value:string,set:(v:string)=>void,placeholder:string)=>
@@ -102,7 +103,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
         let target=linked??undefined
         // Bei freiem Abschluss passende Planung ausdrücklich zur Verbindung anbieten.
         if(!target && !editing && !completed.some(x=>x.date===draft.date && x.title===draft.title)){
-          const temp={date:draft.date,sessionType:kindFor(draft.sport),durationMin:Number(draft.duration.replace(',','.'))||0}
+          const temp={date:draft.date,sessionType:kindFor(draft.sport),durationMin:parseHms(draft.duration,true).minutes}
           const possible=planned.filter(p=>canMatchPlan(p,temp) && p.status!=='nicht-erledigt' && !completed.some(x=>x.plannedSessionId===p.id))
           if(possible.length===1 && window.confirm(`Es gibt bereits „${possible[0].title}“ für diesen Tag. Ist dein freier Eintrag die Durchführung dieser Einheit?\n\nOK = direkt mit dem Plan verknüpfen. Abbrechen = weiterhin getrennt speichern.`))target=possible[0]
         }
@@ -148,9 +149,9 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           const actual=item.kind==='planned'?completed.find(x=>x.plannedSessionId===r.id):undefined
           return <div key={`${item.kind}:${r.id}`} className={`tempo-manual-entry ${marked?'is-done':''}`}>
             <div className="tempo-manual-entry-top"><strong>{info.icon} {r.title}</strong><span>{isDone?'✓ Absolviert':item.kind==='planned'&&r.createdBy==='tempo-user'?'Von dir geplant':'TEMPO-Plan'}</span></div>
-            <div className="tempo-manual-meta">{actual?`Ist: ${showMinutes(actual.durationMin)}${actual.rpe?` · RPE ${actual.rpe}`:''}${actual.distanceKm?` · ${actual.distanceKm} km`:''}`:<>{showMinutes(r.durationMin)} {item.kind==='planned'? `· ${r.priority}`:r.rpe?`· RPE ${r.rpe}`:''} {item.kind==='planned'?r.expectedKm?`· ${r.expectedKm} km`:null:r.distanceKm?`· ${r.distanceKm} km`:null}</>}</div>
+            <div className="tempo-manual-meta">{actual?`Ist: ${showMinutes(actual)}${actual.rpe?` · RPE ${actual.rpe}`:''}${actual.distanceKm?` · ${actual.distanceKm} km`:''}`:<>{showMinutes(r)} {item.kind==='planned'? `· ${r.priority}`:r.rpe?`· RPE ${r.rpe}`:''} {item.kind==='planned'?r.expectedKm?`· ${r.expectedKm} km`:null:r.distanceKm?`· ${r.distanceKm} km`:null}</>}</div>
             {(actual?.notes||r.notes)&&<p className="tempo-manual-note">{actual?.notes||r.notes}</p>}
-            {actual&&<p className="tempo-manual-note">Mit Ist-Aktivität verknüpft · geplante Vorgabe: {r.durationMin} min{actual.externalActivityId?' · Garmin-Messwerte ✓':''}</p>}
+            {actual&&<p className="tempo-manual-note">Mit Ist-Aktivität verknüpft · geplante Vorgabe: {durationFor(r)}{actual.externalActivityId?' · Garmin-Messwerte ✓':''}</p>}
             <div className="tempo-manual-entry-actions">
               {!marked&&<button type="button" disabled={busy} onClick={()=>edit(item)}>Bearbeiten / verschieben</button>}
               {actual&&<button type="button" disabled={busy} onClick={()=>edit({kind:'completed',record:actual})}>Ist-Werte bearbeiten</button>}
@@ -161,7 +162,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           </div>
         })}
       </div>
-      {entries.length>0&&<div className="tempo-manual-summary">{entries.filter(x=>x.kind==='planned').length} geplante · {entries.filter(x=>x.kind==='completed').length} absolvierte Einträge {days?'im gewählten Zeitraum':'insgesamt'}</div>}
+      {entries.length>0&&<div className="tempo-manual-summary">{entries.filter(x=>x.kind==='planned'&&!completedIds.has(x.record.id)&&x.record.status!=='erledigt').length} offene Planungen · {entries.filter(x=>x.kind==='completed').length + entries.filter(x=>x.kind==='planned'&&(completedIds.has(x.record.id)||x.record.status==='erledigt')).length} absolvierte Einträge {days?'im gewählten Zeitraum':'insgesamt'}</div>}
     </>}
     {draft&&<div ref={editorRef} id="tempo-manual-editor" className="tempo-manual-editor">
       <div className="tempo-manual-editor-head"><h3>{linked?'Geplantes Training abschließen':editing?'Eintrag bearbeiten':mode==='planned'?'Training selbst planen':'Freies Training erfassen'}</h3><button type="button" aria-label="Eingabe schließen" onClick={()=>{setDraft(null);setLinked(null);setEditing(null)}}>×</button></div>
@@ -171,7 +172,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           <Field>Datum<input type="date" required value={draft.date} onChange={e=>patch('date',e.target.value)}/></Field>
           <Field>Sportart<select value={draft.sport} onChange={e=>patch('sport',e.target.value as ManualSport)}>{sports.map(s=><option value={s.value} key={s.value}>{s.label}</option>)}</select></Field>
           <Field>Trainingsname<input required maxLength={120} value={draft.title} placeholder="z. B. Gravelrunde mit Freunden" onChange={e=>patch('title',e.target.value)}/></Field>
-          <Field>Dauer (Minuten){numInput(draft.duration,v=>patch('duration',v),'z. B. 90')}</Field>
+          <Field>Dauer (hh:mm:ss)<input type="text" inputMode="numeric" value={draft.duration} onChange={e=>patch('duration',e.target.value)} placeholder="01:30:00" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" required/></Field>
           <Field>Distanz (km, optional){numInput(draft.distance,v=>patch('distance',v),'z. B. 75')}</Field>
           <Field>Höhenmeter (optional){numInput(draft.elevation,v=>patch('elevation',v),'z. B. 800')}</Field>
           {mode==='planned'?<>

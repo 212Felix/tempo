@@ -1,4 +1,5 @@
 import type { ProfileRecord, TempoRecord } from '../db/types'
+import {matchingBlock,tailorSession, type TrainingBlock} from '../blocks/library'
 import { createLoadCalendar, type LoadCalendar } from './load'
 import { buildEventInfluences, type EventInfluence, type GoalEvent, type RouteEntry } from '../events/library'
 
@@ -31,6 +32,7 @@ export type TrainingRecord = TempoRecord & {
   sessionType: SessionKind | ManualSessionKind
   title: string
   durationMin: number
+  durationSec?: number
   priority: Priority
   description: string
   target: string
@@ -48,6 +50,7 @@ export type CompletedRecord = TempoRecord & {
   sessionType?: SessionKind | ManualSessionKind
   title?: string
   durationMin?: number
+  durationSec?: number
   distanceKm?: number
   elevationM?: number
   rpe?: number
@@ -118,6 +121,7 @@ export function generatePlan(args: {
   completed: CompletedRecord[]
   events?: GoalEvent[]
   routes?: RouteEntry[]
+  blocks?: TrainingBlock[]
 }): PlanDay[] {
   const { days, shifts, profile, existing, completed } = args
   const today = currentKey()
@@ -166,11 +170,30 @@ export function generatePlan(args: {
     const confirmed = isConfirmed(shift)
     map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date]})
   })
+  const offsetDate=(date:string,diff:number)=>{const t=new Date(`${date}T12:00:00Z`);t.setUTCDate(t.getUTCDate()+diff);return t.toISOString().slice(0,10)}
   const put = (date: string, item: TrainingRecord) => {
     const day = map.get(date)!
-    day.session = item
+    const active=matchingBlock(date,args.blocks??[])
+    // Event taper and recovery always win over an overlapping voluntary focus block.
+    const safeToTailor=!day.eventInfluence && loadCalendar[date]?.level==='none' && !(date===today&&readinessLevel(args.readiness)==='rot')
+    let adjusted=safeToTailor?tailorSession(item,active,profile?.ftpWatts):item
+    if(safeToTailor&&active?.focus==='swimming'&&item.sessionType==='endurance')adjusted={...item,sessionType:'manual-swimming',title:'Schwimmtechnik & ruhige Ausdauer',durationMin:active.capacity==='reduced'?30:45,target:'Kontrolliertes Schwimmen, Technikblöcke mit langen Pausen, keine Maximalintervalle',description:'Schwimm-Schwerpunkt im Sonderblock; auf Erholung und Technik achten.',notes:`Fokusblock ${active.name}`}
+    if(safeToTailor&&active?.focus==='running'&&item.sessionType==='endurance'){
+      const countRunning=completed.filter(c=>c.profileId===PROFILE_ID&&c.date<date&&c.date>=offsetDate(date,-28)&&(c.sessionType==='run'||c.sessionType==='manual-running')).length
+      if(countRunning>=4 && (active.capacity==='more'||active.capacity==='much') && !nearType(date,['run'],2)) adjusted={...item,sessionType:'run',title:'Zusätzlicher lockerer Lauf',durationMin:25,target:'Sehr locker, RPE 2–3, bei Bedarf Gehpausen',description:'Nur bei etablierter Laufverträglichkeit; andernfalls lockeres Radfahren.',notes:`Fokusblock ${active.name}`}
+    }
+    if(safeToTailor&&active?.focus==='strength'&&item.sessionType==='endurance')adjusted={...item,sessionType:'recovery',title:'Beweglichkeit & leichte Rumpfaktivierung',durationMin:25,priority:'KANN',target:'Mobility und Schulterpflege ohne Ermüdung',description:'Keine dritte schwere Krafteinheit allein durch mehr Freizeit'}
+    // A weekly budget is an upper bound for proposed workouts, never an obligation.
+    if(active?.weeklyHours && !['commute','recovery'].includes(adjusted.sessionType)){
+      const weekStart=days[Math.floor(days.indexOf(date)/7)*7]
+      const weekDates=days.slice(Math.floor(days.indexOf(date)/7)*7,Math.floor(days.indexOf(date)/7)*7+7)
+      const existingMinutes=existing.filter(x=>x.profileId===PROFILE_ID&&weekDates.includes(x.date)&&x.status==='geplant').reduce((n,x)=>n+Math.max(0,x.durationMin),0)
+      const generatedMinutes=weekDates.filter(d=>d>=weekStart).reduce((n,d)=>n+(map.get(d)?.session?.durationMin??0),0)
+      if(existingMinutes+generatedMinutes+adjusted.durationMin>active.weeklyHours*60)return
+    }
+    day.session = adjusted
     preassigned.add(date)
-    if (['long', 'quality', 'strength-a', 'strength-b', 'commute'].includes(item.sessionType)) heavy.add(date)
+    if (['long', 'quality', 'strength-a', 'strength-b', 'commute'].includes(adjusted.sessionType)) heavy.add(date)
   }
   const canUse = (date: string) => {
     const day = map.get(date)
@@ -277,6 +300,26 @@ export function generatePlan(args: {
         !nearType(date, ['long','commute'], 1)
     }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 1)
     if (easyDate) put(easyDate, candidate(easyDate, 'endurance', profile))
+    // Additional free time is optional. Only regular riders get ONE extra easy ride;
+    // never force intensity or crowd a key day/event. No extra workout during recovery.
+    const focal=week.map(d=>matchingBlock(d,args.blocks??[])).find(b=>b?.enabled&&b.focus==='cycling'&&b.capacity==='much')
+    if(focal){
+      const firstDay=week[0]
+      const recentCycling=completed.filter(c=>c.profileId===PROFILE_ID&&c.date<firstDay&&c.date>=offsetDate(firstDay,-28)&&
+        ['long','endurance','quality','commute','manual-cycling'].includes(c.sessionType??'')).length
+      if(recentCycling>=3){
+        const optionalDate=select(date=>matchingBlock(date,args.blocks??[])?.id===focal.id&&!eventInfluences[date]&&
+          loadCalendar[date]?.level==='none'&&!nearbyHeavy(date)&&
+          (map.get(date)!.shift==='frei'||Boolean(shifts[date]?.afterWorkCycling)),date=>index(date))
+        if(optionalDate){
+          const extra=candidate(optionalDate,'endurance',profile)
+          extra.title='Optionale lockere Radfahrt · Extra-Freizeit'
+          extra.durationMin=45;extra.priority='KANN'
+          extra.target='Z2 locker, keine zusätzlichen Intervalle'
+          put(optionalDate,extra)
+        }
+      }
+    }
     // All other confirmed days can be genuine rest days.
   }
   return days.map(d => map.get(d)!)

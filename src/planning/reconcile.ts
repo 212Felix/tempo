@@ -99,7 +99,7 @@ export async function attachGarminToCompleted(activityId:string,completedId:stri
         if(!activity||activity.profileId!==PROFILE_ID||!canMatchGarmin(activity,done)){tx.abort();return}
         cs.put({...done,externalActivityId:activity.id,
           manualDurationMin:done.manualDurationMin??done.durationMin,manualDistanceKm:done.manualDistanceKm??done.distanceKm,
-          durationMin:activity.durationMin||done.durationMin,distanceKm:activity.distanceKm??done.distanceKm,
+          durationMin:activity.durationMin||done.durationMin,durationSec:activity.durationSeconds??done.durationSec,distanceKm:activity.distanceKm??done.distanceKm,
           elevationM:activity.elevationM??done.elevationM,
           avgHrBpm:activity.avgHrBpm??done.avgHrBpm,avgPowerW:activity.avgPowerW??done.avgPowerW,
           normalizedPowerW:activity.normalizedPowerW??done.normalizedPowerW,
@@ -134,7 +134,7 @@ export async function completePlanFromGarmin(activityId:string,planId:string):Pr
           const id=`garmin-completed:${activityId}`
           cs.put({id,profileId:PROFILE_ID,date:planned.date,plannedSessionId:planned.id,
             sessionType:planned.sessionType,title:planned.title,source:'import',externalActivityId:a.id,
-            durationMin:a.durationMin,distanceKm:a.distanceKm,elevationM:a.elevationM,
+            durationMin:a.durationMin,durationSec:a.durationSeconds,distanceKm:a.distanceKm,elevationM:a.elevationM,
             avgHrBpm:a.avgHrBpm,avgPowerW:a.avgPowerW,normalizedPowerW:a.normalizedPowerW,
             garminStartedAt:a.startedAt,garminDurationMin:a.durationMin,garminDistanceKm:a.distanceKm,
             createdAt:now,updatedAt:now} as LinkedCompleted)

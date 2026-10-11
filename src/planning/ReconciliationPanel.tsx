@@ -1,3 +1,4 @@
+import {durationFor} from '../time/duration'
 import {useEffect,useMemo,useState} from 'react'
 import {canMatchGarmin,canMatchPlan,canMatchTwoCompletions,mergeDuplicateCompletions,completePlanFromGarmin,attachGarminToCompleted,joinPlanAndCompleted,linkedTo,loadReconcileData,type ReconcileData} from './reconcile'
 import './reconcile.css'
@@ -65,20 +66,20 @@ export default function ReconciliationPanel({context='calendar'}:{context?:'cale
     <p className="tempo-reconcile-intro">{context==='calendar'?'TEMPO hat einen gespeicherten Trainingsabschluss und eine passende Planung am selben Tag erkannt. Bitte bestätige, ob es dieselbe Einheit ist.':'Eine Garmin-Aktivität kann bestehende Ist-Werte ergänzen oder ein geplantes Training als absolviert markieren. Keine automatische Doppelzählung.'}</p>
     {context==='calendar'?matches.map(({planned,done})=><div className="tempo-reconcile-match" key={done.id}>
       <div className="tempo-reconcile-chip">{done.date} · Möglicher Doppel-Eintrag</div>
-      <div><strong>Plan:</strong> {planned.title} · {planned.durationMin} min</div>
-      <div><strong>Ist:</strong> {done.title??'Training'} · {done.durationMin??'–'} min{done.rpe?` · RPE ${done.rpe}`:''}</div>
+      <div><strong>Plan:</strong> {planned.title} · {durationFor(planned)}</div>
+      <div><strong>Ist:</strong> {done.title??'Training'} · {durationFor(done)}{done.rpe?` · RPE ${done.rpe}`:''}</div>
       {done.notes&&<small>Notiz: {done.notes}</small>}
       <button type="button" disabled={busy} onClick={()=>void run(()=>joinPlanAndCompleted(planned.id,done.id),`„${planned.title}“ und „${done.title}“ verbinden?`)}>Als eine Einheit zusammenführen</button>
     </div>):garminMatches.map(({garmin,done,planned})=><div className="tempo-reconcile-match" key={garmin.id}>
       <div className="tempo-reconcile-chip">{garmin.date} · {garmin.sport==='cycling'?'Rad':garmin.sport==='running'?'Lauf':garmin.sport==='strength'?'Kraft':'Schwimmen'}</div>
-      <div><strong>Garmin:</strong> {garmin.title} · {garmin.durationMin.toFixed(1)} min{garmin.distanceKm?` · ${garmin.distanceKm.toFixed(1)} km`:''}</div>
-      {done?<div><strong>Vorhandener Abschluss:</strong> {done.title} · RPE {done.rpe??'offen'}</div>:<div><strong>Geplante Einheit:</strong> {planned?.title} · {planned?.durationMin} min</div>}
+      <div><strong>Garmin:</strong> {garmin.title} · {durationFor(garmin)}{garmin.distanceKm?` · ${garmin.distanceKm.toFixed(1)} km`:''}</div>
+      {done?<div><strong>Vorhandener Abschluss:</strong> {done.title} · RPE {done.rpe??'offen'}</div>:<div><strong>Geplante Einheit:</strong> {planned?.title} · {planned?durationFor(planned):'–'}</div>}
       <button type="button" disabled={busy} onClick={()=>void run(done?()=>attachGarminToCompleted(garmin.id,done.id):()=>completePlanFromGarmin(garmin.id,planned!.id),done?`Garmin-Messwerte mit „${done.title}“ verbinden? RPE und Notizen bleiben erhalten.`:`„${planned?.title}“ mit Garmin abschließen?`)}>{done?'Messwerte verbinden – kein Duplikat':'Zuordnen und als absolviert markieren'}</button>
     </div>)}
     {context==='calendar'&&duplicateCompletions.map(({keeper,extra})=><div className="tempo-reconcile-match" key={extra.id}>
       <div className="tempo-reconcile-chip">{extra.date} · Zwei tatsächliche Abschlüsse?</div>
-      <div><strong>Bereits zugeordnet:</strong> {keeper.title} · {keeper.durationMin} min</div>
-      <div><strong>Zusätzlicher Abschluss:</strong> {extra.title} · {extra.durationMin} min{extra.rpe?` · RPE ${extra.rpe}`:''}</div>
+      <div><strong>Bereits zugeordnet:</strong> {keeper.title} · {durationFor(keeper)}</div>
+      <div><strong>Zusätzlicher Abschluss:</strong> {extra.title} · {durationFor(extra)}{extra.rpe?` · RPE ${extra.rpe}`:''}</div>
       <p className="tempo-reconcile-muted">Nur verbinden, wenn beide wirklich dieselbe absolvierte Einheit beschreiben. Der überzählige Originaleintrag wird zur Sicherheit im Backup-Bereich archiviert.</p>
       <button type="button" disabled={busy} onClick={()=>void run(()=>mergeDuplicateCompletions(keeper.id,extra.id),'Beide Abschlüsse zu genau einer realen Trainingseinheit zusammenführen?')}>Doppelabschluss bereinigen</button>
     </div>)}

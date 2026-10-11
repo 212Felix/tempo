@@ -1,6 +1,8 @@
+import {durationFor} from '../time/duration'
 import { useEffect, useMemo, useState } from 'react'
 import { getRecord, listRecords } from '../db/storage'
 import type { ProfileRecord } from '../db/types'
+import {matchingBlock,describeBlock,type TrainingBlock} from '../blocks/library'
 import {
   PROFILE_ID, PLANNER_VERSION, commitGeneratedPlan, currentKey, friendlyDate, generatePlan, readinessLevel,
   type CompletedRecord, type ReadinessRecord, type ShiftRecord, type TrainingRecord,
@@ -18,6 +20,7 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   const [completed, setCompleted] = useState<CompletedRecord[]>([])
   const [events, setEvents] = useState<GoalEvent[]>([])
   const [routes, setRoutes] = useState<RouteEntry[]>([])
+  const [blocks, setBlocks] = useState<TrainingBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
   const [savingDate, setSavingDate] = useState<string | null>(null)
@@ -27,7 +30,8 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   useEffect(() => {
     const onChanged = () => setManualRefresh(n=>n+1)
     window.addEventListener('tempo:training-change',onChanged)
-    return () => window.removeEventListener('tempo:training-change',onChanged)
+    window.addEventListener('tempo:blocks-change',onChanged)
+    return () => {window.removeEventListener('tempo:training-change',onChanged);window.removeEventListener('tempo:blocks-change',onChanged)}
   },[])
   useEffect(() => {
     let live = true
@@ -39,15 +43,17 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
       listRecords<CompletedRecord>('completedSessions'),
       listRecords<GoalEvent>('events'),
       listRecords<RouteEntry>('routes'),
-    ]).then(([p,r,old,done,ev,rt]) => {
+      listRecords<TrainingBlock>('trainingBlocks'),
+    ]).then(([p,r,old,done,ev,rt,bl]) => {
       if (!live) return
-      setProfile(p); setReady(r); setExisting(old); setCompleted(done); setEvents(ev); setRoutes(rt); setLoading(false)
+      setProfile(p); setReady(r); setExisting(old); setCompleted(done); setEvents(ev); setRoutes(rt); setBlocks(bl); setLoading(false)
     }).catch(err => { if (live) {setLoading(false);setNotice(`Daten konnten nicht geladen werden: ${String(err)}`)} })
     return () => {live = false}
   }, [rangeId,refreshIndex,manualRefresh])
-  const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed, events, routes}),
-    [rangeId, shifts, profile, ready, existing, completed, events, routes])
+  const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed, events, routes, blocks}),
+    [rangeId, shifts, profile, ready, existing, completed, events, routes, blocks])
   const eventInfluences = useMemo(() => buildEventInfluences(days,events,routes),[rangeId,events,routes])
+  const currentBlocks = blocks.filter(b=>days.some(d=>matchingBlock(d,[b])?.id===b.id))
   const already = existing.filter(s => s.profileId === PROFILE_ID && days.includes(s.date))
   const reviewIssues = useMemo(() => reviewSavedPlan({days, shifts, existing, completed, readiness:ready, events, routes}), [rangeId, shifts, existing, completed, ready, events, routes])
   const seriousIssues = reviewIssues.filter(issue => issue.severity === 'konflikt').length
@@ -100,6 +106,7 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   return <section className="panel tempo-plan">
     <div className="eyebrow">PHASE 12 · TRAININGSABGLEICH MIT EVENTPLANUNG</div>
     <h2>Trainingsplan vorschlagen</h2>
+    {currentBlocks.length>0&&<div className="tempo-plan-event-summary"><strong>Fokusblock aktiv: {currentBlocks.map(x=>x.name).join(' · ')}</strong><p>{currentBlocks.map(describeBlock).join(' · ')}. Nur ein Vorschlag; geschützte und absolvierte Einheiten bleiben unverändert.</p></div>}
     <HelpDisclosure id="calendar-plan-intro"><p>Der Vorschlag berücksichtigt bestätigte Dienste, manuelle Termine und dokumentierte zusätzliche Belastung. Nach längeren oder intensiven Aktivitäten werden Folgetage vorsichtiger geplant. Gespeicherte Trainings werden auf mögliche Konflikte geprüft. Einzelne TEMPO-Tage kannst du gezielt übernehmen; eigene Einheiten werden nur markiert, nicht verändert. Bestätigte Eventtermine können zusätzlich Vor-/Nachentlastung auslösen. Keine vollständige Periodisierung oder medizinische Trainingsfreigabe.</p></HelpDisclosure>
     {loading ? <p className="tempo-plan-muted">Vorschläge werden berechnet …</p> : <>
       {Object.values(eventInfluences).length>0 && <div className="tempo-plan-event-summary"><strong>Eventsteuerung aktiv</strong><HelpDisclosure id="calendar-event-help"><p>Bestätigte Ziele erhalten einen geschützten Höhepunkttag sowie vorläufige Entlastung davor und danach. Die Challenge selbst ist noch keine absolvierte Fahrt und muss später dokumentiert werden. Eigene Termine bleiben erhalten.</p></HelpDisclosure></div>}
@@ -133,7 +140,7 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
             <div className="tempo-plan-top"><strong>{friendlyDate(day.date)}</strong><span>{day.confirmed ? (day.shift==='frei'?'Frei':day.shift==='tagdienst'?'Tagdienst':'Einsatz') : 'Dienst offen'}</span></div>
             {day.eventInfluence?.phase==='event' ? <><div className="tempo-plan-name">🏁 {day.eventInfluence.eventName}</div><small>Geplanter Höhepunkt · keine zusätzliche TEMPO-Einheit · nicht automatisch als absolviert verbucht</small></> : !day.confirmed ? <><div className="tempo-plan-name">Dienst bestätigen</div><small>Kein festes Training</small></>
               : day.protected ? <><div className="tempo-plan-name">{protectedEntry?.title || 'Bereits dokumentiert'}</div><small>{fixed.length > 1 ? `${fixed.length} Einheiten auf diesem Tag bleiben geschützt` : 'Bestehende Einheit bleibt geschützt'}</small></>
-              : item ? <><div className="tempo-plan-name">{item.sessionType==='commute'?'🚲 ':item.sessionType.startsWith('strength')?'🏋️ ':item.sessionType==='run'?'🏃 ':item.sessionType==='recovery'?'🧘 ':'🚴 '}{item.title}</div><div className="tempo-plan-sub">{item.durationMin ? `${item.durationMin} min` : 'Dauer offen'} · {item.priority}{item.expectedKm ? ` · ${item.expectedKm} km` : ''}</div><small>{item.sessionType==='commute' ? item.notes : item.description}</small></>
+              : item ? <><div className="tempo-plan-name">{item.sessionType==='commute'?'🚲 ':item.sessionType.startsWith('strength')?'🏋️ ':item.sessionType==='run'?'🏃 ':item.sessionType==='recovery'?'🧘 ':'🚴 '}{item.title}</div><div className="tempo-plan-sub">{item.durationMin ? durationFor(item) : 'Dauer offen'} · {item.priority}{item.expectedKm ? ` · ${item.expectedKm} km` : ''}</div><small>{item.sessionType==='commute' ? item.notes : item.description}</small></>
               : <><div className="tempo-plan-name">Ruhetag / frei</div><small>Belastung bewusst offenlassen</small></>}
             {day.eventInfluence && <div className={`tempo-plan-event-note ${day.eventInfluence.phase==='recovery'?'event-recovery':''}`}><strong>{day.eventInfluence.phase==='event'?'Höhepunkt':day.eventInfluence.phase==='rest-before'?'Vorbereitung: Ruhetag':day.eventInfluence.phase==='recovery'?'Nachbereitung / Recovery':'Reduzierte Belastung vor Event'}</strong>{day.eventInfluence.note}{day.shift==='tagdienst' && shifts[day.date]?.commute && shifts[day.date]?.commute !== 'nein' ? ' · Achtung: eingetragenes Radpendeln zählt als Belastung, nicht als Erholung.' : ''}{day.protected?' · Dein eigener Trainingseintrag bleibt geschützt.':''}</div>}
             {day.confirmed && day.recoveryFlag && day.recoveryFlag !== 'none' && <div className={`tempo-plan-load-note ${day.recoveryFlag === 'recovery' ? 'is-high' : 'is-mild'}`}><strong>{day.recoveryFlag === 'recovery' ? 'Regeneration bevorzugt' : 'Belastung beachten'}</strong><span>{day.recoveryReasons?.join(' · ')}</span>{day.protected && <span>Deine gespeicherte Einheit bleibt geschützt. Belastung und Termin bitte selbst prüfen.</span>}</div>}

@@ -1,3 +1,4 @@
+import {durationFor,parseHms,formatSeconds} from '../time/duration'
 import { deleteRecord, listRecords, openTempoDatabase, saveRecord } from '../db/storage'
 import { PLANNER_VERSION, PROFILE_ID, type CompletedRecord, type ManualSessionKind, type Priority, type TrainingRecord } from './engine'
 
@@ -22,7 +23,7 @@ export type ManualForm = {
   target: string
   notes: string
 }
-export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'60',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:''})
+export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:''})
 export type Editable = {kind:'planned'; record:TrainingRecord} | {kind:'completed'; record:CompletedRecord}
 export const sportFor = (kind: TrainingRecord['sessionType'] | undefined): ManualSport => {
   if (kind==='commute'||kind==='long'||kind==='quality'||kind==='endurance'||kind==='manual-cycling') return 'cycling'
@@ -39,7 +40,7 @@ export const toForm = (entry:Editable):ManualForm => {
   return {
     date:r.date,
     sport:sportFor(r.sessionType),
-    title:r.title??'', duration:r.durationMin===0?'':String(r.durationMin??''),
+    title:r.title??'', duration:durationFor(r),
     distance:entry.kind==='planned' ? (r.expectedKm==null?'':String(r.expectedKm)) : (r.distanceKm==null?'':String(r.distanceKm)),
     elevation:r.elevationM==null?'':String(r.elevationM),
     rpe:r.rpe==null?'':String(r.rpe),
@@ -59,12 +60,14 @@ export function validateForm(form:ManualForm, mode:'planned'|'completed') {
   if (!validDate(form.date)) throw new Error('Bitte ein gültiges Datum wählen.')
   if (!form.title.trim()) throw new Error('Bitte einen Trainingsnamen eingeben.')
   if (form.title.trim().length>120 || form.notes.length>1500 || form.target.length>1000) throw new Error('Ein Textfeld ist zu lang.')
-  const duration=decimal(form.duration,'Dauer',1440,mode==='completed')
+  const parsed=parseHms(form.duration,mode==='planned')
+  const duration=parsed.minutes
+  const durationSec=parsed.seconds
   const distance=decimal(form.distance,'Kilometer',1500)
   const elevation=decimal(form.elevation,'Höhenmeter',15000)
   const rpe=decimal(form.rpe,'RPE',10)
   if (rpe!==undefined && (rpe<1 || !Number.isInteger(rpe))) throw new Error('RPE muss zwischen 1 und 10 liegen.')
-  return {duration:duration??0,distance,elevation,rpe}
+  return {duration,durationSec,distance,elevation,rpe}
 }
 export const notifyChange=()=>window.dispatchEvent(new Event('tempo:training-change'))
 export const newId=()=>`manual:${PROFILE_ID}:${crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
@@ -76,12 +79,12 @@ export async function loadManualEntries(){
   }
 }
 export async function saveManualPlanned(form:ManualForm, previous?:TrainingRecord) {
-  const {duration,distance,elevation,rpe}=validateForm(form,'planned')
+  const {duration,durationSec,distance,elevation,rpe}=validateForm(form,'planned')
   const now=new Date().toISOString()
   const wasGenerated = previous?.createdBy === PLANNER_VERSION
   const record:TrainingRecord={
     ...(previous??{}), id:wasGenerated?newId():previous?.id??newId(),profileId:PROFILE_ID,
-    date:form.date,sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,
+    date:form.date,sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
     priority:form.priority,description:'Manuell geplant · nicht automatisch überschreiben',
     target:form.target.trim()||'Nach Tagesform und persönlichem Ziel',
     notes:form.notes.trim(),expectedKm:distance,elevationM:elevation,rpe,
@@ -106,11 +109,11 @@ export async function saveManualPlanned(form:ManualForm, previous?:TrainingRecor
   notifyChange()
 }
 export async function saveManualCompleted(form:ManualForm, previous?:CompletedRecord, planned?:TrainingRecord) {
-  const {duration,distance,elevation,rpe}=validateForm(form,'completed')
+  const {duration,durationSec,distance,elevation,rpe}=validateForm(form,'completed')
   const now=new Date().toISOString()
   const record:CompletedRecord={
     ...(previous??{}),id:previous?.id??newId(),profileId:PROFILE_ID,date:form.date,
-    sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,
+    sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
     distanceKm:distance,elevationM:elevation,rpe,notes:form.notes.trim(),
     source:planned?'plan':previous?.source??'manuell',
     plannedSessionId:planned?.id??previous?.plannedSessionId,

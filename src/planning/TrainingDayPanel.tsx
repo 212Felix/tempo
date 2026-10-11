@@ -1,3 +1,4 @@
+import {durationFor} from '../time/duration'
 import {useEffect,useState} from 'react'
 import {listRecords} from '../db/storage'
 import {currentKey, friendlyDate, PROFILE_ID, type TrainingRecord} from './engine'
@@ -19,7 +20,7 @@ function HomeTrainingCard({onOpen}:{onOpen:()=>void}) {
   const pending=today.filter(x=>x.status==='geplant')
   return <section className="panel status-card"><div className="card-heading"><div className="eyebrow">HEUTIGES TRAINING</div><span className="mini-dot silver"/></div>
     <h3>{pending[0]?.title??(today.length?'Geplantes Training erledigt':'Noch nicht geplant')}</h3>
-    <p>{pending.length?`${pending[0].durationMin?pending[0].durationMin+' min':'Dauer offen'} · ${pending[0].priority}${pending.length>1?` · +${pending.length-1} weitere`:''}`:today.length?'Heute bisher dokumentierte Einheiten abgeschlossen.':'Dienste unter „14 Tage“ bestätigen oder selbst eine Trainingseinheit anlegen.'}</p>
+    <p>{pending.length?`${pending[0].durationMin?durationFor(pending[0]):'Dauer offen'} · ${pending[0].priority}${pending.length>1?` · +${pending.length-1} weitere`:''}`:today.length?'Heute bisher dokumentierte Einheiten abgeschlossen.':'Dienste unter „14 Tage“ bestätigen oder selbst eine Trainingseinheit anlegen.'}</p>
     <button className="text-action" onClick={onOpen}>Tagestraining öffnen →</button></section>
 }
 export {HomeTrainingCard}
@@ -59,7 +60,7 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
     </section>
     {loading?<section className="panel tempo-workout-detail"><p>{notice}</p></section>:atDate.length?atDate.map(x=><section className="panel tempo-workout-detail" key={x.id}>
       <div className="eyebrow">{x.status==='erledigt'?'✓ ABSOLVIERT':x.createdBy==='tempo-user'?'VON DIR GEPLANT':'TEMPO-VORSCHLAG'} · {x.priority}</div>
-      <h3>{x.title}</h3><p>{x.durationMin?`${x.durationMin} min · `:''}{x.description}</p>
+      <h3>{x.title}</h3><p>{x.durationMin?`${durationFor(x)} · `:''}{x.description}</p>
       <div className="tempo-workout-badges"><span>{x.target}</span>{x.expectedKm?<span>{x.expectedKm} km</span>:null}</div>
       {x.notes&&<p style={{marginTop:12}}>{x.notes}</p>}
       {(isStrength(x)||isRun(x))&&<div style={{margin:'14px 0'}}><button className="tw-open-action" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm & Feedback öffnen →'}</button></div>}

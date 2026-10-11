@@ -37,7 +37,7 @@ export function alreadyDone(planned:TrainingRecord|undefined,completed:Completed
 }
 
 type FinalizeInput={
-  date:string;title:string;durationMin:number;rpe:number;notes:string
+  date:string;title:string;durationMin:number;durationSec?:number;rpe:number;notes:string
   sessionType:'manual-strength'|'manual-running'; planned?:TrainingRecord
   distanceKm?:number;avgHrBpm?:number;strengthVariant?:'A'|'B'; sets?:StrengthSet[];freeKey:string
 }
@@ -53,7 +53,7 @@ export async function finalizeWorkout(input:FinalizeInput):Promise<void>{
   const now=new Date().toISOString()
   const completedId=planned?`workout:${planned.id}`:`workout:${freeKey}`
   const completed:CompletedRecord & {avgHrBpm?:number;strengthVariant?:'A'|'B'}={
-    id:completedId,profileId:PROFILE_ID,date,title:input.title.trim(),durationMin:input.durationMin,
+    id:completedId,profileId:PROFILE_ID,date,title:input.title.trim(),durationMin:input.durationMin,durationSec:input.durationSec,
     sessionType:planned?.sessionType??input.sessionType,distanceKm:input.distanceKm,rpe:input.rpe,
     notes:input.notes.trim().slice(0,1500),source:planned?'plan':'manuell',
     plannedSessionId:planned?.id,avgHrBpm:input.avgHrBpm,strengthVariant:input.strengthVariant,

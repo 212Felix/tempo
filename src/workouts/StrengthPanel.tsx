@@ -1,3 +1,4 @@
+import {parseHms,durationFor} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,PROFILE_ID,type TrainingRecord} from '../planning/engine'
 import {STRENGTH,restLabel} from './catalog'
@@ -17,7 +18,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const [variant,setVariant]=useState<'A'|'B'>('A')
   const [plannedId,setPlannedId]=useState('')
   const [inputs,setInputs]=useState<Record<string,StrengthInput>>({})
-  const [duration,setDuration]=useState('55')
+  const [duration,setDuration]=useState('00:55:00')
   const [rpe,setRpe]=useState('5')
   const [notes,setNotes]=useState('')
   const [message,setMessage]=useState('Einheiten werden geladen …')
@@ -102,10 +103,11 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
       if(done)throw Error('Diese Einheit ist bereits abgeschlossen.')
       const sets=collect()
       if(!sets.length)throw Error('Bitte mindestens einen Satz erfassen.')
-      const durationMin=numberField(duration,'Dauer',600,true)!
+      const time=parseHms(duration)
+      const durationMin=time.minutes
       const effort=numberField(rpe,'RPE',10,true)!
       await finalizeWorkout({date:onDate,planned:selected,title:selected?.title??template.title,
-        durationMin,rpe:effort,notes,sessionType:'manual-strength',strengthVariant:kind,sets,freeKey:sessionKey})
+        durationMin,durationSec:time.seconds,rpe:effort,notes,sessionType:'manual-strength',strengthVariant:kind,sets,freeKey:sessionKey})
       setData(await loadWorkoutData())
       setMessage('Krafttraining abgeschlossen ✓ · Satzprotokoll und tatsächliche Belastung gespeichert.')
     }catch(err){setMessage(`Nicht abgeschlossen: ${err instanceof Error?err.message:String(err)}`)}finally{setBusy(false)}
@@ -119,7 +121,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
         <label>Geplantes Training<select value={plannedId} onChange={e=>{
           const id=e.target.value;setPlannedId(id)
           const item=planned.find(x=>x.id===id)
-          if(item){setDate(item.date);setVariant(workoutKind(item));setDuration(String(item.durationMin||55))}else setDuration('55')
+          if(item){setDate(item.date);setVariant(workoutKind(item));setDuration(durationFor(item))}else setDuration('00:55:00')
         }}><option value="">Eigene Einheit – unabhängig vom Plan</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
         {!selected&&<><label>Datum<input type="date" value={date} onChange={e=>setDate(selectDate(e.target.value))}/></label><label>Programm<select value={variant} onChange={e=>setVariant(e.target.value as 'A'|'B')}><option value="A">Kraft A</option><option value="B">Kraft B</option></select></label></>}
       </div>
@@ -142,12 +144,12 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
           })}</div>
       </section>)}
       <section className="panel tw-panel"><div className="eyebrow">ABSCHLUSS · DEINE IST-WERTE</div><h3>Training dokumentieren</h3>
-        <div className="tw-form-grid"><label>Dauer (Minuten)<input required disabled={done} type="number" min="1" max="600" value={duration} onChange={e=>setDuration(e.target.value)}/></label><label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option value={i+1} key={i}>{i+1}</option>)}</select></label></div>
+        <div className="tw-form-grid"><label>Dauer (hh:mm:ss)<input required disabled={done} type="text" inputMode="numeric" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" value={duration} onChange={e=>setDuration(e.target.value)}/></label><label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option value={i+1} key={i}>{i+1}</option>)}</select></label></div>
         <label className="tw-notes">Bemerkungen<textarea disabled={done} value={notes} maxLength={1500} onChange={e=>setNotes(e.target.value)} placeholder="Schultergefühl, Adduktoren, Kraftreserve …"/></label>
         <div className="tw-actions"><button type="button" disabled={busy||done} className="tw-secondary" onClick={()=>void saveDraft()}>Sätze zwischenspeichern</button><button type="submit" disabled={busy||done}>{busy?'Speichere …':'Training abschließen ✓'}</button></div>
         <div className="tw-feedback" role="status">{message}</div>
       </section>
     </form>
-    <section className="panel tw-panel"><div className="eyebrow">KRAFT · LETZTE EINHEITEN</div><h3>Dein Verlauf</h3>{history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.durationMin} min · RPE {x.rpe??'–'}</span></div>):<p>Noch keine Kraft-Einheit protokolliert. Du kannst auch spontan ohne geplanten Termin beginnen.</p>}</section>
+    <section className="panel tw-panel"><div className="eyebrow">KRAFT · LETZTE EINHEITEN</div><h3>Dein Verlauf</h3>{history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{durationFor(x)} · RPE {x.rpe??'–'}</span></div>):<p>Noch keine Kraft-Einheit protokolliert. Du kannst auch spontan ohne geplanten Termin beginnen.</p>}</section>
   </div>
 }

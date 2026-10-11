@@ -1,3 +1,4 @@
+import {durationFor} from '../time/duration'
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { deleteRecord, getRecord, listRecords, openTempoDatabase } from '../db/storage'
 import FitImportPanel from './FitImportPanel'
@@ -123,7 +124,7 @@ export default function GarminLibraryPanel(){
         <h3>2. Vorschau: {fileName}</h3>
         <p><strong>{preview.activities.length} neue Aktivitäten</strong> bereit zum Import. {preview.skipped?`${preview.skipped} Zeilen wurden übersprungen. `:''}Die Daten werden erst durch deine Bestätigung gespeichert.</p>
         <div className="tempo-garmin-notes">{preview.notes.map((n,i)=><p key={i}>{n}</p>)}</div>
-        <div className="tempo-garmin-preview-rows">{preview.activities.slice(0,5).map(x=><div key={x.id}><span>{formatDate(x.date)} · {x.title}</span><span>{x.distanceKm==null?'–':formatNumber(x.distanceKm)+' km'} · {formatNumber(x.durationMin,{maximumFractionDigits:0})} min</span></div>)}</div>
+        <div className="tempo-garmin-preview-rows">{preview.activities.slice(0,5).map(x=><div key={x.id}><span>{formatDate(x.date)} · {x.title}</span><span>{x.distanceKm==null?'–':formatNumber(x.distanceKm)+' km'} · {durationFor(x)}</span></div>)}</div>
         <div className="tempo-garmin-actions"><button type="button" className="tempo-garmin-button" disabled={busy||!preview.activities.length} onClick={()=>void storeCsv()}>Nur neue Aktivitäten importieren</button><button type="button" className="tempo-garmin-muted-button" disabled={busy} onClick={()=>setPreview(null)}>Abbrechen</button></div>
       </div>}
       <div className="tempo-garmin-status" role="status">{busy?'TEMPO verarbeitet die Datei …':notice}</div>
@@ -140,14 +141,14 @@ export default function GarminLibraryPanel(){
       {!shown.length?<p className="tempo-garmin-empty">Keine Aktivitäten in dieser Kategorie gespeichert.</p>:
       <div className="tempo-garmin-list">{subset.map(x=><button key={x.id} className={selected===x.id?'selected':''} onClick={()=>setSelected(selected===x.id?null:x.id)}>
         <span><strong>{formatDate(x.date)}</strong><small>{names[x.sport]} · {x.title}{typeof x.fitSeriesId==='string'?' · FIT ✓':''}</small></span>
-        <span>{x.distanceKm==null?'–':formatNumber(x.distanceKm)+' km'}<small>{formatNumber(x.durationMin,{maximumFractionDigits:0})} min{x.elevationM!=null?` · ${formatNumber(x.elevationM,{maximumFractionDigits:0})} hm`:''}</small></span>
+        <span>{x.distanceKm==null?'–':formatNumber(x.distanceKm)+' km'}<small>{durationFor(x)}{x.elevationM!=null?` · ${formatNumber(x.elevationM,{maximumFractionDigits:0})} hm`:''}</small></span>
       </button>)}</div>}
       {!showAll&&shown.length>30&&<button className="tempo-garmin-muted-button" onClick={()=>setShowAll(true)}>Alle {shown.length} anzeigen</button>}
       {chosen&&<div className="tempo-garmin-detail">
         <h3>{chosen.title}</h3><p>{formatDate(chosen.date)} · {names[chosen.sport]} · {chosen.source==='garmin-fit'?'Garmin FIT':'Garmin CSV'}{chosenTrace?' + FIT-Verlauf':''}</p>
         <div className="tempo-garmin-detail-grid">
           <span>Distanz <strong>{chosen.distanceKm==null?'–':formatNumber(chosen.distanceKm)+' km'}</strong></span>
-          <span>Dauer <strong>{formatNumber(chosen.durationMin)} min</strong></span>
+          <span>Dauer <strong>{durationFor(chosen)}</strong></span>
           <span>Höhenmeter <strong>{chosen.elevationM==null?'–':formatNumber(chosen.elevationM,{maximumFractionDigits:0})+' hm'}</strong></span>
           <span>Ø Leistung <strong>{chosen.avgPowerW==null?'–':formatNumber(chosen.avgPowerW,{maximumFractionDigits:0})+' W'}</strong></span>
           <span>Ø HF <strong>{chosen.avgHrBpm==null?'–':formatNumber(chosen.avgHrBpm,{maximumFractionDigits:0})+' bpm'}</strong></span>

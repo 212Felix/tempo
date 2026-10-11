@@ -1,3 +1,4 @@
+import {parseHms,durationFor} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,type TrainingRecord} from '../planning/engine'
 import {paceLabel,runInstructions} from './catalog'
@@ -10,7 +11,7 @@ export default function RunningPanel({focusId}:{focusId?:string}){
   const [data,setData]=useState<Data>({planned:[],completed:[],readiness:[],sets:[]})
   const [plannedId,setPlannedId]=useState('')
   const [date,setDate]=useState(currentKey())
-  const [duration,setDuration]=useState('30')
+  const [duration,setDuration]=useState('00:30:00')
   const [distance,setDistance]=useState('')
   const [heart,setHeart]=useState('')
   const [rpe,setRpe]=useState('3')
@@ -30,20 +31,21 @@ export default function RunningPanel({focusId}:{focusId?:string}){
   },[])
   useEffect(()=>{if(!focusId)return
     const found=data.planned.find(x=>x.id===focusId&&isRun(x))
-    if(found){setPlannedId(found.id);setDate(found.date);setDuration(String(found.durationMin||30))}
+    if(found){setPlannedId(found.id);setDate(found.date);setDuration(durationFor(found))}
   },[focusId,data.planned])
   const warning=readinessWarning(actualDate,data.readiness)
-  const pace=paceLabel(Number(duration),Number(distance))
+  const pace=(()=>{try{return paceLabel(parseHms(duration,true).minutes,Number(distance))}catch{return '–'}})()
   async function submit(e:FormEvent){
     e.preventDefault();setBusy(true)
     try{
       if(done)throw Error('Diese Laufeinheit ist bereits abgeschlossen.')
-      const durationMin=numberField(duration,'Dauer',600,true)!
+      const time=parseHms(duration)
+      const durationMin=time.minutes
       const km=numberField(distance,'Strecke',150,true)!
       if(km<=0)throw Error('Bitte die gelaufenen Kilometer eingeben.')
       const avgHrBpm=heart.trim()===''?undefined:numberField(heart,'Ø Herzfrequenz',230)
       const rpeValue=numberField(rpe,'RPE',10,true)!
-      await finalizeWorkout({date:actualDate,title:session?.title??runInstructions.title,planned:session,durationMin,
+      await finalizeWorkout({date:actualDate,title:session?.title??runInstructions.title,planned:session,durationMin,durationSec:time.seconds,
         rpe:rpeValue,notes,sessionType:'manual-running',distanceKm:km,avgHrBpm,freeKey})
       setData(await loadWorkoutData());setMessage('Lauf absolviert ✓ · Dauer, Distanz, RPE und optional Puls gespeichert.')
     }catch(err){setMessage(`Nicht gespeichert: ${err instanceof Error?err.message:String(err)}`)}finally{setBusy(false)}
@@ -52,7 +54,7 @@ export default function RunningPanel({focusId}:{focusId?:string}){
     <section className="panel tw-panel"><div className="eyebrow">LAUFEN · KONSERVATIVER AUFBAU</div><h2>Locker laufen, konstant aufbauen</h2>
       <HelpDisclosure id="running-intro"><p>Der Laufteil startet bewusst behutsam: erst Umfang und Sehnenverträglichkeit, später gezielte Geschwindigkeit. Aktuell keine harten 800-m- oder 1.000-m-Intervalle.</p></HelpDisclosure>
       <div className="tw-form-grid"><label>Geplante Laufeinheit<select value={plannedId} onChange={e=>{
-        setPlannedId(e.target.value);const item=planned.find(x=>x.id===e.target.value);if(item){setDate(item.date);setDuration(String(item.durationMin||30))}else setDuration('30')
+        setPlannedId(e.target.value);const item=planned.find(x=>x.id===e.target.value);if(item){setDate(item.date);setDuration(durationFor(item))}else setDuration('00:30:00')
       }}><option value="">Freien Lauf erfassen</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
         {!session&&<label>Datum<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>}
       </div>
@@ -67,7 +69,7 @@ export default function RunningPanel({focusId}:{focusId?:string}){
     </section>
     <section className="panel tw-panel"><div className="eyebrow">LAUFFEEDBACK · ABSOLVIERT</div><h3>Ist-Werte eintragen</h3>
       <form onSubmit={e=>void submit(e)}><div className="tw-form-grid">
-        <label>Dauer (Minuten)<input disabled={done} type="number" min="1" max="600" required value={duration} onChange={e=>setDuration(e.target.value)}/></label>
+        <label>Dauer (hh:mm:ss)<input disabled={done} type="text" inputMode="numeric" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" required value={duration} onChange={e=>setDuration(e.target.value)}/></label>
         <label>Distanz (km)<input disabled={done} type="number" min="0.01" max="150" step="0.01" required inputMode="decimal" value={distance} onChange={e=>setDistance(e.target.value)} placeholder="z. B. 5,0"/></label>
         <label>Ø Puls (optional)<input disabled={done} type="number" min="40" max="230" step="1" value={heart} onChange={e=>setHeart(e.target.value)} placeholder="z. B. 135"/></label>
         <label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option key={i} value={i+1}>{i+1}</option>)}</select></label>
@@ -77,8 +79,8 @@ export default function RunningPanel({focusId}:{focusId?:string}){
       </form><div className="tw-feedback" role="status">{message}</div>
     </section>
     <section className="panel tw-panel"><div className="eyebrow">LAUFEN · HISTORIE</div><h3>Zuletzt dokumentiert</h3>
-      {history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.distanceKm??'–'} km · {x.durationMin??'–'} min · {typeof x.durationMin==='number' && typeof x.distanceKm==='number' && x.distanceKm>0 ? paceLabel(x.durationMin,x.distanceKm) : '–'} · RPE {x.rpe??'–'}</span></div>):<p>Noch kein Lauf abgeschlossen. Alte Garmin-CSV-Aktivitäten liegen weiterhin in der separaten Garmin-Bibliothek.</p>}
-      <HelpDisclosure id="running-history-help"><p>Läufe aus Garmin-FIT/CSV werden noch nicht automatisch mit manuell protokollierten Läufen zusammengeführt. Bitte dieselbe Aktivität nicht doppelt abschließen.</p></HelpDisclosure>
+      {history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.distanceKm??'–'} km · {durationFor(x)} · {typeof x.durationMin==='number' && typeof x.distanceKm==='number' && x.distanceKm>0 ? paceLabel(x.durationMin,x.distanceKm) : '–'} · RPE {x.rpe??'–'}</span></div>):<p>Noch kein Lauf abgeschlossen. Alte Garmin-CSV-Aktivitäten liegen weiterhin in der separaten Garmin-Bibliothek.</p>}
+      <HelpDisclosure id="running-history-help"><p>Passende FIT- oder CSV-Aktivitäten können im Garmin-Datenimport über den Trainingsabgleich nach Bestätigung mit diesem Abschluss verknüpft werden. Keine zweite Trainingseinheit anlegen.</p></HelpDisclosure>
     </section>
   </div>
 }

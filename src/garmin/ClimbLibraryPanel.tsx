@@ -8,7 +8,7 @@ import './climb-library.css'
 const PROFILE_ID='local-primary-profile'
 const decimal=(n:number,places=1)=>n.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:places})
 const number=(n:number|undefined,unit:string)=>n===undefined?'–':`${decimal(n,0)} ${unit}`
-const duration=(seconds:number)=>`${Math.round(seconds/60)} min`
+const duration=(seconds:number)=>{const n=Math.max(0,Math.round(seconds));return `${String(Math.floor(n/3600)).padStart(2,'0')}:${String(Math.floor(n%3600/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
 const dateLabel=(date:string)=>new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(`${date}T12:00:00`))
 
 type Filter='all'|'short'|'middle'|'long'
