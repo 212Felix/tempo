@@ -898,3 +898,66 @@ a{
 }
 
 
+
+/* Phase 18.3: native-width mobile layout; do not require Safari pinch-zoom. */
+html,body,#root{width:100%;max-width:100%;overflow-x:clip;-webkit-text-size-adjust:100%}
+.app,.workspace,.content{min-width:0;max-width:100%}
+.app{width:100%}
+.content{width:100%}
+.content>*,.tempo-shift,.tempo-shift>*,.tempo-plan,.tempo-manual,.tempo-quick{min-width:0;max-width:100%}
+.panel{min-width:0;overflow-wrap:break-word}
+input,select,textarea{max-width:100%}
+@media(max-width:760px){
+  .topbar{height:56px;padding:0 14px;gap:8px}
+  .topbar-brand{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;letter-spacing:1.2px}
+  .topbar-brand>span:last-child{font-size:11px;overflow:hidden;text-overflow:ellipsis}
+  .topbar-sep{margin:0 7px}
+  .topbar-tag{flex:0 0 auto;font-size:9px;padding:5px 7px;letter-spacing:.4px}
+  .content{max-width:100vw;width:100%;padding:20px 12px calc(100px + env(safe-area-inset-bottom))}
+  .page-heading{margin-bottom:15px}
+  .page-heading h1{font-size:clamp(25px,7vw,30px);letter-spacing:-.7px;margin-top:5px}
+  .page-heading p{font-size:12px;line-height:1.5;margin-top:5px}
+  .eyebrow{font-size:9px;letter-spacing:1.4px}
+  .panel{padding:15px;border-radius:15px;margin-bottom:12px}
+  .hero{padding:18px;margin-bottom:14px;border-radius:16px}
+  .hero h2{font-size:clamp(27px,7vw,34px);letter-spacing:-.9px;margin:10px 0}
+  .hero p{font-size:12px;line-height:1.45}
+  .hero-pill{margin-top:12px}
+  .bottom-tabs{padding:7px 4px max(8px,env(safe-area-inset-bottom))}
+  .bottom-tabs button{font-size:10px;min-width:0;padding:3px 0;gap:4px}
+  .tempo-shift{width:100%;grid-template-columns:minmax(0,1fr);gap:12px}
+  .tempo-shift .panel,.tempo-manual,.tempo-plan,.tempo-quick{width:100%;min-width:0;padding:15px}
+  .tempo-shift-week{width:100%;min-width:0}
+  .tempo-shift-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .tempo-shift-tile{min-width:0;min-height:105px;padding:11px;gap:7px}
+  .tempo-shift-tile strong{font-size:13px}
+  .tempo-shift-tile-date{font-size:11px}
+  .tempo-shift-toolbar{gap:8px}
+  .tempo-shift-editor-actions{display:grid;gap:8px;justify-content:stretch}
+  .tempo-shift-editor-actions button{width:100%;max-width:100%}
+  .tempo-manual-actions,.tempo-manual-form-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:12px 0}
+  .tempo-manual-actions button,.tempo-manual-form-actions button{width:100%;min-width:0;flex:none;white-space:normal;overflow-wrap:anywhere;min-height:46px}
+  .tempo-manual-day-select{max-width:100%;overscroll-behavior-x:contain;scrollbar-width:thin}
+  .tempo-manual-range input{width:100%;max-width:220px}
+  .tempo-manual-entry{padding:11px}
+  .tempo-manual-entry-actions button{flex:1 1 auto;min-height:42px}
+  .tempo-manual-editor{padding:12px;max-width:100%;min-width:0}
+  .tempo-manual-fields{grid-template-columns:minmax(0,1fr)}
+  .tempo-plan{margin-top:12px}
+  .tempo-plan-grid{grid-template-columns:minmax(0,1fr);gap:8px}
+  .tempo-plan-day{padding:12px;min-width:0}
+  .tempo-plan-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:11px 0}
+  .tempo-plan-stats span{min-width:0;padding:9px 6px;font-size:10px}
+  .tempo-plan-stats strong{font-size:16px}
+  .tempo-plan-review,.tempo-plan-changes{padding:11px}
+  .tempo-plan-changes-head{align-items:flex-start}
+  .tempo-plan-comparison{grid-template-columns:1fr;min-width:0}
+  .tempo-plan-comparison small,.tempo-plan-one-button{grid-column:1}
+  .tempo-plan-readiness{padding:11px}
+  .tempo-manual-actions .outline{width:100%}
+}
+@media(max-width:360px){
+  .content{padding-inline:10px}
+  .topbar-tag{font-size:8px}
+  .tempo-plan-stats{grid-template-columns:1fr 1fr}
+}

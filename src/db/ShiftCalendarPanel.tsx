@@ -5,6 +5,7 @@ import './shift-calendar.css'
 import PlanPreview from '../planning/PlanPreview'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import ManualTrainingPanel from '../planning/ManualTrainingPanel'
+import QuickAdjustmentPanel from './QuickAdjustmentPanel'
 
 const PROFILE_ID = 'local-primary-profile'
 type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
@@ -195,6 +196,14 @@ export default function ShiftCalendarPanel() {
       <div className="tempo-shift-stats"><strong>{loading ? '–' : confirmed} / {days.length} Tage bestätigt</strong><span>{days.length - confirmed} Tage noch offen</span></div>
       <div className="tempo-shift-meter"><span style={{width:`${days.length ? confirmed / days.length * 100 : 0}%`}}/></div>
     </section>
+
+    <QuickAdjustmentPanel onSaved={(record)=>{
+      setEntries(old=>({...old,[record.date]:record}))
+      setPlanRefresh(n=>n+1)
+      setSelectedDate(null);setDraft(null)
+      window.dispatchEvent(new Event('tempo:shift-change'))
+      setFeedback('Schnelle Tagesänderung gespeichert. Planvorschlag darunter vor Übernahme prüfen.')
+    }}/>
 
     {Array.from({length: Math.ceil(days.length/7)}, (_, group) => {
       const weekDays = days.slice(group*7, group*7+7)

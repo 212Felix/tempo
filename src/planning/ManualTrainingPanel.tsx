@@ -170,6 +170,6 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
       </form>
     </div>}
     <p className="tempo-manual-feedback" role="status">{feedback}</p>
-    <p className="tempo-manual-muted">Hinweis: Eine neue Trainingsbelastung wird bei der nächsten <strong>ausdrücklich bestätigten</strong> Neuplanung als Vorbelastung berücksichtigt. Bereits gespeicherte andere Einheiten ändern sich nicht automatisch. Auf Einsatztagen warnt TEMPO vor Zusatzbelastung; du entscheidest.</p>
+    <HelpDisclosure id="manual-load-help"><p>Eine neue Trainingsbelastung wird erst bei der nächsten <strong>ausdrücklich bestätigten</strong> Neuplanung als Vorbelastung berücksichtigt. Gespeicherte Einheiten ändern sich nicht automatisch. Auf Einsatztagen warnt TEMPO vor Zusatzbelastung; du entscheidest.</p></HelpDisclosure>
   </section>
 }

@@ -37,3 +37,11 @@
 .tempo-manual-muted{color:#8f9fac!important;font-size:11px!important;line-height:1.7}
 .tempo-manual-feedback{min-height:1.5em;color:#a4dbc1}
 @media(max-width:630px){.tempo-manual-fields{grid-template-columns:1fr}.tempo-manual-entry-top{flex-direction:column}.tempo-manual-actions button{flex:1}.tempo-manual{padding:20px}}
+/* Phase 18.3: two actions become a vertical thumb-friendly stack on phones. */
+@media(max-width:760px){
+.tempo-manual-actions{flex-direction:column;align-items:stretch}
+.tempo-manual-actions button{width:100%;flex:initial;max-width:100%}
+.tempo-manual-entry-top span{white-space:normal}
+.tempo-manual-day-select{width:100%;min-width:0;max-width:100%;overflow-x:auto}
+.tempo-manual-editor input,.tempo-manual-editor select{min-width:0}
+}
