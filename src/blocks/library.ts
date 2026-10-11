@@ -1,4 +1,5 @@
 import type {TempoRecord} from '../db/types'
+import type {BlockDayPlan} from './days'
 import {dayDelta, plusDays, validDate, type GoalEvent} from '../events/library'
 import type {SessionKind, TrainingRecord, ShiftRecord, ReadinessRecord, CompletedRecord} from '../planning/engine'
 
@@ -8,7 +9,7 @@ export type BlockCapacity = 'reduced'|'normal'|'more'|'much'
 export type TrainingBlock = TempoRecord & {
   name:string; startDate:string; endDate:string; focus:BlockSport; target:BlockTarget;
   capacity:BlockCapacity; weeklyHours?:number; eventId?:string; notes?:string;
-  enabled:boolean; createdBy:'tempo-user';
+  enabled:boolean; createdBy:'tempo-user'; days?:BlockDayPlan[];
 }
 export const focusLabels:Record<BlockSport,string>={cycling:'Radfahren',running:'Laufen',strength:'Krafttraining',swimming:'Schwimmen',mixed:'Mehrere Sportarten'}
 export const targetLabels:Record<BlockTarget,string>={basis:'Grundlagenausdauer',tempo:'Tempohärte',threshold:'Schwelle',climbs:'Berge / lange Anstiege',speed:'Spritzigkeit / kurze Reize',technique:'Technik / Ökonomie',recovery:'Entlastung / Erholung'}
@@ -20,7 +21,7 @@ export function matchingBlock(date:string, blocks:TrainingBlock[]):TrainingBlock
 export type Phase={id:string; title:string; startDate:string; endDate:string; detail:string; eventId?:string}
 /** Neutral phase skeleton, anchored only to actual locally saved event dates. */
 export function deriveSeasonPhases(events:GoalEvent[], today:string):Phase[]{
-  const anchors=events.filter(x=>x.status==='bestaetigt'&&x.kind!=='trainingsblock'&&validDate(x.date??'')&&x.date!>=today)
+  const anchors=events.filter(x=>x.status!=='abgeschlossen'&&x.kind!=='trainingsblock'&&validDate(x.date??'')&&x.date!>=today)
     .sort((a,b)=>a.date!.localeCompare(b.date!))
   // Smaller B/C events may add a local taper, but never replace A-event anchors.
   const aEvents=anchors.filter(x=>x.priority==='A')

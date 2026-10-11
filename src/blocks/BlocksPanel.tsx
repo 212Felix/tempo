@@ -4,6 +4,7 @@ import {currentKey,PROFILE_ID,type CompletedRecord} from '../planning/engine'
 import {dateLabel,dayDelta,plusDays,type GoalEvent} from '../events/library'
 import {blockIsValid,capacityLabels,deriveSeasonPhases,describeBlock,focusLabels,matchingBlock,targetLabels,type BlockCapacity,type BlockSport,type BlockTarget,type TrainingBlock} from './library'
 import HelpDisclosure from '../ui/HelpDisclosure'
+import BlockDaysPanel from './BlockDaysPanel'
 import './blocks.css'
 
 type Fields={name:string;startDate:string;endDate:string;focus:BlockSport;target:BlockTarget;capacity:BlockCapacity;weeklyHours:string;eventId:string;notes:string;enabled:boolean}
@@ -42,7 +43,7 @@ export default function BlocksPanel({onOpenEvents}:{onOpenEvents:()=>void}){
     const budget=form.weeklyHours.trim()===''?undefined:Number(form.weeklyHours.replace(',','.'))
     const now=new Date().toISOString()
     const record:TrainingBlock={id:editing?.id??createId(),createdAt:editing?.createdAt??now,updatedAt:now,profileId:PROFILE_ID,createdBy:'tempo-user',
-      name:form.name.trim(),startDate:form.startDate,endDate:form.endDate,focus:form.focus,target:form.target,capacity:form.capacity,weeklyHours:budget,eventId:form.eventId||undefined,notes:form.notes.trim()||undefined,enabled:form.enabled}
+      name:form.name.trim(),startDate:form.startDate,endDate:form.endDate,focus:form.focus,target:form.target,capacity:form.capacity,weeklyHours:budget,eventId:form.eventId||undefined,notes:form.notes.trim()||undefined,enabled:form.enabled,days:editing?.days??[]}
     if(!record.name||record.name.length>85){setMessage('Bitte einen Namen mit höchstens 85 Zeichen eintragen.');return}
     if(!blockIsValid(record)){setMessage('Bitte gültige Daten angeben. Ein Sonderblock kann maximal 91 Tage umfassen.');return}
     if(budget!==undefined&&(!Number.isFinite(budget)||budget<1||budget>35)){setMessage('Das optionale Wochenzeitbudget muss zwischen 1 und 35 Stunden liegen.');return}
@@ -97,13 +98,14 @@ export default function BlocksPanel({onOpenEvents}:{onOpenEvents:()=>void}){
           <small>{dateLabel(b.startDate)} – {dateLabel(b.endDate)} · {Math.max(1,dayDelta(b.startDate,b.endDate)+1)} Tage</small>
           <p>{describeBlock(b)}</p><small>{n} absolvierte Trainings in diesem Zeitraum · bleiben unverändert</small>
           {b.eventId&&<p>Verknüpft mit {events.find(e=>e.id===b.eventId)?.name??'einem inzwischen entfernten Event'}</p>}
+          <BlockDaysPanel key={b.id} block={b} onSaved={refresh}/>
           <div className="tempo-block-actions"><button type="button" onClick={()=>edit(b)}>Bearbeiten</button><button type="button" className="outline" onClick={()=>void remove(b)} disabled={busy}>Entfernen</button></div>
         </article>
       })}
     </section>
-    <section className="panel tempo-block-overview"><div className="eyebrow">AUS DEINEN BESTÄTIGTEN EVENTS</div><h3>Langfristige Blockübersicht</h3>
-      <HelpDisclosure id="blocks-season-help"><p>Die Phasen werden relativ zu deinen bestätigten Eventdaten berechnet und bleiben vorläufig. Bei geändertem Eventdatum verschieben sich die noch offenen Orientierungsphasen. Sonderblöcke ergänzen sie, statt sie zu löschen. Nur bestätigte Tagesplanvorschläge werden zu konkreten Trainingseinheiten.</p></HelpDisclosure>
-      {season.length===0?<div className="tempo-block-muted">Noch keine bestätigten zukünftigen Events mit Datum gefunden. Lege sie unter „Ziele & Events“ an, damit TEMPO den Jahresrahmen berechnen kann.<button type="button" onClick={onOpenEvents}>Ziele & Events öffnen ↗</button></div>:season.map(phase=>{
+    <section className="panel tempo-block-overview"><div className="eyebrow">DEIN JAHRESRAHMEN · EVENTDATEN</div><h3>Langfristige Blockübersicht</h3>
+      <HelpDisclosure id="blocks-season-help"><p>Die Phasen werden anhand vorhandener Eventdaten berechnet. Noch nicht bestätigte Startplätze oder variable Termine erzeugen nur einen vorläufigen Jahresrahmen, keinen automatischen Taper. Bei geändertem Eventdatum verschieben sich die noch offenen Orientierungsphasen. Sonderblöcke ergänzen sie, statt sie zu löschen. Nur bestätigte Tagesplanvorschläge werden zu konkreten Trainingseinheiten.</p></HelpDisclosure>
+      {season.length===0?<div className="tempo-block-muted">Noch keine zukünftigen Eventdaten gefunden. Hinterlege geplante A- und B-Ziele unter „Ziele & Events“, um einen vorläufigen Jahresrahmen zu erhalten.<button type="button" onClick={onOpenEvents}>Ziele & Events öffnen ↗</button></div>:season.map(phase=>{
         const now=currentKey(),isNow=phase.startDate<=now&&phase.endDate>=now,isPast=phase.endDate<now
         return <div className={`tempo-block-phase ${isNow?'current':''}`} key={phase.id}><span className="tempo-block-phase-code">{phase.id}</span><div><strong>{phase.title}</strong><p>{dateLabel(phase.startDate)} – {dateLabel(phase.endDate)}</p><small>{phase.detail}</small></div><span className="tempo-block-phase-status">{isNow?'Aktuell':isPast?'Vergangen':'Geplant'}</span></div>
       })}

@@ -11,3 +11,21 @@
 .tempo-block-entry{border:1px solid #3b4e60;background:#1d2b38;border-radius:14px;padding:15px;margin:12px 0;overflow-wrap:anywhere}.tempo-block-entry strong{font-size:1.06rem}.tempo-block-entry small{color:#9caebb}.tempo-block-entry p{line-height:1.5;margin:8px 0}.tempo-block-enabled,.tempo-block-paused{font-size:.72rem;border-radius:999px;background:#235242;color:#a5e1c8;padding:5px 9px;white-space:nowrap}.tempo-block-paused{background:#3b3e45;color:#d8c2a4}
 .tempo-block-phase{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:13px 0;border-bottom:1px solid #324253}.tempo-block-phase-code{color:#a9cfdc;font-weight:800;font-size:.85rem}.tempo-block-phase p{margin:4px 0;color:#adbccb;font-size:.9rem}.tempo-block-phase small{color:#92a5b5}.tempo-block-phase-status{font-size:.72rem;color:#aac2ce}.tempo-block-phase.current{background:#1e4041;border-radius:12px;padding:13px}.tempo-block-status{color:#b8d9e2}
 @media(max-width:550px){.tempo-block-two{grid-template-columns:minmax(0,1fr)}.tempo-block-overview,.tempo-block-editor{padding:18px!important}.tempo-block-phase{grid-template-columns:auto minmax(0,1fr)}.tempo-block-phase-status{grid-column:2}.tempo-block-event-link{align-items:flex-start;flex-direction:column}}
+/* Phase 21: the holiday itinerary is mobile-first and never modifies past activity data. */
+.tempo-day-plan{margin-top:15px;padding:14px;border-radius:14px;border:1px solid #526476;background:#14232e;min-width:0}
+.tempo-day-plan .tempo-block-heading{align-items:center}
+.tempo-day-toggle{background:#334e5e;color:#d8edf4;border:1px solid #7b9daa;border-radius:999px;padding:9px 12px;font-size:.86rem;font-weight:700;cursor:pointer}
+.tempo-day-caption{font-size:.8rem!important;color:#9fb2bd;line-height:1.5}
+.tempo-day-overview{display:flex;gap:8px;overflow-x:auto;max-width:100%;padding-bottom:6px;scrollbar-width:thin}
+.tempo-day-chip{flex:0 0 auto;max-width:175px;text-align:left;display:grid;gap:3px;background:#20333c;color:#d5e9f0;border-radius:12px;border:1px solid #59727c;padding:10px;cursor:pointer}
+.tempo-day-chip span{font-size:.77rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aac3cd}
+.tempo-day-form{display:grid;gap:12px;margin-top:15px}
+.tempo-day-form label{display:grid;gap:7px;font-size:.88rem;font-weight:650;color:#e0eaf0}
+.tempo-day-form input,.tempo-day-form select,.tempo-day-form textarea{width:100%;min-width:0;max-width:100%;box-sizing:border-box;border-radius:12px;border:1px solid #52697a;background:#0c1d28;color:#eaf0f4;padding:10px;font:inherit;font-size:.88rem}
+.tempo-day-kinds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tempo-day-kinds button{min-width:0;padding:10px 5px;font-size:.77rem;border-radius:12px;background:#263744;border:1px solid #607482;color:#d7e7ed;text-align:center;cursor:pointer}
+.tempo-day-kinds button.chosen{background:#366273;border-color:#b2d8e6;color:white}
+.tempo-day-route-info,.tempo-day-preview,.tempo-day-rest{background:#243a45;border:1px solid #526f7a;padding:12px;border-radius:12px;color:#cde4ed;font-size:.84rem;line-height:1.5}
+.tempo-day-preview p{margin:8px 0}.tempo-day-preview button{background:#476c7b;color:#f1faff;border:1px solid #a1c5d1;border-radius:9px;padding:8px}
+.tempo-day-rest{background:#1e3430;border-color:#547b70;color:#bfe7d9}
+@media(max-width:390px){.tempo-day-kinds{grid-template-columns:1fr}.tempo-day-plan{padding:11px}.tempo-day-toggle{font-size:.76rem}}

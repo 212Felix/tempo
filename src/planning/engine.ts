@@ -1,5 +1,6 @@
 import type { ProfileRecord, TempoRecord } from '../db/types'
 import {matchingBlock,tailorSession, type TrainingBlock} from '../blocks/library'
+import {blockDayForDate,isTrainingFree,type BlockDayPlan} from '../blocks/days'
 import { createLoadCalendar, type LoadCalendar } from './load'
 import { buildEventInfluences, type EventInfluence, type GoalEvent, type RouteEntry } from '../events/library'
 
@@ -57,7 +58,7 @@ export type CompletedRecord = TempoRecord & {
   notes?: string
   source?: 'manuell' | 'plan' | 'import'
 }
-export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence }
+export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence; blockIntention?:BlockDayPlan }
 
 const sDate = (key: string) => {
   const [year, month, day] = key.split('-').map(Number)
@@ -168,14 +169,14 @@ export function generatePlan(args: {
   days.forEach(date => {
     const shift = shifts[date]
     const confirmed = isConfirmed(shift)
-    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date]})
+    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date],blockIntention:blockDayForDate(date,args.blocks??[])})
   })
   const offsetDate=(date:string,diff:number)=>{const t=new Date(`${date}T12:00:00Z`);t.setUTCDate(t.getUTCDate()+diff);return t.toISOString().slice(0,10)}
   const put = (date: string, item: TrainingRecord) => {
     const day = map.get(date)!
     const active=matchingBlock(date,args.blocks??[])
     // Event taper and recovery always win over an overlapping voluntary focus block.
-    const safeToTailor=!day.eventInfluence && loadCalendar[date]?.level==='none' && !(date===today&&readinessLevel(args.readiness)==='rot')
+    const safeToTailor=!day.eventInfluence && !day.blockIntention && loadCalendar[date]?.level==='none' && !(date===today&&readinessLevel(args.readiness)==='rot')
     let adjusted=safeToTailor?tailorSession(item,active,profile?.ftpWatts):item
     if(safeToTailor&&active?.focus==='swimming'&&item.sessionType==='endurance')adjusted={...item,sessionType:'manual-swimming',title:'Schwimmtechnik & ruhige Ausdauer',durationMin:active.capacity==='reduced'?30:45,target:'Kontrolliertes Schwimmen, Technikblöcke mit langen Pausen, keine Maximalintervalle',description:'Schwimm-Schwerpunkt im Sonderblock; auf Erholung und Technik achten.',notes:`Fokusblock ${active.name}`}
     if(safeToTailor&&active?.focus==='running'&&item.sessionType==='endurance'){
@@ -197,7 +198,7 @@ export function generatePlan(args: {
   }
   const canUse = (date: string) => {
     const day = map.get(date)
-    return !!day && date >= today && day.confirmed && !day.protected && !preassigned.has(date) && day.shift !== 'einsatz'
+    return !!day && date >= today && day.confirmed && !day.protected && !preassigned.has(date) && day.shift !== 'einsatz' && ! (day.blockIntention && (isTrainingFree(day.blockIntention.kind)||day.blockIntention.kind==='challenge'))
   }
   const index = (key: string) => days.indexOf(key)
   const nearType = (date: string, types: SessionKind[], maxDistance: number) => {
@@ -219,6 +220,11 @@ export function generatePlan(args: {
       heavy.add(date)
       return
     }
+    // Explicit holiday choices reserve the day. Protected manual work remains untouched.
+    // For an unconfirmed shift keep the intention visible, but never schedule a workout.
+    const intention=day.blockIntention
+    if (intention && isTrainingFree(intention.kind)) { preassigned.add(date); return }
+    if (intention?.kind==='challenge') { preassigned.add(date); heavy.add(date); return }
     if (!day.confirmed || day.protected) return
     // Radpendeln ist echte Dienstbelastung und darf nicht als Erholung verbucht werden.
     // Wenn es auf eine Event-Entlastung fällt, wird im Kalender ein Konflikthinweis angezeigt.
@@ -236,6 +242,19 @@ export function generatePlan(args: {
       return
     }
     if (day.shift === 'einsatz') { put(date, candidate(date, 'recovery', profile)); return }
+    if (intention && (intention.kind==='group-ride'||intention.kind==='ride-training') && !day.eventInfluence && loadCalendar[date]?.level==='none' && !(date===today&&readinessLevel(args.readiness)==='rot')) {
+      const duration=Math.max(30,Math.min(480,intention.durationMin??90))
+      const ride=candidate(date,duration>=120?'long':'endurance',profile)
+      ride.title=intention.title||intention.routeName||(intention.kind==='group-ride'?'Gemeinsame Radtour':'Geplante Trainingstour')
+      ride.durationMin=duration;ride.expectedKm=intention.routeDistanceKm
+      ride.priority='SOLL'
+      const power=profile?.ftpWatts
+      const target=intention.effort==='tempo'?(power?`${Math.round(power*.76)}–${Math.round(power*.85)} W`:'RPE 5–6'):intention.effort==='threshold'?(power?`${Math.round(power*.88)}–${Math.round(power*.95)} W`:'RPE 6–7'):''
+      ride.target=target?`Optionaler Abschnitt (${target}), nur bei sicherer Strecke und passender Tagesform. Nicht verpflichtend.`:'Locker mit der Gruppe fahren, Anstiege nach Gefühl.'
+      ride.description='Vorab eingetragene Urlaubstour; keine automatische Trainingsfreigabe. Gruppensicherheit und Erholung haben Vorrang.'
+      ride.notes=[intention.routeName?`Route: ${intention.routeName}`:undefined,intention.climbKey?'Historischer Anstieg vorgemerkt (in Blockübersicht ansehen)':undefined,intention.notes].filter(Boolean).join(' · ')
+      put(date,ride); return
+    }
     if (loadCalendar[date]?.level === 'recovery') {
       const item = candidate(date, 'recovery', profile)
       item.description = 'Regeneration nach dokumentierter Belastung oder aufgrund der Tagesform; vollständige Pause ist ebenfalls möglich.'
