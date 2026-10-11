@@ -75,7 +75,7 @@ export default function RunningPanel({focusId}:{focusId?:string}){
       </form><div className="tw-feedback" role="status">{message}</div>
     </section>
     <section className="panel tw-panel"><div className="eyebrow">LAUFEN · HISTORIE</div><h3>Zuletzt dokumentiert</h3>
-      {history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.distanceKm??'–'} km · {x.durationMin} min · {paceLabel(x.durationMin,x.distanceKm??0)} · RPE {x.rpe??'–'}</span></div>):<p>Noch kein Lauf abgeschlossen. Alte Garmin-CSV-Aktivitäten liegen weiterhin in der separaten Garmin-Bibliothek.</p>}
+      {history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.distanceKm??'–'} km · {x.durationMin??'–'} min · {typeof x.durationMin==='number' && typeof x.distanceKm==='number' && x.distanceKm>0 ? paceLabel(x.durationMin,x.distanceKm) : '–'} · RPE {x.rpe??'–'}</span></div>):<p>Noch kein Lauf abgeschlossen. Alte Garmin-CSV-Aktivitäten liegen weiterhin in der separaten Garmin-Bibliothek.</p>}
       <p className="tw-footnote">Läufe aus Garmin-FIT/CSV werden noch nicht automatisch mit manuell protokollierten Läufen zusammengeführt. Bitte dieselbe Aktivität nicht doppelt abschließen.</p>
     </section>
   </div>
