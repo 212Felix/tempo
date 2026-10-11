@@ -1,0 +1,39 @@
+/* TEMPO training-ready strength and running, browser/local-first */
+.tw-stack{max-width:940px;display:flex;flex-direction:column;gap:16px}
+.tw-panel,.tw-exercise{padding:clamp(18px,3vw,28px)}
+.tw-panel h2{font-size:clamp(25px,3vw,32px);margin:10px 0 12px;letter-spacing:-.6px}
+.tw-panel h3{font-size:20px;margin:12px 0 16px}
+.tw-panel>p,.tw-panel form>p,.tw-exercise p{font-size:13px;line-height:1.7;color:#a9bdcb}
+.tw-panel strong{color:#e8eef3}
+.tw-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:19px 0}
+.tw-form-grid label,.tw-notes{font-size:12px;font-weight:650;display:flex;flex-direction:column;gap:8px;color:#c3d2dd;min-width:0}
+.tw-form-grid input,.tw-form-grid select,.tw-notes textarea,.tw-set input{border:1px solid #a0bacc3b;background:#101a24;color:#e5eef5;border-radius:10px;font:inherit;padding:11px 10px;min-height:43px;width:100%;min-width:0}
+.tw-form-grid input:focus-visible,.tw-form-grid select:focus-visible,.tw-notes textarea:focus-visible,.tw-set input:focus-visible{outline:2px solid #9ebdc9;outline-offset:2px}
+.tw-notes textarea{resize:vertical;min-height:95px}
+.tw-form-grid input:disabled,.tw-set input:disabled,.tw-notes textarea:disabled,.tw-form-grid select:disabled{opacity:.7}
+.tw-info{margin-top:13px;border:1px solid #719aaf55;border-radius:13px;background:linear-gradient(150deg,#20313d,#14232e);padding:15px;display:flex;flex-direction:column;gap:8px}
+.tw-info strong{font-size:14px}.tw-info span{font-size:12px;line-height:1.55;color:#b5cbd6}
+.tw-warning{margin:12px 0 0;padding:13px;border:1px solid #d5ae6970;background:#59452866;border-radius:11px;color:#f1d7a3;font-size:12px;line-height:1.65}
+.tw-success{margin:13px 0 0;padding:13px;border-radius:11px;color:#b0e4ca;border:1px solid #5bba8d7a;background:#1a50365e;font-size:12px;line-height:1.6}
+.tw-exercise-head{display:flex;gap:13px;align-items:flex-start}
+.tw-number{background:linear-gradient(145deg,#587689,#34495b);border:1px solid #adcbd057;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800;flex-shrink:0;color:#eaf2f8}
+.tw-exercise-head h3{font-size:17px;line-height:1.4;margin:1px 0 7px;color:#e9f1f6}
+.tw-tags{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+.tw-tags span{border:1px solid #ffffff23;border-radius:20px;padding:6px 10px;background:#ffffff0a;color:#c3d6e0;font-size:11px}
+.tw-sets{border:1px solid #ffffff19;border-radius:11px;overflow:hidden;max-width:590px}
+.tw-set-head,.tw-set{display:grid;grid-template-columns:44px 1fr 1fr 75px;align-items:center;gap:8px;padding:8px 12px}
+.tw-set-head{color:#98aebf;background:#273641b5;font-size:11px;font-weight:700}
+.tw-set{border-top:1px solid #ffffff13;font-size:13px;color:#d9e4ec}
+.tw-set input{height:39px;min-height:39px;text-align:center;padding:6px}
+.tw-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:19px}
+.tw-actions button{padding:12px 16px;min-height:46px;border-radius:11px;font-size:13px;font-weight:750;color:#142733;background:linear-gradient(145deg,#b5d3dd,#8fb4c2)}
+.tw-actions button.tw-secondary{color:#ddeaf1;border:1px solid #ffffff32;background:#ffffff11}
+.tw-actions button:disabled{opacity:.48;cursor:not-allowed}
+.tw-feedback{margin-top:15px;color:#b8d9c9;font-size:12px;line-height:1.6;min-height:16px}
+.tw-history{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #ffffff16;color:#dae5ed;font-size:12px;line-height:1.5;flex-wrap:wrap}
+.tw-history span{color:#a4b9c9}
+.tw-run-step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #ffffff17}
+.tw-run-step strong{font-size:14px;color:#e7edf3}.tw-run-step p{font-size:12px;color:#aac0ce;line-height:1.6;margin-top:5px}
+.tw-footnote{font-size:12px!important;color:#9cb4c2!important;line-height:1.65!important;margin-top:15px!important}
+.tw-open-action{font-size:12px;padding:9px 13px;border:1px solid #9ab9c266;border-radius:9px;background:#2d4b5970;color:#d1eaf3}
+@media(max-width:630px){.tw-form-grid{grid-template-columns:1fr}.tw-panel,.tw-exercise{padding:17px}.tw-set-head,.tw-set{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 52px;gap:5px;padding:7px 6px}.tw-set-head{font-size:10px}.tw-set input{padding:5px 2px;font-size:13px}}

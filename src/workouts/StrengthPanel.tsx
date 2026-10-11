@@ -1,0 +1,152 @@
+import {useEffect,useMemo,useState,type FormEvent} from 'react'
+import {currentKey,friendlyDate,PROFILE_ID,type TrainingRecord} from '../planning/engine'
+import {STRENGTH,restLabel} from './catalog'
+import {alreadyDone,finalizeWorkout,isStrength,loadWorkoutData,numberField,readinessWarning,strengthSessionKey,workoutKind,type StrengthInput,type StrengthSet} from './sessionStore'
+import {listRecords,openTempoDatabase} from '../db/storage'
+import './workouts.css'
+
+const blank=(exerciseId:string,setIndex:number):StrengthInput=>({exerciseId,setIndex,reps:'',weightKg:'',holdSeconds:'',rir:''})
+const stateKey=(id:string,index:number)=>`${id}:${index}`
+const selectDate=(date:string)=>date || currentKey()
+
+type Data=Awaited<ReturnType<typeof loadWorkoutData>>
+export default function StrengthPanel({focusId}:{focusId?:string}){
+  const [data,setData]=useState<Data>({planned:[],completed:[],readiness:[],sets:[]})
+  const [date,setDate]=useState(currentKey())
+  const [variant,setVariant]=useState<'A'|'B'>('A')
+  const [plannedId,setPlannedId]=useState('')
+  const [inputs,setInputs]=useState<Record<string,StrengthInput>>({})
+  const [duration,setDuration]=useState('55')
+  const [rpe,setRpe]=useState('5')
+  const [notes,setNotes]=useState('')
+  const [message,setMessage]=useState('Einheiten werden geladen …')
+  const [busy,setBusy]=useState(false)
+  const planned=data.planned.filter(isStrength).sort((a,b)=>a.date.localeCompare(b.date))
+  const selected=planned.find(x=>x.id===plannedId)
+  const kind=selected?workoutKind(selected):variant
+  const template=STRENGTH[kind]
+  const onDate=selected?.date??date
+  const sessionKey=strengthSessionKey(onDate,kind,selected?.id)
+  const done=alreadyDone(selected,data.completed,selected?undefined:sessionKey)
+  const history=useMemo(()=>data.completed.filter(x=>x.sessionType==='strength-a'||x.sessionType==='strength-b'||x.sessionType==='manual-strength').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8),[data.completed])
+
+  useEffect(()=>{
+    let active=true
+    const refresh=()=>void loadWorkoutData().then(next=>{
+      if(!active)return
+      setData(next)
+      setMessage('Kraft A/B bereit. Satzgewichte und Wiederholungen werden lokal gespeichert.')
+    }).catch(e=>{if(active)setMessage(`Ladefehler: ${String(e)}`)})
+    refresh();window.addEventListener('tempo:training-change',refresh)
+    return()=>{active=false;window.removeEventListener('tempo:training-change',refresh)}
+  },[])
+  useEffect(()=>{
+    if(!focusId)return
+    const found=data.planned.find(x=>x.id===focusId && isStrength(x))
+    if(found){setPlannedId(found.id);setDate(found.date);setVariant(workoutKind(found))}
+  },[focusId,data.planned])
+  useEffect(()=>{
+    const existing=data.sets.filter(x=>x.sessionKey===sessionKey)
+    const next:Record<string,StrengthInput>={}
+    for(const ex of template.exercises)for(let i=1;i<=ex.sets;i++){
+      const stored=existing.find(x=>x.exerciseId===ex.id&&x.setIndex===i)
+      next[stateKey(ex.id,i)]=stored?{
+        exerciseId:ex.id,setIndex:i,reps:stored.reps==null?'':String(stored.reps),weightKg:stored.weightKg==null?'':String(stored.weightKg),
+        holdSeconds:stored.holdSeconds==null?'':String(stored.holdSeconds),rir:stored.rir==null?'':String(stored.rir),
+      }:blank(ex.id,i)
+    }
+    setInputs(next)
+  },[sessionKey,data.sets])
+
+  const patch=(id:string,index:number,key:'reps'|'weightKg'|'holdSeconds'|'rir',value:string)=>setInputs(previous=>{
+    const k=stateKey(id,index)
+    return {...previous,[k]:{...(previous[k]??blank(id,index)),[key]:value}}
+  })
+  const collect=():StrengthSet[]=>{
+    const now=new Date().toISOString()
+    return Object.values(inputs).flatMap(row=>{
+      const reps=numberField(row.reps,'Wiederholungen',200)
+      const weightKg=numberField(row.weightKg,'Gewicht',800)
+      const holdSeconds=numberField(row.holdSeconds,'Haltezeit',900)
+      const rir=numberField(row.rir,'Reserve',10)
+      if(reps!==undefined&&!Number.isInteger(reps))throw Error('Wiederholungen müssen ganzzahlig sein.')
+      if(holdSeconds!==undefined&&!Number.isInteger(holdSeconds))throw Error('Haltezeit in ganzen Sekunden eingeben.')
+      if(rir!==undefined&&(!Number.isInteger(rir)||rir>5))throw Error('RIR zwischen 0 und 5 eingeben.')
+      if(reps===undefined&&weightKg===undefined&&holdSeconds===undefined&&rir===undefined)return []
+      if(!reps&&!holdSeconds)throw Error(`Satz ${row.setIndex} von ${row.exerciseId}: Wiederholungen oder Haltezeit fehlt.`)
+      const record:StrengthSet={id:`strength:${sessionKey}:${row.exerciseId}:${row.setIndex}`,sessionKey,profileId:PROFILE_ID,
+        date:onDate,plannedSessionId:selected?.id,exerciseId:row.exerciseId,setIndex:row.setIndex,reps,weightKg,holdSeconds,rir,createdAt:now,updatedAt:now}
+      return [record]
+    })
+  }
+  async function saveDraft(){
+    setBusy(true)
+    try{
+      if(done)throw Error('Diese Einheit ist bereits abgeschlossen.')
+      const records=collect()
+      const db=await openTempoDatabase()
+      await new Promise<void>((resolve,reject)=>{
+        const tx=db.transaction('strengthSets','readwrite');const store=tx.objectStore('strengthSets')
+        for(const current of data.sets.filter(x=>x.sessionKey===sessionKey))store.delete(current.id)
+        for(const value of records)store.put({...value,createdAt:data.sets.find(x=>x.id===value.id)?.createdAt??value.createdAt})
+        tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error??Error('Sätze nicht gespeichert.'))};tx.onabort=()=>{db.close();reject(Error('Sätze nicht gespeichert.'))}
+      })
+      setData(await loadWorkoutData())
+      setMessage(`${records.length} Satz-/Haltezeit-Einträge zwischengespeichert. Du kannst später fortsetzen.`)
+    }catch(e){setMessage(e instanceof Error?e.message:String(e))}finally{setBusy(false)}
+  }
+  async function finish(e:FormEvent){
+    e.preventDefault();setBusy(true)
+    try{
+      if(done)throw Error('Diese Einheit ist bereits abgeschlossen.')
+      const sets=collect()
+      if(!sets.length)throw Error('Bitte mindestens einen Satz erfassen.')
+      const durationMin=numberField(duration,'Dauer',600,true)!
+      const effort=numberField(rpe,'RPE',10,true)!
+      await finalizeWorkout({date:onDate,planned:selected,title:selected?.title??template.title,
+        durationMin,rpe:effort,notes,sessionType:'manual-strength',strengthVariant:kind,sets,freeKey:sessionKey})
+      setData(await loadWorkoutData())
+      setMessage('Krafttraining abgeschlossen ✓ · Satzprotokoll und tatsächliche Belastung gespeichert.')
+    }catch(err){setMessage(`Nicht abgeschlossen: ${err instanceof Error?err.message:String(err)}`)}finally{setBusy(false)}
+  }
+  const warning=readinessWarning(onDate,data.readiness)
+  return <div className="tw-stack">
+    <section className="panel tw-panel">
+      <div className="eyebrow">KRAFT · TRAINING STARTKLAR</div><h2>Ganzkörper A / B</h2>
+      <p>Schwerpunkt Beine und Rumpf mit Oberkörper-Ausgleich, Adduktoren-/Abduktorenübungen ohne Maschinen und schonender Schulterarbeit. <strong>Kein Timer und keine Töne.</strong> Die Satzpausen stehen bei jeder Übung.</p>
+      <div className="tw-form-grid">
+        <label>Geplantes Training<select value={plannedId} onChange={e=>{
+          const id=e.target.value;setPlannedId(id)
+          const item=planned.find(x=>x.id===id)
+          if(item){setDate(item.date);setVariant(workoutKind(item));setDuration(String(item.durationMin||55))}else setDuration('55')
+        }}><option value="">Eigene Einheit – unabhängig vom Plan</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
+        {!selected&&<><label>Datum<input type="date" value={date} onChange={e=>setDate(selectDate(e.target.value))}/></label><label>Programm<select value={variant} onChange={e=>setVariant(e.target.value as 'A'|'B')}><option value="A">Kraft A</option><option value="B">Kraft B</option></select></label></>}
+      </div>
+      <div className="tw-info"><strong>{template.title} · {friendlyDate(onDate)}</strong><span>{template.focus}</span><span>{template.warmup}</span></div>
+      {warning&&<div className="tw-warning" role="status">{warning} Keine automatische Trainingsfreigabe.</div>}
+      {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert gespeichert. Satzprotokoll bleibt lesbar; ein erneuter Abschluss wird verhindert.</div>}
+    </section>
+    <form onSubmit={finish} className="tw-stack">
+      {template.exercises.map((ex,index)=><section className="panel tw-exercise" key={ex.id}>
+        <div className="tw-exercise-head"><span className="tw-number">{String(index+1).padStart(2,'0')}</span><div><h3>{ex.name}</h3><p>{ex.cue}</p></div></div>
+        <div className="tw-tags"><span>{ex.sets} Sätze · {ex.reps}</span><span>Pause: {restLabel(ex.restSec)}</span>{ex.unilateral&&<span>Je Seite</span>}</div>
+        <div className="tw-sets"><div className="tw-set-head"><span>Satz</span><span>{ex.hold?'Halten (s)':'Wdh.'}</span><span>Gewicht (kg)</span><span>RIR</span></div>
+          {Array.from({length:ex.sets},(_,i)=>i+1).map(i=>{
+            const value=inputs[stateKey(ex.id,i)]??blank(ex.id,i)
+            return <div className="tw-set" key={i}><span>{i}</span>
+              <input disabled={done} aria-label={`${ex.name} Satz ${i} ${ex.hold?'Haltezeit':'Wiederholungen'}`} type="number" inputMode="numeric" min="0" max={ex.hold?900:200} step="1" value={ex.hold?value.holdSeconds:value.reps} onChange={e=>patch(ex.id,i,ex.hold?'holdSeconds':'reps',e.target.value)} placeholder={ex.hold?'20':'8'}/>
+              <input disabled={done} aria-label={`${ex.name} Satz ${i} Gewicht`} type="number" inputMode="decimal" min="0" max="800" step="0.5" value={value.weightKg} onChange={e=>patch(ex.id,i,'weightKg',e.target.value)} placeholder="–"/>
+              <input disabled={done} aria-label={`${ex.name} Satz ${i} Reserve`} type="number" inputMode="numeric" min="0" max="5" step="1" value={value.rir} onChange={e=>patch(ex.id,i,'rir',e.target.value)} placeholder="2"/>
+            </div>
+          })}</div>
+      </section>)}
+      <section className="panel tw-panel"><div className="eyebrow">ABSCHLUSS · DEINE IST-WERTE</div><h3>Training dokumentieren</h3>
+        <div className="tw-form-grid"><label>Dauer (Minuten)<input required disabled={done} type="number" min="1" max="600" value={duration} onChange={e=>setDuration(e.target.value)}/></label><label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option value={i+1} key={i}>{i+1}</option>)}</select></label></div>
+        <label className="tw-notes">Bemerkungen<textarea disabled={done} value={notes} maxLength={1500} onChange={e=>setNotes(e.target.value)} placeholder="Schultergefühl, Adduktoren, Kraftreserve …"/></label>
+        <div className="tw-actions"><button type="button" disabled={busy||done} className="tw-secondary" onClick={()=>void saveDraft()}>Sätze zwischenspeichern</button><button type="submit" disabled={busy||done}>{busy?'Speichere …':'Training abschließen ✓'}</button></div>
+        <div className="tw-feedback" role="status">{message}</div>
+      </section>
+    </form>
+    <section className="panel tw-panel"><div className="eyebrow">KRAFT · LETZTE EINHEITEN</div><h3>Dein Verlauf</h3>{history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.durationMin} min · RPE {x.rpe??'–'}</span></div>):<p>Noch keine Kraft-Einheit protokolliert. Du kannst auch spontan ohne geplanten Termin beginnen.</p>}</section>
+  </div>
+}

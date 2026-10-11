@@ -5,11 +5,15 @@ import ShiftCalendarPanel, { ShiftHomeCard } from './db/ShiftCalendarPanel'
 import TrainingDayPanel, { HomeTrainingCard } from './planning/TrainingDayPanel'
 import EventsPanel, { EventsHomeCard, RoutesPanel } from './events/EventsPanel'
 import GarminLibraryPanel from './garmin/GarminLibraryPanel'
+import StrengthPanel from './workouts/StrengthPanel'
+import RunningPanel from './workouts/RunningPanel'
+import { isRun, isStrength } from './workouts/sessionStore'
+import type { TrainingRecord } from './planning/engine'
 
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
   | 'fueling' | 'recovery' | 'strength' | 'metrics' | 'blocks'
-  | 'events' | 'routes' | 'profile' | 'garmin'
+  | 'events' | 'routes' | 'profile' | 'garmin' | 'running'
 
 type PageInfo = { id: PageId; name: string; icon: IconName; description: string }
 type IconName = 'home' | 'heart' | 'play' | 'calendar' | 'trend' | 'drop' | 'wind' | 'dumbbell' | 'gauge' | 'layers' | 'flag' | 'map' | 'user' | 'menu' | 'chevron' | 'arrow' | 'check' | 'clock' | 'close'
@@ -21,7 +25,8 @@ const pages: PageInfo[] = [
   { id: 'calendar', name: '14-Tage-Plan', icon: 'calendar', description: 'Training und Dienste gemeinsam planen.' },
   { id: 'fueling', name: 'Fueling & Trinken', icon: 'drop', description: 'Kohlenhydrate, Flüssigkeit und Verträglichkeit.' },
   { id: 'recovery', name: 'Recovery & Mobility', icon: 'wind', description: 'Routinen, Beweglichkeit und Erholung.' },
-  { id: 'strength', name: 'Krafttraining', icon: 'dumbbell', description: 'Ganzkörpertraining und Satzprotokoll.' },
+  { id: 'strength', name: 'Krafttraining', icon: 'dumbbell', description: 'Ganzkörper A/B und Satzprotokoll.' },
+  { id: 'running', name: 'Laufen', icon: 'play', description: 'Locker laufen, dokumentieren und entwickeln.' },
   { id: 'progress', name: 'Fortschritt', icon: 'trend', description: 'Deine langfristige Entwicklung.' },
   { id: 'metrics', name: 'Leistungswerte', icon: 'gauge', description: 'Rad, Lauf und Kraft in einer Bibliothek.' },
   { id: 'blocks', name: 'Blockübersicht', icon: 'layers', description: 'Umsetzung und Kennzahlen je Trainingsblock.' },
@@ -77,7 +82,7 @@ function Home({ go }: { go: (id: PageId) => void }) {
       <ShiftHomeCard onOpen={() => go('calendar')}/>
     </div>
     <div className="section-head"><h3>Schnellzugriff</h3><span>DEINE WERKZEUGE</span></div>
-    <div className="shortcut-grid">{(['fueling', 'recovery', 'strength', 'metrics'] as PageId[]).map(id => { const page = pages.find(p => p.id === id)!; return <button className="shortcut" key={id} onClick={() => go(id)}><span className="shortcut-icon"><Icon name={page.icon} size={20}/></span><span>{page.name}</span><Icon name="arrow" size={16}/></button> })}</div>
+    <div className="shortcut-grid">{(['strength', 'running', 'recovery', 'fueling'] as PageId[]).map(id => { const page = pages.find(p => p.id === id)!; return <button className="shortcut" key={id} onClick={() => go(id)}><span className="shortcut-icon"><Icon name={page.icon} size={20}/></span><span>{page.name}</span><Icon name="arrow" size={16}/></button> })}</div>
   </>
 }
 
@@ -102,20 +107,27 @@ function Placeholder({ id, go }: { id: PageId; go: (id: PageId) => void }) {
 export default function App() {
   const [page, setPage] = useState<PageId>('home')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [focusWorkout, setFocusWorkout] = useState('')
   const active = pages.find(p => p.id === page)!
   const today = new Intl.DateTimeFormat('de-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date())
-  function navigate(id: PageId) { setPage(id); setMenuOpen(false); window.scrollTo({top:0,behavior:'smooth'}) }
+  function navigate(id: PageId) { setFocusWorkout(''); setPage(id); setMenuOpen(false); window.scrollTo({top:0,behavior:'smooth'}) }
+  function openWorkout(session: TrainingRecord) {
+    if(!isStrength(session) && !isRun(session)) return
+    setFocusWorkout(session.id)
+    setPage(isStrength(session)?'strength':'running')
+    window.scrollTo({top:0,behavior:'smooth'})
+  }
   return <div className="app">
     <div className={`mobile-shade ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
       <div className="brand"><div className="brand-symbol"><span/></div><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
       <div className="sidebar-caption">DEIN WORKSPACE</div>
       <nav aria-label="Hauptmenü">{pages.map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page === item.id && <span className="active-marker"/>}</button>)}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.17 · Anstiegsbibliothek</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.18 · Trainingsstart</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 17</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 18</span></header>
       <main className="content"><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : <Placeholder id={page} go={navigate}/>} 
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout}/> : <Placeholder id={page} go={navigate}/>} 
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>
     </div>

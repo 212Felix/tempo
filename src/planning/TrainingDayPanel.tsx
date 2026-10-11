@@ -3,6 +3,7 @@ import {listRecords} from '../db/storage'
 import {currentKey, friendlyDate, PROFILE_ID, type TrainingRecord} from './engine'
 import ManualTrainingPanel from './ManualTrainingPanel'
 import DailyDecisionPanel from './DailyDecisionPanel'
+import { isStrength, isRun } from '../workouts/sessionStore'
 import './plan.css'
 
 function HomeTrainingCard({onOpen}:{onOpen:()=>void}) {
@@ -26,7 +27,7 @@ const askAdd=(date:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-a
 const askEdit=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-edit',{detail:{kind:'planned',id}}))
 const askDone=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-finish',{detail:id}))
 
-export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void}){
+export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenWorkout}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
   const [selected,setSelected]=useState('')
   const [loading,setLoading]=useState(true)
@@ -60,6 +61,7 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar}:{onOpe
       <h3>{x.title}</h3><p>{x.durationMin?`${x.durationMin} min · `:''}{x.description}</p>
       <div className="tempo-workout-badges"><span>{x.target}</span>{x.expectedKm?<span>{x.expectedKm} km</span>:null}</div>
       {x.notes&&<p style={{marginTop:12}}>{x.notes}</p>}
+      {(isStrength(x)||isRun(x))&&<div style={{margin:'14px 0'}}><button className="tw-open-action" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm & Feedback öffnen →'}</button></div>}
       {x.status!=='erledigt'&&<div className="tempo-manual-entry-actions"><button onClick={()=>askEdit(x.id)}>Bearbeiten / verschieben</button><button onClick={()=>askDone(x.id)}>Als absolviert erfassen</button></div>}
     </section>):<section className="panel tempo-workout-detail"><h3>Kein Training für diesen Tag geplant</h3><p>Du kannst selbst ein Training hinzufügen oder unter „14 Tage“ einen Entwurf bestätigen.</p></section>}
     <ManualTrainingPanel/>
