@@ -74,7 +74,6 @@ export function tailorSession(base:TrainingRecord, block:TrainingBlock | undefin
     result={...result,title:target==='technique'?'Easy Run + 4 kurze Steigerungen':'Lockerer Lauf · Schwerpunkt',durationMin:Math.min(Math.round(base.durationMin*(block.capacity==='reduced'?.85:1.1)),45),target:target==='technique'?'Locker laufen; optional 4 × 12 Sekunden Steigerung mit vollständiger Erholung':'Gesprächstempo, RPE 3–4; bei Bedarf Gehpausen'}
   }
   if(block.focus==='strength'&&base.sessionType.startsWith('strength')) result={...result,description:target==='speed'?'Explosive Bewegung technisch kontrolliert, ohne Maximallasten und ohne Muskelversagen.': 'Kraftschwerpunkt, Technik vor Zusatzgewicht. Keine erschöpfenden Sätze.'}
-  if(block.focus==='mixed'&&base.sessionType==='endurance'&&target==='recovery')result={...result,title:'Aktive Erholung',durationMin:30,priority:'KANN'}
   return {...result,notes:[result.notes,`Fokusblock: ${block.name} (${focusLabels[block.focus]}; ${targetLabels[block.target]}). Keine automatische Trainingsfreigabe.`].filter(Boolean).join(' · ')}
 }
 
