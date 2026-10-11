@@ -3,6 +3,7 @@ import { getRecord, listRecords, saveRecord } from './storage'
 import type { ProfileRecord, TempoRecord } from './types'
 import './shift-calendar.css'
 import PlanPreview from '../planning/PlanPreview'
+import HelpDisclosure from '../ui/HelpDisclosure'
 import ManualTrainingPanel from '../planning/ManualTrainingPanel'
 
 const PROFILE_ID = 'local-primary-profile'
@@ -183,7 +184,7 @@ export default function ShiftCalendarPanel() {
     <section className="panel tempo-shift-header">
       <div className="eyebrow">DIENSTE & VERFÜGBARKEIT</div>
       <h2>Die nächsten Tage vorbereiten</h2>
-      <p>Erst die Dienste und Möglichkeiten eintragen, danach können wir die Trainingseinheiten sinnvoll verteilen. Wochenenden sind standardmäßig <strong>Frei als Vorschlag</strong> – auch sie können Tagdienst oder Einsatz werden.</p>
+      <HelpDisclosure id="calendar-shift-intro"><p>Erst die Dienste und Möglichkeiten eintragen, danach können wir die Trainingseinheiten sinnvoll verteilen. Wochenenden sind standardmäßig <strong>Frei als Vorschlag</strong> – auch sie können Tagdienst oder Einsatz werden.</p></HelpDisclosure>
       <div className="tempo-shift-toolbar">
         <div className="tempo-shift-choices" role="group" aria-label="Planungshorizont">
           <Choice selected={horizon === 7} onClick={() => {setHorizon(7);setSelectedDate(null);setDraft(null)}}>7 Tage</Choice>

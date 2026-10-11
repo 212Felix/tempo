@@ -2,6 +2,7 @@ import { useEffect, useState, type ChangeEvent } from 'react'
 import { exportTempoBackup, getRecord, getStoreCounts, importTempoBackup, saveRecord } from './storage'
 import { STORE_NAMES, type ProfileRecord, type StoreName } from './types'
 import './database-panel.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 const PROFILE_ID = 'local-primary-profile'
 
@@ -122,7 +123,7 @@ export default function DatabasePanel() {
     <section className="panel tempo-db-panel">
       <div className="eyebrow">PHASE 2 · DATENBANK</div>
       <h2>Dein lokales TEMPO-Profil</h2>
-      <p>Die App ist neutral. Deine Werte werden erst hier auf deinem Gerät gespeichert und nicht in den öffentlichen GitHub-Code geschrieben.</p>
+      <HelpDisclosure id="profile-data"><p>Die App ist neutral. Deine Werte werden erst hier auf deinem Gerät gespeichert und nicht in den öffentlichen GitHub-Code geschrieben.</p></HelpDisclosure>
       <div className="tempo-db-fields">
         <label>Anzeigename <input type="text" maxLength={70} value={name} onChange={e => setName(e.target.value)} placeholder="Optional" autoComplete="off" /></label>
         <label>Gewicht (kg) <input type="text" inputMode="decimal" value={weight} onChange={e => setWeight(e.target.value)} placeholder="Noch nicht eingetragen" /></label>
@@ -135,14 +136,14 @@ export default function DatabasePanel() {
     <section className="panel tempo-db-panel">
       <div className="eyebrow">SECOND BRAIN · BASIS</div>
       <h2>Datenbankstatus</h2>
-      <p>20 vorbereitete Datenbereiche für Profil, Dienstplanung, Training, Events, Fueling und Recovery.</p>
+      <HelpDisclosure id="profile-database"><p>20 vorbereitete Datenbereiche für Profil, Dienstplanung, Training, Events, Fueling und Recovery.</p></HelpDisclosure>
       <div className="tempo-db-stats"><strong>{counts ? STORE_NAMES.length : '–'}</strong><span>Datenbereiche</span><strong>{counts ? Object.values(counts).reduce((a, b) => a + b, 0) : '–'}</strong><span>Gespeicherte Einträge</span></div>
       <div className="tempo-db-message" role="status">{notice}</div>
     </section>
     <section className="panel tempo-db-panel">
       <div className="eyebrow">DATENSICHERUNG</div>
       <h2>Backup & Wiederherstellung</h2>
-      <p>Browser-Daten sind gerätegebunden und können bei Löschung der Website-Daten verloren gehen. Sichere deine Daten regelmäßig als JSON-Datei.</p>
+      <HelpDisclosure id="profile-backup"><p>Browser-Daten sind gerätegebunden und können bei Löschung der Website-Daten verloren gehen. Sichere deine Daten regelmäßig als JSON-Datei.</p></HelpDisclosure>
       <div className="tempo-db-actions">
         <button disabled={busy} onClick={() => void downloadBackup()}>Backup herunterladen (.json)</button>
         <label className={`tempo-db-import ${busy ? 'disabled' : ''}`}>Backup importieren <input type="file" accept=".json,application/json" disabled={busy} onChange={e => void uploadBackup(e)} /></label>

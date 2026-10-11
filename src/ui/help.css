@@ -1,0 +1,26 @@
+.tempo-help { margin: 7px 0 12px; min-width: 0; }
+.tempo-help-toggle {
+  display: inline-flex; justify-content: center; align-items: center; gap: 7px;
+  min-height: 44px; padding: 8px 12px; max-width: 100%;
+  border: 1px solid rgba(160,195,213,.24); border-radius: 10px;
+  background: rgba(159,197,215,.07); color: #b5d6e5;
+  font: inherit; font-size: .85rem; font-weight: 650; cursor: pointer;
+}
+.tempo-help-toggle:hover { background: rgba(159,197,215,.14); }
+.tempo-help-toggle:focus-visible { outline: 2px solid #99c7d9; outline-offset: 3px; }
+.tempo-help-symbol { font-size: 1.15rem; line-height: 1; }
+.tempo-help-arrow { margin-left: 2px; font-size: .7rem; }
+.tempo-help-body {
+  margin-top: 8px; padding: 11px 13px; border-radius: 11px;
+  border: 1px solid rgba(160,195,213,.18);
+  background: rgba(14,25,36,.53); color: #b3c3d0;
+  font-size: .9rem; line-height: 1.55;
+}
+.tempo-help-body[hidden] { display: none !important; }
+.tempo-help-body p { margin: 0 0 8px !important; line-height: 1.55; }
+.tempo-help-body p:last-child { margin-bottom: 0 !important; }
+@media(max-width: 650px) {
+  .tempo-help { margin: 5px 0 9px; }
+  .tempo-help-toggle { font-size: .79rem; min-height: 44px; }
+  .tempo-help-body { padding: 10px 11px; font-size: .85rem; }
+}

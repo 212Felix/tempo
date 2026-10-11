@@ -6,6 +6,7 @@ import {
   sports, toForm, type Editable, type ManualForm, type ManualSport,
 } from './manual'
 import './manual.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 type Mode = 'planned' | 'completed'
 const showMinutes = (n?:number) => n ? `${n} min` : 'Dauer offen'
@@ -114,7 +115,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
   return <section className="panel tempo-manual" id="tempo-own-training">
     <div className="eyebrow">PHASE 6 · DEINE ENTSCHEIDUNG</div>
     <h2>Eigenes Training & freie Aktivitäten</h2>
-    <p>Verabrede dich zum Krafttraining, fahre spontan Rad oder verschiebe ein Workout: <strong>Du kannst jeden Tag selbst gestalten.</strong> Mehrere Einheiten pro Tag sind erlaubt. Eigene Einträge bleiben bei neuen Planvorschlägen geschützt.</p>
+    <HelpDisclosure id="calendar-manual-intro"><p>Verabrede dich zum Krafttraining, fahre spontan Rad oder verschiebe ein Workout: <strong>Du kannst jeden Tag selbst gestalten.</strong> Mehrere Einheiten pro Tag sind erlaubt. Eigene Einträge bleiben bei neuen Planvorschlägen geschützt.</p></HelpDisclosure>
     <div className="tempo-manual-actions">
       <button type="button" onClick={()=>begin('planned')}>＋ Training planen</button>
       <button type="button" className="outline" onClick={()=>begin('completed')}>✓ Freies Training protokollieren</button>

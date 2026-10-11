@@ -4,6 +4,7 @@ import {STRENGTH,restLabel} from './catalog'
 import {alreadyDone,finalizeWorkout,isStrength,loadWorkoutData,numberField,readinessWarning,strengthSessionKey,workoutKind,type StrengthInput,type StrengthSet} from './sessionStore'
 import {listRecords,openTempoDatabase} from '../db/storage'
 import './workouts.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 const blank=(exerciseId:string,setIndex:number):StrengthInput=>({exerciseId,setIndex,reps:'',weightKg:'',holdSeconds:'',rir:''})
 const stateKey=(id:string,index:number)=>`${id}:${index}`
@@ -113,7 +114,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   return <div className="tw-stack">
     <section className="panel tw-panel">
       <div className="eyebrow">KRAFT · TRAINING STARTKLAR</div><h2>Ganzkörper A / B</h2>
-      <p>Schwerpunkt Beine und Rumpf mit Oberkörper-Ausgleich, Adduktoren-/Abduktorenübungen ohne Maschinen und schonender Schulterarbeit. <strong>Kein Timer und keine Töne.</strong> Die Satzpausen stehen bei jeder Übung.</p>
+      <HelpDisclosure id="strength-intro"><p>Schwerpunkt Beine und Rumpf mit Oberkörper-Ausgleich, Adduktoren-/Abduktorenübungen ohne Maschinen und schonender Schulterarbeit. <strong>Kein Timer und keine Töne.</strong> Die Satzpausen stehen bei jeder Übung.</p></HelpDisclosure>
       <div className="tw-form-grid">
         <label>Geplantes Training<select value={plannedId} onChange={e=>{
           const id=e.target.value;setPlannedId(id)

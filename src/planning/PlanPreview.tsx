@@ -7,6 +7,7 @@ import {
 } from './engine'
 import { reviewSavedPlan } from './review'
 import './plan.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 import { buildEventInfluences, type GoalEvent, type RouteEntry } from '../events/library'
 import '../events/events.css'
 
@@ -99,29 +100,29 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   return <section className="panel tempo-plan">
     <div className="eyebrow">PHASE 12 · TRAININGSABGLEICH MIT EVENTPLANUNG</div>
     <h2>Trainingsplan vorschlagen</h2>
-    <p>Der Vorschlag berücksichtigt bestätigte Dienste, manuelle Termine und dokumentierte zusätzliche Belastung. Nach längeren oder intensiven Aktivitäten werden Folgetage vorsichtiger geplant. Gespeicherte Trainings werden auf mögliche Konflikte geprüft. Einzelne TEMPO-Tage kannst du gezielt übernehmen; eigene Einheiten werden nur markiert, nicht verändert. Bestätigte Eventtermine können zusätzlich Vor-/Nachentlastung auslösen. Keine vollständige Periodisierung oder medizinische Trainingsfreigabe.</p>
+    <HelpDisclosure id="calendar-plan-intro"><p>Der Vorschlag berücksichtigt bestätigte Dienste, manuelle Termine und dokumentierte zusätzliche Belastung. Nach längeren oder intensiven Aktivitäten werden Folgetage vorsichtiger geplant. Gespeicherte Trainings werden auf mögliche Konflikte geprüft. Einzelne TEMPO-Tage kannst du gezielt übernehmen; eigene Einheiten werden nur markiert, nicht verändert. Bestätigte Eventtermine können zusätzlich Vor-/Nachentlastung auslösen. Keine vollständige Periodisierung oder medizinische Trainingsfreigabe.</p></HelpDisclosure>
     {loading ? <p className="tempo-plan-muted">Vorschläge werden berechnet …</p> : <>
-      {Object.values(eventInfluences).length>0 && <div className="tempo-plan-event-summary"><strong>Eventsteuerung aktiv</strong><p>Bestätigte Ziele erhalten einen geschützten Höhepunkttag sowie vorläufige Entlastung davor und danach. Die Challenge selbst ist noch keine absolvierte Fahrt und muss später dokumentiert werden. Eigene Termine bleiben erhalten.</p></div>}
+      {Object.values(eventInfluences).length>0 && <div className="tempo-plan-event-summary"><strong>Eventsteuerung aktiv</strong><HelpDisclosure id="calendar-event-help"><p>Bestätigte Ziele erhalten einen geschützten Höhepunkttag sowie vorläufige Entlastung davor und danach. Die Challenge selbst ist noch keine absolvierte Fahrt und muss später dokumentiert werden. Eigene Termine bleiben erhalten.</p></HelpDisclosure></div>}
       {events.some(e=>e.profileId===PROFILE_ID && e.status!=='bestaetigt' && e.status!=='abgeschlossen') && <div className="tempo-plan-warning">Ziele mit offenem Startplatz oder flexiblem Termin sind gespeichert, verursachen aber noch keinen festen Taper.</div>}
       <div className="tempo-plan-stats"><span><strong>{sessions.length}</strong> Einheiten</span><span><strong>{Math.floor(minutes/60)}:{String(minutes%60).padStart(2,'0')} h</strong> {commuteCount ? 'ohne Pendelzeit' : 'Vorschlag'}</span><span><strong>{important}</strong> Rad-Schwerpunkte</span></div>
       <div className={`tempo-plan-readiness tempo-plan-readiness-${currentReadiness}`} role="status"><strong>Readiness heute: {currentReadiness==='gruen'?'GRÜN':currentReadiness==='gelb'?'GELB':currentReadiness==='rot'?'ROT':'NOCH OFFEN'}</strong><span>{currentReadiness==='offen'?'Ohne abgeschlossenen Check-in keine grüne Freigabe.':currentReadiness==='rot'?'Heute Erholung bevorzugen; morgen erneut prüfen.':currentReadiness==='gelb'?'Heute Qualität und schwere Beine kritisch prüfen.':'Heute keine zusätzlichen Readiness-Warnsignale.'}</span></div>
       {ready?.date===currentKey() && ready.illness==='ja' && <div className="tempo-plan-warning">Heute wurden Beschwerden gemeldet. Falls Pendeln trotzdem nötig ist, bitte selbst kritisch prüfen; geplante Belastungen werden nicht als medizinische Freigabe verstanden.</div>}
-      {loadAlerts.length > 0 && <div className="tempo-plan-load-alert" role="status"><strong>Belastung berücksichtigt</strong><p>Für {loadAlerts.length} bestätigte Folgetage empfiehlt TEMPO besondere Vorsicht oder Recovery. Bereits von dir festgelegte Einheiten bleiben unverändert und können mit einem Hinweis markiert sein.</p></div>}
-      {unconfirmed > 0 && <div className="tempo-plan-warning">{unconfirmed} von {days.length} Diensten sind noch unbestätigt. An diesen Tagen plant TEMPO vorsichtshalber keine feste Einheit. Wochenenden sind bis zur Bestätigung nur Vorschläge.</div>}
+      {loadAlerts.length > 0 && <div className="tempo-plan-load-alert" role="status"><strong>Belastung berücksichtigt · {loadAlerts.length} Folgetage</strong><HelpDisclosure id="calendar-load-explained"><p>Für {loadAlerts.length} bestätigte Folgetage empfiehlt TEMPO besondere Vorsicht oder Recovery. Bereits von dir festgelegte Einheiten bleiben unverändert und können mit einem Hinweis markiert sein.</p></HelpDisclosure></div>}
+      {unconfirmed > 0 && <div className="tempo-plan-warning"><strong>{unconfirmed} von {days.length} Diensten noch unbestätigt.</strong><HelpDisclosure id="calendar-shift-warning"><p>An diesen Tagen plant TEMPO vorsichtshalber keine feste Einheit. Wochenenden sind bis zur Bestätigung nur Vorschläge.</p></HelpDisclosure></div>}
       <section className="tempo-plan-review" aria-label="Plan-Konfliktprüfung">
         <div className="tempo-plan-changes-head"><strong>Dein gespeicherter Plan · Belastungscheck</strong><span>{reviewIssues.length} Hinweise · {seriousIssues} Konflikte</span></div>
-        {reviewIssues.length === 0 ? <p className="tempo-plan-review-empty">Für deine aktuell gespeicherten, noch geplanten Einheiten wurden im angezeigten Zeitraum keine offensichtlichen Konflikte erkannt. Fehlende Daten bedeuten keine Trainingsfreigabe.</p>
+        {reviewIssues.length === 0 ? <p className="tempo-plan-review-empty">Keine offensichtlichen Konflikte erkannt. Fehlende Daten bedeuten keine Trainingsfreigabe.</p>
           : <div className="tempo-plan-review-list">{reviewIssues.slice(0,16).map(issue => <div key={issue.id} className={`tempo-plan-review-issue ${issue.severity==='konflikt'?'is-conflict':'is-notice'}`}>
               <div className="tempo-plan-review-head"><strong>{friendlyDate(issue.date)} · {issue.title}</strong><span>{issue.severity==='konflikt'?'Bitte prüfen':'Hinweis'}</span></div>
               <p>{issue.explanation}</p><small>{issue.suggestion}</small>
               {issue.protected && <em>Eigene Einheit geschützt · zum Bearbeiten „Tagestraining“ öffnen</em>}
             </div>)}</div>}
-        <p className="tempo-plan-review-note">Dies ist eine vorsichtige Plausibilitätsprüfung, keine medizinische Freigabe. Noch kein automatisches Verschieben deiner eigenen Trainings.</p>
+        <HelpDisclosure id="calendar-review-help"><p>Dies ist eine vorsichtige Plausibilitätsprüfung, keine medizinische Freigabe. Noch kein automatisches Verschieben deiner eigenen Trainings.</p></HelpDisclosure>
       </section>
       <section className="tempo-plan-changes" aria-label="Änderungsvergleich">
         <div className="tempo-plan-changes-head"><strong>Änderungen gegenüber deinem gespeicherten Plan</strong><span>{comparisons.length} {comparisons.length===1?'Vorschlag':'Vorschläge'}</span></div>
         {comparisons.length===0 ? <p>Keine Änderungen an bereits automatisch eingeplanten Einheiten erforderlich. Eventuell erscheinen neue Trainingsvorschläge nach vollständiger Dienstplanung.</p> : <div className="tempo-plan-comparison-list">{comparisons.slice(0,14).map(change=><div className="tempo-plan-comparison" key={change.date}><strong>{friendlyDate(change.date)}</strong><div><span>Bisher: {change.before}</span><span>Vorschlag: {change.after}</span></div><small>{change.reason}</small><button type="button" disabled={working} className="tempo-plan-one-button" onClick={() => void saveDay(change.date)}>{working && savingDate===change.date?'Wird gespeichert …':'Nur diesen Tag übernehmen'}</button></div>)}</div>}
-        <p><strong>Nur Vorschau.</strong> Du kannst einzelne Tage oder den gesamten Vorschlag übernehmen. Beides betrifft ausschließlich noch offene TEMPO-Einheiten. Manuelle und absolvierte Einträge bleiben geschützt.</p>
+        <HelpDisclosure id="calendar-compare-help"><p><strong>Nur Vorschau.</strong> Du kannst einzelne Tage oder den gesamten Vorschlag übernehmen. Beides betrifft ausschließlich noch offene TEMPO-Einheiten. Manuelle und absolvierte Einträge bleiben geschützt.</p></HelpDisclosure>
       </section>
       <div className="tempo-plan-grid">
         {planned.map(day => {
@@ -140,10 +141,9 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
           </div>
         })}
       </div>
-      <p className="tempo-plan-muted">Eine einzelne schlechte Nacht führt nicht automatisch zu mehreren Ruhetagen; nach ROT wird der Folgetag vorsichtiger betrachtet und die neue Readiness am Morgen erneut benötigt. Manuell geplante und absolvierte Einheiten werden bei der Neuplanung geschützt. Ihre Belastung beeinflusst die Folgetage. Die Schwellen sind vorläufige Heuristiken; Uhrdaten und individuelle Reaktionen ergänzen wir später. Änderungen am gespeicherten Plan erfolgen erst nach deiner Bestätigung.</p>
-      <p className="tempo-plan-muted">Einheiten bleiben Empfehlungen. Readiness wird morgens erneut geprüft. Ein Einsatz erhält nur Recovery/Pause. Volle Pendeltage werden als eigener Ausdauerreiz gerechnet; bei Hin + Rück bleibt die Hinfahrt locker.</p>
+      <HelpDisclosure id="calendar-final-rules" label="Planungsregeln"><p>Eine einzelne schlechte Nacht führt nicht automatisch zu mehreren Ruhetagen; nach ROT wird der Folgetag vorsichtiger betrachtet und die neue Readiness am Morgen erneut benötigt. Manuell geplante und absolvierte Einheiten werden bei der Neuplanung geschützt. Ihre Belastung beeinflusst die Folgetage. Die Schwellen sind vorläufige Heuristiken; Uhrdaten und individuelle Reaktionen ergänzen wir später. Änderungen am gespeicherten Plan erfolgen erst nach deiner Bestätigung.</p><p>Einheiten bleiben Empfehlungen. Readiness wird morgens erneut geprüft. Ein Einsatz erhält nur Recovery/Pause. Volle Pendeltage werden als eigener Ausdauerreiz gerechnet; bei Hin + Rück bleibt die Hinfahrt locker.</p></HelpDisclosure>
       <button type="button" className="tempo-plan-save" disabled={working || loading} onClick={() => void save()}>{working?'Plan wird gespeichert …':'Vorschläge prüfen & Plan übernehmen'}</button>
-      <div className="tempo-plan-feedback" role="status">{notice || 'Nichts wird automatisch überschrieben. Erst deine Bestätigung speichert die Vorschläge.'}</div>
+      <div className="tempo-plan-feedback" role="status">{notice || 'Noch nichts übernommen. Bestätigung erforderlich.'}</div>
     </>}
   </section>
 }

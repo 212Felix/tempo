@@ -3,6 +3,7 @@ import {currentKey,friendlyDate,type TrainingRecord} from '../planning/engine'
 import {paceLabel,runInstructions} from './catalog'
 import {alreadyDone,finalizeWorkout,isRun,loadWorkoutData,numberField,readinessWarning} from './sessionStore'
 import './workouts.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 type Data=Awaited<ReturnType<typeof loadWorkoutData>>
 export default function RunningPanel({focusId}:{focusId?:string}){
@@ -49,7 +50,7 @@ export default function RunningPanel({focusId}:{focusId?:string}){
   }
   return <div className="tw-stack">
     <section className="panel tw-panel"><div className="eyebrow">LAUFEN · KONSERVATIVER AUFBAU</div><h2>Locker laufen, konstant aufbauen</h2>
-      <p>Der Laufteil startet bewusst behutsam: erst Umfang und Sehnenverträglichkeit, später gezielte Geschwindigkeit. Aktuell keine harten 800-m- oder 1.000-m-Intervalle.</p>
+      <HelpDisclosure id="running-intro"><p>Der Laufteil startet bewusst behutsam: erst Umfang und Sehnenverträglichkeit, später gezielte Geschwindigkeit. Aktuell keine harten 800-m- oder 1.000-m-Intervalle.</p></HelpDisclosure>
       <div className="tw-form-grid"><label>Geplante Laufeinheit<select value={plannedId} onChange={e=>{
         setPlannedId(e.target.value);const item=planned.find(x=>x.id===e.target.value);if(item){setDate(item.date);setDuration(String(item.durationMin||30))}else setDuration('30')
       }}><option value="">Freien Lauf erfassen</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
@@ -60,8 +61,9 @@ export default function RunningPanel({focusId}:{focusId?:string}){
       {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert dokumentiert.</div>}
     </section>
     <section className="panel tw-panel"><div className="eyebrow">LAUFABLAUF · KEIN TEMPOZWANG</div><h3>Deine Einheit</h3>
+      <HelpDisclosure id="running-run-notes"><p>Wähle die Gesamtdauer je nach geplanter Einheit und Tagesform. Steigt die muskuläre Belastung oder treten Schmerzen auf, beende den Lauf.</p></HelpDisclosure>
       {runInstructions.steps.map((step,i)=><div className="tw-run-step" key={step.name}><span className="tw-number">{i+1}</span><div><strong>{step.name}</strong><p>{step.detail}</p></div></div>)}
-      <p className="tw-footnote">Wähle die Gesamtdauer je nach geplanter Einheit und Tagesform. Steigt die muskuläre Belastung oder treten Schmerzen auf, beende den Lauf.</p>
+
     </section>
     <section className="panel tw-panel"><div className="eyebrow">LAUFFEEDBACK · ABSOLVIERT</div><h3>Ist-Werte eintragen</h3>
       <form onSubmit={e=>void submit(e)}><div className="tw-form-grid">
@@ -76,7 +78,7 @@ export default function RunningPanel({focusId}:{focusId?:string}){
     </section>
     <section className="panel tw-panel"><div className="eyebrow">LAUFEN · HISTORIE</div><h3>Zuletzt dokumentiert</h3>
       {history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.distanceKm??'–'} km · {x.durationMin??'–'} min · {typeof x.durationMin==='number' && typeof x.distanceKm==='number' && x.distanceKm>0 ? paceLabel(x.durationMin,x.distanceKm) : '–'} · RPE {x.rpe??'–'}</span></div>):<p>Noch kein Lauf abgeschlossen. Alte Garmin-CSV-Aktivitäten liegen weiterhin in der separaten Garmin-Bibliothek.</p>}
-      <p className="tw-footnote">Läufe aus Garmin-FIT/CSV werden noch nicht automatisch mit manuell protokollierten Läufen zusammengeführt. Bitte dieselbe Aktivität nicht doppelt abschließen.</p>
+      <HelpDisclosure id="running-history-help"><p>Läufe aus Garmin-FIT/CSV werden noch nicht automatisch mit manuell protokollierten Läufen zusammengeführt. Bitte dieselbe Aktivität nicht doppelt abschließen.</p></HelpDisclosure>
     </section>
   </div>
 }

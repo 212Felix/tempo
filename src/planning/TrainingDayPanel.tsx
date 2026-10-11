@@ -5,6 +5,7 @@ import ManualTrainingPanel from './ManualTrainingPanel'
 import DailyDecisionPanel from './DailyDecisionPanel'
 import { isStrength, isRun } from '../workouts/sessionStore'
 import './plan.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 function HomeTrainingCard({onOpen}:{onOpen:()=>void}) {
   const [today,setToday]=useState<TrainingRecord[]>([])
@@ -52,7 +53,7 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
     <section className="panel tempo-workout-head">
       <div className="eyebrow">TAGESTRAINING · DEIN KALENDER</div>
       <h2>Training selbst gestalten</h2>
-      <p>Du kannst an jedem Tag eigene Trainings ergänzen und gespeicherte Einheiten bearbeiten oder verschieben – auch an freien Tagen und zusätzlich zu vorgeschlagenen Workouts.</p>
+      <HelpDisclosure id="training-manual-intro"><p>Du kannst an jedem Tag eigene Trainings ergänzen und gespeicherte Einheiten bearbeiten oder verschieben – auch an freien Tagen und zusätzlich zu vorgeschlagenen Workouts.</p></HelpDisclosure>
       <div className="tempo-workout-nav"><button disabled={pos<=0} onClick={()=>setSelected(dates[pos-1])}>‹ Vorheriges Training</button><strong>{friendlyDate(selectedDay)}</strong><button disabled={pos<0||pos>=dates.length-1} onClick={()=>setSelected(dates[pos+1])}>Nächstes Training ›</button></div>
       <div className="tempo-manual-actions"><button onClick={()=>askAdd(selectedDay)}>＋ Training ergänzen</button><button className="outline" onClick={()=>document.querySelector('#tempo-own-training')?.scrollIntoView({behavior:'smooth'})}>Freies Training protokollieren ↓</button></div>
     </section>

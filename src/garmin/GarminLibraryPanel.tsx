@@ -7,6 +7,7 @@ import ClimbLibraryPanel from './ClimbLibraryPanel'
 import type { FitTrace } from './fit'
 import { parseGarminCsv, type GarminActivity, type CsvParseResult } from './csv'
 import './garmin.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 const PROFILE_ID='local-primary-profile'
 const formatNumber=(n:number,opts?:Intl.NumberFormatOptions)=>new Intl.NumberFormat('de-DE',{maximumFractionDigits:1,...opts}).format(n)
@@ -104,14 +105,14 @@ export default function GarminLibraryPanel(){
     <div className="tempo-garmin-panel">
       <div className="eyebrow">GARMIN · DATENQUELLEN</div>
       <h2>Aktivitätsbibliothek</h2>
-      <p>Importiere deine bisherigen Rad-, Lauf- und anderen Aktivitäten aus Garmin Connect. Die Dateien werden ausschließlich in deinem Browser verarbeitet und lokal gespeichert – nicht zu GitHub hochgeladen.</p>
+      <HelpDisclosure id="garmin-intro"><p>Importiere deine bisherigen Rad-, Lauf- und anderen Aktivitäten aus Garmin Connect. Die Dateien werden ausschließlich in deinem Browser verarbeitet und lokal gespeichert – nicht zu GitHub hochgeladen.</p></HelpDisclosure>
       <div className="tempo-garmin-stats">
         <div><strong>{stored.length}</strong><small>Aktivitäten</small></div>
         <div><strong>{formatNumber(totalKm)}</strong><small>Kilometer</small></div>
         <div><strong>{formatNumber(totalHm,{maximumFractionDigits:0})}</strong><small>Höhenmeter</small></div>
       </div>
       <div className="tempo-garmin-import">
-        <div><h3>1. CSV aus Garmin Connect importieren</h3><p>Garmin Connect → Aktivitäten → Alle Aktivitäten → CSV-Datei exportieren. Mehrere CSV-Dateien nacheinander sind möglich; vorhandene Einträge werden erkannt.</p></div>
+        <div><h3>1. CSV aus Garmin Connect importieren</h3><HelpDisclosure id="garmin-csv-help"><p>Garmin Connect → Aktivitäten → Alle Aktivitäten → CSV-Datei exportieren. Mehrere CSV-Dateien nacheinander sind möglich; vorhandene Einträge werden erkannt.</p></HelpDisclosure></div>
         <label className="tempo-garmin-file">CSV-Datei auswählen<input type="file" accept=".csv,text/csv" disabled={busy} onChange={e=>void readCsv(e)}/></label>
       </div>
       {preview&&<div className="tempo-garmin-preview">
@@ -152,6 +153,6 @@ export default function GarminLibraryPanel(){
         <button className="tempo-garmin-danger" disabled={busy} onClick={()=>void remove(chosen.id)}>Diesen importierten Eintrag löschen</button>
       </div>}
     </div>
-    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Was kommt als Nächstes?</h3><p><strong>FIT-Originaldaten:</strong> Jetzt können Leistung, Puls, Kadenz und Höhenprofil im zeitlichen Verlauf lokal gespeichert und angezeigt werden. Eine erste vorsichtige Anstiegssuche ist verfügbar; eine anstiegsübergreifende Vergleichsbibliothek ist vorhanden; geeignete Intervallorte folgen später.</p><p><strong>Trainingsplanung:</strong> CSV-Einträge werden in dieser Version noch nicht automatisch als zusätzliche Belastung verbucht. Dadurch vermeiden wir Doppelzählungen mit deinen bereits dokumentierten Touren. Vor der automatischen Verknüpfung bauen wir einen Abgleich „Garmin-Aktivität ↔ TEMPO-Training“ ein.</p><p><strong>Datenschutz:</strong> Keine Anmeldung bei Garmin, keine Weitergabe der CSV- oder FIT-Datei, kein TEMPO-Server. FIT enthält gegebenenfalls private GPS-Daten. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></div>
+    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Hintergründe & Datenschutz</h3><HelpDisclosure id="garmin-future"><p><strong>FIT-Originaldaten:</strong> Jetzt können Leistung, Puls, Kadenz und Höhenprofil im zeitlichen Verlauf lokal gespeichert und angezeigt werden. Eine erste vorsichtige Anstiegssuche ist verfügbar; eine anstiegsübergreifende Vergleichsbibliothek ist vorhanden; geeignete Intervallorte folgen später.</p><p><strong>Trainingsplanung:</strong> CSV-Einträge werden in dieser Version noch nicht automatisch als zusätzliche Belastung verbucht. Dadurch vermeiden wir Doppelzählungen mit deinen bereits dokumentierten Touren. Vor der automatischen Verknüpfung bauen wir einen Abgleich „Garmin-Aktivität ↔ TEMPO-Training“ ein.</p><p><strong>Datenschutz:</strong> Keine Anmeldung bei Garmin, keine Weitergabe der CSV- oder FIT-Datei, kein TEMPO-Server. FIT enthält gegebenenfalls private GPS-Daten. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></HelpDisclosure></div>
   </section>
 }

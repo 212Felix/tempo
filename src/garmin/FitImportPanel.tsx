@@ -5,6 +5,7 @@ import FitInsights from './FitInsights'
 import { listRecords,openTempoDatabase,saveRecord } from '../db/storage'
 import type { GarminActivity } from './csv'
 import './fit.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 const PROFILE_ID='local-primary-profile'
 const n=(x:number|undefined,unit='')=>x===undefined?'–':new Intl.NumberFormat('de-DE',{maximumFractionDigits:1}).format(x)+unit
@@ -107,7 +108,7 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
     elapsedSeconds:preview.elapsedSeconds,timerSeconds:preview.timerSeconds,movingSeconds:preview.movingSeconds}:undefined
   return <div className="tempo-fit-import">
     <div className="tempo-garmin-import"><div><h3>2. Original-FIT-Datei einlesen</h3>
-      <p>Garmin Connect → Aktivität → Zahnrad → Datei exportieren → ZIP entpacken → <strong>.fit</strong> auswählen. Verarbeitung nur auf diesem Gerät; auch GPS-Verläufe bleiben lokal.</p></div>
+      <HelpDisclosure id="garmin-fit-help"><p>Garmin Connect → Aktivität → Zahnrad → Datei exportieren → ZIP entpacken → <strong>.fit</strong> auswählen. Verarbeitung nur auf diesem Gerät; auch GPS-Verläufe bleiben lokal.</p></HelpDisclosure></div>
       <label className="tempo-garmin-file">FIT-Datei auswählen<input type="file" accept=".fit,application/octet-stream" disabled={busy} onChange={e=>void openFile(e)}/></label>
     </div>
     <div className="tempo-garmin-status" role="status">{busy?'FIT-Datei wird verarbeitet …':message}</div>
