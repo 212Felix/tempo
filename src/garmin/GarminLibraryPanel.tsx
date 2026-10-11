@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { deleteRecord, getRecord, listRecords, openTempoDatabase } from '../db/storage'
 import FitImportPanel from './FitImportPanel'
+import ReconciliationPanel from '../planning/ReconciliationPanel'
+import type {LinkedCompleted} from '../planning/reconcile'
 import FitChart from './FitChart'
 import FitInsights from './FitInsights'
 import ClimbLibraryPanel from './ClimbLibraryPanel'
@@ -86,6 +88,8 @@ export default function GarminLibraryPanel(){
     return()=>{live=false}
   },[selected,stored])
   async function remove(id:string){
+    const linked=(await listRecords<LinkedCompleted>('completedSessions')).some(x=>x.externalActivityId===id)
+    if(linked){setNotice('Diese Garmin-Aktivität ist einem Training zugeordnet und kann nicht einzeln gelöscht werden. Zuerst die Verbindung im Trainingsabgleich aufheben.');return}
     if(!window.confirm('Nur diesen importierten Garmin-Eintrag aus TEMPO löschen? Garmin Connect bleibt unverändert.'))return
     setBusy(true)
     try{
@@ -125,6 +129,7 @@ export default function GarminLibraryPanel(){
       <div className="tempo-garmin-status" role="status">{busy?'TEMPO verarbeitet die Datei …':notice}</div>
       <FitImportPanel onSaved={id=>{void refresh().then(()=>{setSelected(id);setFitVersion(n=>n+1)})}}/>
     </div>
+    <ReconciliationPanel context="garmin" key={`${stored.length}-${fitVersion}`}/>
     <ClimbLibraryPanel activities={stored} refreshVersion={fitVersion}/>
     <div className="tempo-garmin-panel">
       <div className="eyebrow">HISTORIE · ALLE SPORTARTEN</div>
@@ -153,6 +158,6 @@ export default function GarminLibraryPanel(){
         <button className="tempo-garmin-danger" disabled={busy} onClick={()=>void remove(chosen.id)}>Diesen importierten Eintrag löschen</button>
       </div>}
     </div>
-    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Hintergründe & Datenschutz</h3><HelpDisclosure id="garmin-future"><p><strong>FIT-Originaldaten:</strong> Jetzt können Leistung, Puls, Kadenz und Höhenprofil im zeitlichen Verlauf lokal gespeichert und angezeigt werden. Eine erste vorsichtige Anstiegssuche ist verfügbar; eine anstiegsübergreifende Vergleichsbibliothek ist vorhanden; geeignete Intervallorte folgen später.</p><p><strong>Trainingsplanung:</strong> CSV-Einträge werden in dieser Version noch nicht automatisch als zusätzliche Belastung verbucht. Dadurch vermeiden wir Doppelzählungen mit deinen bereits dokumentierten Touren. Vor der automatischen Verknüpfung bauen wir einen Abgleich „Garmin-Aktivität ↔ TEMPO-Training“ ein.</p><p><strong>Datenschutz:</strong> Keine Anmeldung bei Garmin, keine Weitergabe der CSV- oder FIT-Datei, kein TEMPO-Server. FIT enthält gegebenenfalls private GPS-Daten. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></HelpDisclosure></div>
+    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Hintergründe & Datenschutz</h3><HelpDisclosure id="garmin-future"><p><strong>FIT-Originaldaten:</strong> Jetzt können Leistung, Puls, Kadenz und Höhenprofil im zeitlichen Verlauf lokal gespeichert und angezeigt werden. Eine erste vorsichtige Anstiegssuche ist verfügbar; eine anstiegsübergreifende Vergleichsbibliothek ist vorhanden; geeignete Intervallorte folgen später.</p><p><strong>Trainingsplanung:</strong> Garmin-Aktivitäten werden nicht ungeprüft als zweite absolvierte Einheit gezählt. Über „Garmin mit TEMPO verbinden“ kannst du vorhandene Trainingseinträge nach Bestätigung zuordnen. Erst dann fließt diese Aktivität als tatsächliche Belastung in neue Planvorschläge ein.</p><p><strong>Datenschutz:</strong> Keine Anmeldung bei Garmin, keine Weitergabe der CSV- oder FIT-Datei, kein TEMPO-Server. FIT enthält gegebenenfalls private GPS-Daten. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></HelpDisclosure></div>
   </section>
 }

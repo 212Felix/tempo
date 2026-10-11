@@ -5,6 +5,7 @@ import './shift-calendar.css'
 import PlanPreview from '../planning/PlanPreview'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import ManualTrainingPanel from '../planning/ManualTrainingPanel'
+import ReconciliationPanel from '../planning/ReconciliationPanel'
 import QuickAdjustmentPanel from './QuickAdjustmentPanel'
 
 const PROFILE_ID = 'local-primary-profile'
@@ -262,6 +263,7 @@ export default function ShiftCalendarPanel() {
       </div>
     </section>}
     <div className="tempo-shift-feedback" role="status">{feedback}</div>
+    <ReconciliationPanel context="calendar"/>
     <ManualTrainingPanel days={days}/>
     <PlanPreview days={days} shifts={entries} refreshIndex={planRefresh}/>
   </div>

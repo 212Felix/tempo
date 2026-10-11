@@ -961,3 +961,18 @@ input,select,textarea{max-width:100%}
   .topbar-tag{font-size:8px}
   .tempo-plan-stats{grid-template-columns:1fr 1fr}
 }
+
+/* Phase 19: kompakte, trainingsorientierte Startseite */
+.tempo-sidebar-icon{height:38px;width:38px;object-fit:cover;border-radius:11px;border:1px solid #ffffff33;flex-shrink:0}
+.tempo-home-brand{display:flex;align-items:center;gap:18px;padding:16px 20px;margin-bottom:18px;border:1px solid #36404c;border-radius:20px;background:linear-gradient(120deg,#1b2530,#121921);min-height:0}
+.tempo-home-brand img{display:block;height:118px;width:118px;object-fit:cover;object-position:center;border-radius:14px;flex:none}
+.tempo-home-brand .eyebrow{font-size:11px;letter-spacing:2px;color:#9ebccb}
+.tempo-home-brand p{color:#ccd8df;margin-top:9px;font-size:18px;line-height:1.35}
+.page-home .page-heading{margin-bottom:15px}
+@media(max-width:600px){
+ .tempo-home-brand{padding:12px;gap:12px;margin-bottom:12px;border-radius:15px}
+ .tempo-home-brand img{width:82px;height:82px;border-radius:12px}
+ .tempo-home-brand .eyebrow{font-size:9px;letter-spacing:1px}
+ .tempo-home-brand p{font-size:14px;margin-top:5px}
+ .page-home .page-heading{margin-bottom:10px}
+}

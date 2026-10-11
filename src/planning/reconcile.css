@@ -1,0 +1,9 @@
+.tempo-reconcile{display:flex;flex-direction:column;gap:15px}
+.tempo-reconcile-intro,.tempo-reconcile-muted{font-size:13px;line-height:1.55;color:#a6b9c5}
+.tempo-reconcile-match{display:flex;flex-direction:column;gap:9px;padding:16px;border:1px solid #466377;background:linear-gradient(120deg,#1c2c38,#14232c);border-radius:16px;line-height:1.5;font-size:14px}
+.tempo-reconcile-chip{font-size:12px;font-weight:700;letter-spacing:.03em;color:#a8ced8}
+.tempo-reconcile-match small{color:#aabac5;font-size:12px}
+.tempo-reconcile-match button{align-self:flex-start;border-radius:12px;padding:12px 16px;background:#a2c7d4;color:#142532;font-weight:750}
+.tempo-reconcile-match button:disabled{opacity:.6;cursor:wait}
+.tempo-reconcile-status{font-size:13px;color:#b7d7c4}
+@media(max-width:600px){.tempo-reconcile-match button{width:100%;align-self:stretch}}

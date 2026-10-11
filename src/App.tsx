@@ -75,7 +75,7 @@ function Eyebrow({ children }: { children: ReactNode }) {
 
 function Home({ go }: { go: (id: PageId) => void }) {
   return <>
-    <div className="hero"><span className="hero-glint"/><div className="eyebrow hero-eyebrow">DEIN TRAINING. DEIN RHYTHMUS.</div><h2>Train smarter.<br/><span>Stay consistent.</span></h2><p>Dein persönliches Trainingssystem – aufgebaut um Leistung, Erholung und echte Verfügbarkeit.</p><span className="hero-pill"><span className="pulse-dot"/> TEMPO · Dein Trainingsalltag</span></div>
+    <div className="tempo-home-brand"><img src={`${import.meta.env.BASE_URL}tempo-logo.jpg`} alt="TEMPO – Origami-Hirsch"/><div><span className="eyebrow">DEIN TRAINING. DEIN RHYTHMUS.</span><p>Dein Tag. Deine Leistung. Deine Erholung.</p></div></div>
     <div className="dashboard-grid">
       <ReadinessHomeCard onOpen={() => go('readiness')}/>
       <HomeTrainingCard onOpen={() => go('training')}/>
@@ -121,13 +121,13 @@ export default function App() {
   return <div className="app">
     <div className={`mobile-shade ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
-      <div className="brand"><div className="brand-symbol"><span/></div><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
+      <div className="brand"><img className="tempo-sidebar-icon" src={`${import.meta.env.BASE_URL}tempo-icon-192.png`} alt="TEMPO Hirsch"/><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
       <div className="sidebar-caption">DEIN WORKSPACE</div>
       <nav aria-label="Hauptmenü">{pages.map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page === item.id && <span className="active-marker"/>}</button>)}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.18.3 · Mobile Planung</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.19 · Garmin & Training</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 18.3</span></header>
-      <main className="content"><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 19</span></header>
+      <main className={`content page-${page}`}><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
       <HelpProvider key={page}>
       {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout}/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>

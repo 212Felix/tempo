@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useRef,useState, type FormEvent, type ReactNode} from 'react'
 import {listRecords} from '../db/storage'
+import {canMatchPlan} from './reconcile'
 import {currentKey, friendlyDate, type CompletedRecord, type ShiftRecord, type TrainingRecord} from './engine'
 import {
   defaultForm, deleteManual, kindFor, labelFor, loadManualEntries, saveManualCompleted, saveManualPlanned,
@@ -84,7 +85,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
   },[planned,completed,selectedDate])
   const entries=useMemo(()=>{
     const filteredPlanned=planned.filter(x=>!days || days.includes(x.date)).map(x=>({kind:'planned' as const,record:x}))
-    const filteredCompleted=completed.filter(x=>!days || days.includes(x.date)).map(x=>({kind:'completed' as const,record:x}))
+    const filteredCompleted=completed.filter(x=>(!days || days.includes(x.date)) && !(x.plannedSessionId && planned.some(p=>p.id===x.plannedSessionId))).map(x=>({kind:'completed' as const,record:x}))
     return [...filteredPlanned,...filteredCompleted].sort((a,b)=>a.record.date.localeCompare(b.record.date)||a.record.createdAt.localeCompare(b.record.createdAt))
   },[daysKey,planned,completed])
   const visibleDays=days??[]
@@ -97,7 +98,18 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
     setBusy(true)
     try {
       if(mode==='planned') await saveManualPlanned(draft,editing?.kind==='planned'?editing.record:undefined)
-      else await saveManualCompleted(draft,editing?.kind==='completed'?editing.record:undefined,linked??undefined)
+      else {
+        let target=linked??undefined
+        // Bei freiem Abschluss passende Planung ausdrücklich zur Verbindung anbieten.
+        if(!target && !editing && !completed.some(x=>x.date===draft.date && x.title===draft.title)){
+          const temp={date:draft.date,sessionType:kindFor(draft.sport),durationMin:Number(draft.duration.replace(',','.'))||0}
+          const possible=planned.filter(p=>canMatchPlan(p,temp) && p.status!=='nicht-erledigt' && !completed.some(x=>x.plannedSessionId===p.id))
+          if(possible.length===1 && window.confirm(`Es gibt bereits „${possible[0].title}“ für diesen Tag. Ist dein freier Eintrag die Durchführung dieser Einheit?\n\nOK = direkt mit dem Plan verknüpfen. Abbrechen = weiterhin getrennt speichern.`))target=possible[0]
+        }
+        if(!editing && !target && completed.some(x=>x.date===draft.date && x.sessionType===kindFor(draft.sport)) &&
+          !window.confirm('Für diesen Tag ist bereits eine absolvierte Einheit dieser Sportart gespeichert. Wirklich ein ZWEITES eigenständiges Training erfassen?'))return
+        await saveManualCompleted(draft,editing?.kind==='completed'?editing.record:undefined,target)
+      }
       await refresh()
       setFeedback(mode==='planned'?'Training geschützt im Kalender gespeichert ✓':'Absolvierte Einheit in der Trainingshistorie gespeichert ✓')
       setDraft(null);setEditing(null);setLinked(null);setSelectedDate(draft.date)
@@ -133,12 +145,15 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           const info=toLabel(r)
           const isDone=item.kind==='completed'||(item.kind==='planned'&&r.status==='erledigt')
           const marked=isDone||completedIds.has(r.id)
+          const actual=item.kind==='planned'?completed.find(x=>x.plannedSessionId===r.id):undefined
           return <div key={`${item.kind}:${r.id}`} className={`tempo-manual-entry ${marked?'is-done':''}`}>
             <div className="tempo-manual-entry-top"><strong>{info.icon} {r.title}</strong><span>{isDone?'✓ Absolviert':item.kind==='planned'&&r.createdBy==='tempo-user'?'Von dir geplant':'TEMPO-Plan'}</span></div>
-            <div className="tempo-manual-meta">{showMinutes(r.durationMin)} {item.kind==='planned'? `· ${r.priority}`:r.rpe?`· RPE ${r.rpe}`:''} {item.kind==='planned'?r.expectedKm?`· ${r.expectedKm} km`:null:r.distanceKm?`· ${r.distanceKm} km`:null}</div>
-            {r.notes&&<p className="tempo-manual-note">{r.notes}</p>}
+            <div className="tempo-manual-meta">{actual?`Ist: ${showMinutes(actual.durationMin)}${actual.rpe?` · RPE ${actual.rpe}`:''}${actual.distanceKm?` · ${actual.distanceKm} km`:''}`:<>{showMinutes(r.durationMin)} {item.kind==='planned'? `· ${r.priority}`:r.rpe?`· RPE ${r.rpe}`:''} {item.kind==='planned'?r.expectedKm?`· ${r.expectedKm} km`:null:r.distanceKm?`· ${r.distanceKm} km`:null}</>}</div>
+            {(actual?.notes||r.notes)&&<p className="tempo-manual-note">{actual?.notes||r.notes}</p>}
+            {actual&&<p className="tempo-manual-note">Mit Ist-Aktivität verknüpft · geplante Vorgabe: {r.durationMin} min{actual.externalActivityId?' · Garmin-Messwerte ✓':''}</p>}
             <div className="tempo-manual-entry-actions">
               {!marked&&<button type="button" disabled={busy} onClick={()=>edit(item)}>Bearbeiten / verschieben</button>}
+              {actual&&<button type="button" disabled={busy} onClick={()=>edit({kind:'completed',record:actual})}>Ist-Werte bearbeiten</button>}
               {item.kind==='completed'&&!item.record.plannedSessionId&&<button type="button" disabled={busy} onClick={()=>edit(item)}>Ist-Werte bearbeiten</button>}
               {item.kind==='planned'&&!marked&&<button type="button" disabled={busy} onClick={()=>finish(item.record)}>Absolvieren</button>}
               {(!marked&&item.kind==='planned'||item.kind==='completed'&&!item.record.plannedSessionId)&&<button type="button" className="danger" disabled={busy} onClick={()=>void remove(item)}>Löschen</button>}
@@ -165,7 +180,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           </>:<Field>RPE 1–10 (optional)<select value={draft.rpe} onChange={e=>patch('rpe',e.target.value)}><option value="">Nicht angegeben</option>{Array.from({length:10},(_,i)=><option value={i+1} key={i}>{i+1}</option>)}</select></Field>}
         </div>
         <Field>Notizen<textarea rows={3} maxLength={1500} placeholder="Besonderheiten, Freunde, Gefühl, Bedingungen …" value={draft.notes} onChange={e=>patch('notes',e.target.value)}/></Field>
-        {linked&&<p className="tempo-manual-muted">Die geplante Einheit bleibt als „erledigt“ erhalten, deine Ist-Werte werden separat dokumentiert.</p>}
+        {linked&&<p className="tempo-manual-muted">Der Trainingsabschluss wird mit der geplanten Einheit verknüpft und nur einmal als Belastung gezählt.</p>}
         <div className="tempo-manual-form-actions"><button type="submit" disabled={busy}>{busy?'Speichere …':mode==='planned'?'Training fest speichern':'Aktivität speichern'}</button><button type="button" className="outline" onClick={()=>{setDraft(null);setLinked(null);setEditing(null)}}>Abbrechen</button></div>
       </form>
     </div>}
