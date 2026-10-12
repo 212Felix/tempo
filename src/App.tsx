@@ -9,16 +9,18 @@ import GarminLibraryPanel from './garmin/GarminLibraryPanel'
 import BlocksPanel from './blocks/BlocksPanel'
 import StrengthPanel from './workouts/StrengthPanel'
 import RunningPanel from './workouts/RunningPanel'
+import CyclingPanel from './cycling/CyclingPanel'
+import ProgressPanel from './stats/ProgressPanel'
 import { isRun, isStrength } from './workouts/sessionStore'
 import type { TrainingRecord } from './planning/engine'
 
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
   | 'fueling' | 'recovery' | 'strength' | 'metrics' | 'blocks'
-  | 'events' | 'routes' | 'profile' | 'garmin' | 'running'
+  | 'events' | 'routes' | 'profile' | 'garmin' | 'running' | 'cycling'
 
 type PageInfo = { id: PageId; name: string; icon: IconName; description: string }
-type IconName = 'home' | 'heart' | 'play' | 'calendar' | 'trend' | 'drop' | 'wind' | 'dumbbell' | 'gauge' | 'layers' | 'flag' | 'map' | 'user' | 'menu' | 'chevron' | 'arrow' | 'check' | 'clock' | 'close'
+type IconName = 'home' | 'heart' | 'play' | 'calendar' | 'trend' | 'drop' | 'wind' | 'dumbbell' | 'gauge' | 'layers' | 'flag' | 'map' | 'user' | 'menu' | 'chevron' | 'arrow' | 'check' | 'clock' | 'close' | 'bike'
 
 const pages: PageInfo[] = [
   { id: 'home', name: 'Startseite', icon: 'home', description: 'Alles Wichtige für deinen Tag.' },
@@ -27,6 +29,7 @@ const pages: PageInfo[] = [
   { id: 'calendar', name: '14-Tage-Plan', icon: 'calendar', description: 'Training und Dienste gemeinsam planen.' },
   { id: 'fueling', name: 'Fueling & Trinken', icon: 'drop', description: 'Kohlenhydrate, Flüssigkeit und Verträglichkeit.' },
   { id: 'recovery', name: 'Recovery & Mobility', icon: 'wind', description: 'Routinen, Beweglichkeit und Erholung.' },
+  { id: 'cycling', name: 'Radfahren', icon: 'bike', description: 'Watt- und Pulszonen, Indoor und Outdoor.' },
   { id: 'strength', name: 'Krafttraining', icon: 'dumbbell', description: 'Ganzkörper A/B und Satzprotokoll.' },
   { id: 'running', name: 'Laufen', icon: 'play', description: 'Locker laufen, dokumentieren und entwickeln.' },
   { id: 'progress', name: 'Fortschritt', icon: 'trend', description: 'Deine langfristige Entwicklung.' },
@@ -43,6 +46,7 @@ const primary: PageId[] = ['readiness', 'training', 'calendar', 'progress']
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const }
   const drawings: Record<IconName, ReactNode> = {
+    bike: <><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="m5 17 5-9 4 9h-9m9 0 5-6h-8m-2-3h5m-6-2H9"/></>,
     home: <><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></>,
     heart: <><path d="M20.8 8.5c0 5-8.8 11-8.8 11S3.2 13.5 3.2 8.5a4.7 4.7 0 0 1 8.8-2.2 4.7 4.7 0 0 1 8.8 2.2Z"/></>,
     play: <><path d="m8 5 11 7-11 7z"/></>,
@@ -84,7 +88,7 @@ function Home({ go }: { go: (id: PageId) => void }) {
       <ShiftHomeCard onOpen={() => go('calendar')}/>
     </div>
     <div className="section-head"><h3>Schnellzugriff</h3><span>DEINE WERKZEUGE</span></div>
-    <div className="shortcut-grid">{(['strength', 'running', 'recovery', 'fueling'] as PageId[]).map(id => { const page = pages.find(p => p.id === id)!; return <button className="shortcut" key={id} onClick={() => go(id)}><span className="shortcut-icon"><Icon name={page.icon} size={20}/></span><span>{page.name}</span><Icon name="arrow" size={16}/></button> })}</div>
+    <div className="shortcut-grid">{(['cycling', 'strength', 'running', 'recovery', 'fueling'] as PageId[]).map(id => { const page = pages.find(p => p.id === id)!; return <button className="shortcut" key={id} onClick={() => go(id)}><span className="shortcut-icon"><Icon name={page.icon} size={20}/></span><span>{page.name}</span><Icon name="arrow" size={16}/></button> })}</div>
   </>
 }
 
@@ -125,12 +129,12 @@ export default function App() {
       <div className="brand"><img className="tempo-sidebar-icon" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/><div><strong>TEMPO</strong><small>TRAIN SMARTER</small></div><button className="sidebar-close" onClick={()=>setMenuOpen(false)} aria-label="Menü schließen"><Icon name="close"/></button></div>
       <div className="sidebar-caption">DEIN WORKSPACE</div>
       <nav aria-label="Hauptmenü">{pages.map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page === item.id && <span className="active-marker"/>}</button>)}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.22 · Routenintervalle & Jahresziele</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.23 · Radzonen & Trainingsorte</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 22</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 23</span></header>
       <main className={`content page-${page}`}><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
       <HelpProvider key={page}>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout}/> : <Placeholder id={page} go={navigate}/>}
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel/> : page === 'training' ? <TrainingDayPanel onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout}/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>

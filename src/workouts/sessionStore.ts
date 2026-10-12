@@ -1,10 +1,11 @@
 import {listRecords,openTempoDatabase} from '../db/storage'
 import {PROFILE_ID,type TrainingRecord,type CompletedRecord, type ReadinessRecord,readinessLevel} from '../planning/engine'
 import type {TempoRecord} from '../db/types'
+import type {StrengthPlace} from '../stats/activity'
 
 export type StrengthSet = TempoRecord & {
   date:string; sessionKey:string; plannedSessionId?:string; exerciseId:string; setIndex:number
-  reps?:number; weightKg?:number; holdSeconds?:number; rir?:number; note?:string
+  reps?:number; weightKg?:number; holdSeconds?:number; rir?:number; note?:string; exerciseVariant?:string; trainingLocation?:StrengthPlace
 }
 export type StrengthInput = {exerciseId:string;setIndex:number;reps:string;weightKg:string;holdSeconds:string;rir:string}
 export const strengthSessionKey=(date:string,kind:'A'|'B',plannedId?:string)=>plannedId??`free-strength:${date}:${kind}`
@@ -39,7 +40,7 @@ export function alreadyDone(planned:TrainingRecord|undefined,completed:Completed
 type FinalizeInput={
   date:string;title:string;durationMin:number;durationSec?:number;rpe:number;notes:string
   sessionType:'manual-strength'|'manual-running'; planned?:TrainingRecord
-  distanceKm?:number;avgHrBpm?:number;strengthVariant?:'A'|'B'; sets?:StrengthSet[];freeKey:string
+  distanceKm?:number;avgHrBpm?:number;strengthVariant?:'A'|'B';strengthLocation?:StrengthPlace; sets?:StrengthSet[];freeKey:string
 }
 /** Completed session, planned status and strength sets are written atomically. */
 export async function finalizeWorkout(input:FinalizeInput):Promise<void>{
@@ -52,11 +53,11 @@ export async function finalizeWorkout(input:FinalizeInput):Promise<void>{
   const db=await openTempoDatabase()
   const now=new Date().toISOString()
   const completedId=planned?`workout:${planned.id}`:`workout:${freeKey}`
-  const completed:CompletedRecord & {avgHrBpm?:number;strengthVariant?:'A'|'B'}={
+  const completed:CompletedRecord & {avgHrBpm?:number;strengthVariant?:'A'|'B';strengthLocation?:StrengthPlace}={
     id:completedId,profileId:PROFILE_ID,date,title:input.title.trim(),durationMin:input.durationMin,durationSec:input.durationSec,
     sessionType:planned?.sessionType??input.sessionType,distanceKm:input.distanceKm,rpe:input.rpe,
     notes:input.notes.trim().slice(0,1500),source:planned?'plan':'manuell',
-    plannedSessionId:planned?.id,avgHrBpm:input.avgHrBpm,strengthVariant:input.strengthVariant,
+    plannedSessionId:planned?.id,avgHrBpm:input.avgHrBpm,strengthVariant:input.strengthVariant,strengthLocation:input.strengthLocation,
     createdAt:now,updatedAt:now,
   }
   return new Promise<void>((resolve,reject)=>{

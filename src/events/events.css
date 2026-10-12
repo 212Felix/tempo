@@ -22,3 +22,17 @@
 .tempo-plan-event-note{background:#a8b8ca16;border:1px solid #b7cbe544;border-radius:10px;padding:10px;margin:11px 0;font-size:12px;line-height:1.5;color:#c9d8e5}
 .tempo-plan-event-note strong{display:block;color:#d4e6f0;margin-bottom:5px}.tempo-plan-event-note.event-recovery{background:#2e855a20;border-color:#66b58955}
 @media(max-width:600px){.tempo-event-hero,.tempo-event-list,.tempo-event-form{padding:16px}.tempo-event-fields.triple{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Phase 23: event editor: prevent iOS date-picker minimum widths from stretching grid */
+.tempo-event-module,.tempo-event-form,.tempo-event-list,.tempo-event-hero{max-width:100%;min-width:0}
+.tempo-event-form form,.tempo-event-form label,.tempo-event-fields>*{min-width:0;max-width:100%}
+.tempo-event-form input,.tempo-event-form select,.tempo-event-form textarea{display:block;min-width:0;max-width:100%;box-sizing:border-box}
+.tempo-event-group-title{font-size:13px;font-weight:750;color:#d4e8ed;border-bottom:1px solid #ffffff20;padding:14px 0 7px;display:flex;align-items:center;gap:9px;margin-top:2px}
+.tempo-event-entry-top strong,.tempo-event-entry p{overflow-wrap:anywhere;min-width:0}
+@media(max-width:760px){
+ .tempo-event-fields,.tempo-event-fields.triple{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+ .tempo-event-form{padding:14px!important}
+ .tempo-event-form input[type="date"]{font-size:16px;min-height:48px;width:100%}
+ .tempo-event-form input,.tempo-event-form select,.tempo-event-form textarea{font-size:16px;min-height:46px}
+ .tempo-event-form label{font-size:12px;line-height:1.45}
+ .tempo-event-actions button{min-height:44px}
+}

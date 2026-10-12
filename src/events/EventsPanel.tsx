@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { deleteRecord, listRecords, saveRecord } from '../db/storage'
 import { LOCAL_PROFILE, dateLabel, dayDelta, effectiveDate, routeValues, upcomingEvents, validDate, type EventKind, type EventPriority, type EventStatus, type GoalEvent, type RouteEntry, type Surface, type VacationStatus } from './library'
 import './events.css'
+import HelpDisclosure from '../ui/HelpDisclosure'
 
 const today = () => {const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 const newId = (prefix:string) => `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2,10)}`
@@ -72,7 +73,7 @@ export default function EventsPanel() {
     try{await deleteRecord('events',item.id);await refresh();window.dispatchEvent(new Event('tempo:events-change'));setMessage('Eintrag entfernt ✓')}catch(err){setMessage(`Löschen fehlgeschlagen: ${String(err)}`)}
   }
   return <div className="tempo-event-module">
-    <section className="panel tempo-event-hero"><div className="eyebrow">DEINE ZIELE · NEUTRAL GESPEICHERT</div><h2>Rennen, Urlaube und persönliche Challenges</h2><p>Offizielles Rennen mit Losverfahren, Mallorca als eigene 312-km-Challenge oder ein Stoneman-/Orbit-Höhepunkt: TEMPO speichert jeweils Terminstatus, Urlaub und Strecke. Ein A-Ziel mit Datum bildet schon bei offener Anmeldung einen <strong>vorläufigen Jahresanker</strong>. Gezielte Vor- und Nachentlastung im Tagesplan erfolgt erst bei bestätigtem Termin ohne offenen Urlaub.</p></section>
+    <section className="panel tempo-event-hero"><div className="eyebrow">DEINE ZIELE · NEUTRAL GESPEICHERT</div><h2>Rennen, Urlaube und persönliche Challenges</h2><HelpDisclosure id="events-intro"><p>Die Ziele können geplante und bestätigte Rennen, private Challenges oder Urlaubsfenster sein. Ein vorläufiges A-Ziel mit Datum kann die Jahresplanung bereits beeinflussen. Der 14-Tage-Plan wird nie ohne deine Bestätigung überschrieben.</p></HelpDisclosure></section>
     <section className="panel tempo-event-list"><h3>Deine Ziele</h3>{events.length===0?<p className="tempo-event-muted">Noch kein Ziel eingetragen. Die App startet bewusst ohne persönliche Standard-Events.</p>:events.map(e=>{const m=routeValues(e,routes);return <article className="tempo-event-entry" key={e.id}>
       <div className="tempo-event-entry-top"><strong>{e.name}</strong><span>{e.priority}-Ziel</span></div>
       <p>{kindLabel[e.kind]} · {statusLabel[e.status]}</p>
@@ -84,15 +85,19 @@ export default function EventsPanel() {
     <section className="panel tempo-event-form"><div className="eyebrow">{editing?'EINTRAG BEARBEITEN':'NEUES ZIEL'}</div><h3>{editing?'Ziel aktualisieren':'Ziel / Event anlegen'}</h3>
       <form onSubmit={ev=>void save(ev)}>
         <label>Eventname<input value={form.name} maxLength={90} onChange={e=>patch({name:e.target.value})} placeholder="z. B. persönliche Gravel-Challenge" required/></label>
+        <div className="tempo-event-group-title">1 · Einordnung</div>
         <div className="tempo-event-fields"><label>Art<select value={form.kind} onChange={e=>patch({kind:e.target.value as EventKind})}><option value="rennen">Offizielles Rennen</option><option value="challenge">Eigene Challenge</option><option value="trainingsblock">Trainingsblock / Urlaub</option></select></label>
         <label>Priorität<select value={form.priority} onChange={e=>patch({priority:e.target.value as EventPriority})}><option value="A">A – Haupthöhepunkt</option><option value="B">B – wichtiger Reiz</option><option value="C">C – Training / optional</option></select></label></div>
         <div className="tempo-event-fields"><label>Status<select value={form.status} onChange={e=>patch({status:e.target.value as EventStatus})}><option value="offen">Startplatz / Teilnahme offen</option><option value="flexibel">Flexibel – eigener Zeitraum</option><option value="bestaetigt">Termin bestätigt</option><option value="abgeschlossen">Abgeschlossen</option></select></label>
         <label>Urlaub<select value={form.vacation} onChange={e=>patch({vacation:e.target.value as VacationStatus})}><option value="nicht_noetig">Nicht erforderlich</option><option value="offen">Noch offen</option><option value="bestaetigt">Bestätigt</option></select></label></div>
-        <div className="tempo-event-fields"><p className="tempo-event-hint">A-Ziel in Planung? Lege das voraussichtliche Datum fest und wähle „Startplatz / Teilnahme offen“. TEMPO berechnet dann einen vorläufigen Jahresrahmen, ohne den Eventtag als bestätigt anzusehen. Lege ein bestehendes Ziel nicht erneut an – nutze Bearbeiten.</p><label>Zieltag (wenn bekannt)<input type="date" value={form.date} onChange={e=>patch({date:e.target.value})}/></label><label>Auslosung (optional)<input type="date" value={form.drawingDate} onChange={e=>patch({drawingDate:e.target.value})}/></label></div>
+        <div className="tempo-event-group-title">2 · Zieldatum und Zeitfenster <HelpDisclosure id="events-date-help"><p>Für ein A-Ziel mit offenem Startplatz das voraussichtliche Datum eintragen; TEMPO erstellt einen vorläufigen Jahresrahmen. Das Zeitfenster ist für wetterabhängige private Challenges gedacht.</p></HelpDisclosure></div>
+        <div className="tempo-event-fields"><label>Zieltag (wenn bekannt)<input type="date" value={form.date} onChange={e=>patch({date:e.target.value})}/></label><label>Auslosung (optional)<input type="date" value={form.drawingDate} onChange={e=>patch({drawingDate:e.target.value})}/></label></div>
         <div className="tempo-event-fields"><label>Zeitraum von<input type="date" value={form.windowStart} onChange={e=>patch({windowStart:e.target.value})}/></label><label>Zeitraum bis<input type="date" value={form.windowEnd} onChange={e=>patch({windowEnd:e.target.value})}/></label></div>
+        <div className="tempo-event-group-title">3 · Strecke und Ziele</div>
         <label>Gespeicherte Strecke<select value={form.routeId} onChange={e=>patch({routeId:e.target.value})}><option value="">Keine Strecke verknüpft</option>{routes.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
         {linked&&<p className="tempo-event-hint">Streckenvorgabe: {linked.distanceKm??'–'} km · {linked.elevationM??'–'} hm. Abweichende Werte unten sind möglich.</p>}
         <div className="tempo-event-fields triple"><label>Distanz km<input type="number" min="0" step="0.1" value={form.distanceKm} onChange={e=>patch({distanceKm:e.target.value})}/></label><label>Höhenmeter<input type="number" min="0" step="1" value={form.elevationM} onChange={e=>patch({elevationM:e.target.value})}/></label><label>Dauer h<input type="number" min="0" step="0.5" value={form.expectedHours} onChange={e=>patch({expectedHours:e.target.value})}/></label></div>
+        <div className="tempo-event-group-title">4 · Hinweise (optional)</div>
         <label>Aktueller Trainingsabschnitt (optional)<input value={form.trainingPhase} maxLength={60} onChange={e=>patch({trainingPhase:e.target.value})} placeholder="z. B. Grundlagenaufbau"/></label>
         <label>Notiz<textarea rows={2} value={form.notes} onChange={e=>patch({notes:e.target.value})} placeholder="Urlaub, Losverfahren, Trainingsblock, Ruhetag vor der Challenge …"/></label>
         <div className="tempo-event-actions"><button type="submit" disabled={saving}>{saving?'Speichere …':editing?'Änderungen speichern':'Ziel speichern'}</button>{editing&&<button type="button" onClick={()=>{setForm(blanks());setEditing(null)}}>Abbrechen</button>}</div>

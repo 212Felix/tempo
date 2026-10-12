@@ -3,7 +3,9 @@ import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,PROFILE_ID,type TrainingRecord} from '../planning/engine'
 import {STRENGTH,restLabel} from './catalog'
 import {alreadyDone,finalizeWorkout,isStrength,loadWorkoutData,numberField,readinessWarning,strengthSessionKey,workoutKind,type StrengthInput,type StrengthSet} from './sessionStore'
-import {listRecords,openTempoDatabase} from '../db/storage'
+import {getRecord,listRecords,openTempoDatabase,saveRecord} from '../db/storage'
+import {EQUIPMENT_SETTINGS_ID,exerciseOptions,placeName,selectEquipment,type EquipmentPreferences} from './equipment'
+import {strengthSummary,type StrengthPlace} from '../stats/activity'
 import './workouts.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 
@@ -16,6 +18,8 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const [data,setData]=useState<Data>({planned:[],completed:[],readiness:[],sets:[]})
   const [date,setDate]=useState(currentKey())
   const [variant,setVariant]=useState<'A'|'B'>('A')
+  const [location,setLocation]=useState<StrengthPlace>('studio')
+  const [equipment,setEquipment]=useState<Record<StrengthPlace,Record<string,string>>>({studio:{},arbeit:{}})
   const [plannedId,setPlannedId]=useState('')
   const [inputs,setInputs]=useState<Record<string,StrengthInput>>({})
   const [duration,setDuration]=useState('00:55:00')
@@ -30,8 +34,15 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const onDate=selected?.date??date
   const sessionKey=strengthSessionKey(onDate,kind,selected?.id)
   const done=alreadyDone(selected,data.completed,selected?undefined:sessionKey)
+  const locationTotals=useMemo(()=>strengthSummary(data.completed),[data.completed])
+  const recentExerciseVariants=useMemo(()=>{
+    const rows=[...data.sets].filter(x=>x.exerciseVariant&&x.trainingLocation).sort((a,b)=>b.date.localeCompare(a.date)||b.setIndex-a.setIndex)
+    const seen=new Set<string>()
+    return rows.filter(row=>{const key=`${row.trainingLocation}:${row.exerciseId}:${row.exerciseVariant}`;if(seen.has(key))return false;seen.add(key);return true}).slice(0,9)
+  },[data.sets])
   const history=useMemo(()=>data.completed.filter(x=>x.sessionType==='strength-a'||x.sessionType==='strength-b'||x.sessionType==='manual-strength').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8),[data.completed])
 
+  useEffect(()=>{void getRecord<EquipmentPreferences>('settings',EQUIPMENT_SETTINGS_ID).then(record=>{if(record?.favourites)setEquipment({studio:record.favourites.studio??{},arbeit:record.favourites.arbeit??{}})}).catch(()=>undefined)},[])
   useEffect(()=>{
     let active=true
     const refresh=()=>void loadWorkoutData().then(next=>{
@@ -64,6 +75,12 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     const k=stateKey(id,index)
     return {...previous,[k]:{...(previous[k]??blank(id,index)),[key]:value}}
   })
+  const chosen=(id:string,name:string)=>selectEquipment(id,location,name,equipment[location])
+  const selectVariant=(id:string,value:string)=>setEquipment(previous=>({...previous,[location]:{...previous[location],[id]:value}}))
+  const rememberEquipment=async()=>{
+    const now=new Date().toISOString()
+    await saveRecord('settings',{id:EQUIPMENT_SETTINGS_ID,profileId:PROFILE_ID,createdAt:now,updatedAt:now,favourites:equipment} as EquipmentPreferences)
+  }
   const collect=():StrengthSet[]=>{
     const now=new Date().toISOString()
     return Object.values(inputs).flatMap(row=>{
@@ -77,7 +94,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
       if(reps===undefined&&weightKg===undefined&&holdSeconds===undefined&&rir===undefined)return []
       if(!reps&&!holdSeconds)throw Error(`Satz ${row.setIndex} von ${row.exerciseId}: Wiederholungen oder Haltezeit fehlt.`)
       const record:StrengthSet={id:`strength:${sessionKey}:${row.exerciseId}:${row.setIndex}`,sessionKey,profileId:PROFILE_ID,
-        date:onDate,plannedSessionId:selected?.id,exerciseId:row.exerciseId,setIndex:row.setIndex,reps,weightKg,holdSeconds,rir,createdAt:now,updatedAt:now}
+        date:onDate,plannedSessionId:selected?.id,exerciseId:row.exerciseId,setIndex:row.setIndex,reps,weightKg,holdSeconds,rir,exerciseVariant:chosen(row.exerciseId,template.exercises.find(x=>x.id===row.exerciseId)?.name??row.exerciseId),trainingLocation:location,createdAt:now,updatedAt:now}
       return [record]
     })
   }
@@ -93,6 +110,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
         for(const value of records)store.put({...value,createdAt:data.sets.find(x=>x.id===value.id)?.createdAt??value.createdAt})
         tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error??Error('Sätze nicht gespeichert.'))};tx.onabort=()=>{db.close();reject(Error('Sätze nicht gespeichert.'))}
       })
+      await rememberEquipment().catch(()=>undefined)
       setData(await loadWorkoutData())
       setMessage(`${records.length} Satz-/Haltezeit-Einträge zwischengespeichert. Du kannst später fortsetzen.`)
     }catch(e){setMessage(e instanceof Error?e.message:String(e))}finally{setBusy(false)}
@@ -107,7 +125,8 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
       const durationMin=time.minutes
       const effort=numberField(rpe,'RPE',10,true)!
       await finalizeWorkout({date:onDate,planned:selected,title:selected?.title??template.title,
-        durationMin,durationSec:time.seconds,rpe:effort,notes,sessionType:'manual-strength',strengthVariant:kind,sets,freeKey:sessionKey})
+        durationMin,durationSec:time.seconds,rpe:effort,notes,sessionType:'manual-strength',strengthVariant:kind,strengthLocation:location,sets,freeKey:sessionKey})
+      await rememberEquipment().catch(()=>undefined)
       setData(await loadWorkoutData())
       setMessage('Krafttraining abgeschlossen ✓ · Satzprotokoll und tatsächliche Belastung gespeichert.')
     }catch(err){setMessage(`Nicht abgeschlossen: ${err instanceof Error?err.message:String(err)}`)}finally{setBusy(false)}
@@ -125,6 +144,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
         }}><option value="">Eigene Einheit – unabhängig vom Plan</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
         {!selected&&<><label>Datum<input type="date" value={date} onChange={e=>setDate(selectDate(e.target.value))}/></label><label>Programm<select value={variant} onChange={e=>setVariant(e.target.value as 'A'|'B')}><option value="A">Kraft A</option><option value="B">Kraft B</option></select></label></>}
       </div>
+      <div className="tw-location"><strong>Trainingsort</strong><div className="tw-location-choices">{(['studio','arbeit'] as const).map(place=><button type="button" key={place} className={location===place?'selected':''} disabled={done} onClick={()=>setLocation(place)}>{placeName[place]}</button>)}</div><p>Gerätevarianten werden für jeden Ort separat gemerkt und mit den Sätzen protokolliert.</p></div>
       <div className="tw-info"><strong>{template.title} · {friendlyDate(onDate)}</strong><span>{template.focus}</span><span>{template.warmup}</span></div>
       {warning&&<div className="tw-warning" role="status">{warning} Keine automatische Trainingsfreigabe.</div>}
       {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert gespeichert. Satzprotokoll bleibt lesbar; ein erneuter Abschluss wird verhindert.</div>}
@@ -132,6 +152,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     <form onSubmit={finish} className="tw-stack">
       {template.exercises.map((ex,index)=><section className="panel tw-exercise" key={ex.id}>
         <div className="tw-exercise-head"><span className="tw-number">{String(index+1).padStart(2,'0')}</span><div><h3>{ex.name}</h3><p>{ex.cue}</p></div></div>
+        <label className="tw-variant">Übung / Gerät an diesem Ort<select value={chosen(ex.id,ex.name)} disabled={done} onChange={event=>selectVariant(ex.id,event.target.value)}>{exerciseOptions(ex.id,location,ex.name).map(value=><option key={value} value={value}>{value}</option>)}</select></label>
         <div className="tw-tags"><span>{ex.sets} Sätze · {ex.reps}</span><span>Pause: {restLabel(ex.restSec)}</span>{ex.unilateral&&<span>Je Seite</span>}</div>
         <div className="tw-sets"><div className="tw-set-head"><span>Satz</span><span>{ex.hold?'Halten (s)':'Wdh.'}</span><span>Gewicht (kg)</span><span>RIR</span></div>
           {Array.from({length:ex.sets},(_,i)=>i+1).map(i=>{
@@ -150,6 +171,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
         <div className="tw-feedback" role="status">{message}</div>
       </section>
     </form>
-    <section className="panel tw-panel"><div className="eyebrow">KRAFT · LETZTE EINHEITEN</div><h3>Dein Verlauf</h3>{history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{durationFor(x)} · RPE {x.rpe??'–'}</span></div>):<p>Noch keine Kraft-Einheit protokolliert. Du kannst auch spontan ohne geplanten Termin beginnen.</p>}</section>
+    <section className="panel tw-panel"><div className="eyebrow">KRAFT · LETZTE EINHEITEN</div><h3>Dein Verlauf nach Trainingsort</h3><div className="tw-location-summary"><span>Fitnessstudio <strong>{locationTotals.studio}</strong></span><span>Arbeit <strong>{locationTotals.arbeit}</strong></span><span>Nicht erfasst <strong>{locationTotals.unknown}</strong></span></div>{history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{durationFor(x)} · RPE {x.rpe??'–'} · {x.strengthLocation==='studio'?'Studio':x.strengthLocation==='arbeit'?'Arbeit':'Ort offen'}</span></div>):<p>Noch keine Kraft-Einheit protokolliert. Du kannst auch spontan ohne geplanten Termin beginnen.</p>}</section>
+    {recentExerciseVariants.length>0&&<section className="panel tw-panel"><div className="eyebrow">ÜBUNGSVERLAUF NACH GERÄT</div><h3>Zuletzt verwendete Varianten</h3><p>Gewichte und Wiederholungen sind je Trainingsort und Gerät nachvollziehbar. Verschiedene Maschinen werden nicht als identische Last verglichen.</p>{recentExerciseVariants.map(row=><div className="tw-history" key={`${row.id}:${row.exerciseVariant}`}><strong>{row.exerciseVariant} · {row.trainingLocation==='studio'?'Fitnessstudio':'Arbeit'}</strong><span>{friendlyDate(row.date)} · {row.weightKg==null?'ohne Gewicht':`${row.weightKg} kg`} · {row.reps??row.holdSeconds??'–'} {row.holdSeconds?'s':'Wdh.'}</span></div>)}</section>}
   </div>
 }

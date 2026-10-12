@@ -22,8 +22,10 @@ export type ManualForm = {
   priority: Priority
   target: string
   notes: string
+  cyclingEnvironment: 'outdoor'|'indoor'|'unknown'
+  strengthLocation: 'studio'|'arbeit'
 }
-export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:''})
+export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:'',cyclingEnvironment:'unknown',strengthLocation:'studio'})
 export type Editable = {kind:'planned'; record:TrainingRecord} | {kind:'completed'; record:CompletedRecord}
 export const sportFor = (kind: TrainingRecord['sessionType'] | undefined): ManualSport => {
   if (kind==='commute'||kind==='long'||kind==='quality'||kind==='endurance'||kind==='manual-cycling') return 'cycling'
@@ -46,6 +48,8 @@ export const toForm = (entry:Editable):ManualForm => {
     rpe:r.rpe==null?'':String(r.rpe),
     priority:entry.kind==='planned'?entry.record.priority:'SOLL',
     target:entry.kind==='planned'?entry.record.target:'', notes:r.notes??'',
+    cyclingEnvironment:r.cyclingEnvironment==='outdoor'||r.cyclingEnvironment==='indoor'?r.cyclingEnvironment:'unknown',
+    strengthLocation:r.strengthLocation==='arbeit'?'arbeit':'studio',
   }
 }
 const decimal=(value:string, label:string, max:number, required=false):number|undefined => {
@@ -87,7 +91,8 @@ export async function saveManualPlanned(form:ManualForm, previous?:TrainingRecor
     date:form.date,sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
     priority:form.priority,description:'Manuell geplant · nicht automatisch überschreiben',
     target:form.target.trim()||'Nach Tagesform und persönlichem Ziel',
-    notes:form.notes.trim(),expectedKm:distance,elevationM:elevation,rpe,
+    notes:form.notes.trim(),expectedKm:distance,elevationM:elevation,rpe,cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
+    strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,
     status:'geplant',createdBy:'tempo-user',locked:true,
     createdAt:previous?.createdAt??now,updatedAt:now,
   }
@@ -115,6 +120,8 @@ export async function saveManualCompleted(form:ManualForm, previous?:CompletedRe
     ...(previous??{}),id:previous?.id??newId(),profileId:PROFILE_ID,date:form.date,
     sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
     distanceKm:distance,elevationM:elevation,rpe,notes:form.notes.trim(),
+    cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
+    strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,
     source:planned?'plan':previous?.source??'manuell',
     plannedSessionId:planned?.id??previous?.plannedSessionId,
     createdAt:previous?.createdAt??now,updatedAt:now,

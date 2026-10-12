@@ -171,6 +171,8 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
         <div className="tempo-manual-fields">
           <Field>Datum<input type="date" required value={draft.date} onChange={e=>patch('date',e.target.value)}/></Field>
           <Field>Sportart<select value={draft.sport} onChange={e=>patch('sport',e.target.value as ManualSport)}>{sports.map(s=><option value={s.value} key={s.value}>{s.label}</option>)}</select></Field>
+          {draft.sport==='cycling'&&<Field>Radtraining: Umgebung<select value={draft.cyclingEnvironment} onChange={e=>patch('cyclingEnvironment',e.target.value)}><option value="unknown">Noch unklar</option><option value="outdoor">Outdoor / draußen</option><option value="indoor">Indoor / Zwift / Rolle</option></select></Field>}
+          {draft.sport==='strength'&&<Field>Krafttraining: Ort<select value={draft.strengthLocation} onChange={e=>patch('strengthLocation',e.target.value)}><option value="studio">Fitnessstudio</option><option value="arbeit">Auf Arbeit</option></select></Field>}
           <Field>Trainingsname<input required maxLength={120} value={draft.title} placeholder="z. B. Gravelrunde mit Freunden" onChange={e=>patch('title',e.target.value)}/></Field>
           <Field>Dauer (hh:mm:ss)<input type="text" inputMode="numeric" value={draft.duration} onChange={e=>patch('duration',e.target.value)} placeholder="01:30:00" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" required/></Field>
           <Field>Distanz (km, optional){numInput(draft.distance,v=>patch('distance',v),'z. B. 75')}</Field>

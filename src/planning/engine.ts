@@ -41,6 +41,8 @@ export type TrainingRecord = TempoRecord & {
   expectedKm?: number
   elevationM?: number
   rpe?: number
+  cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
+  strengthLocation?: 'studio' | 'arbeit'
   status: 'geplant' | 'erledigt' | 'nicht-erledigt'
   createdBy?: string
   locked?: boolean
@@ -56,6 +58,8 @@ export type CompletedRecord = TempoRecord & {
   elevationM?: number
   rpe?: number
   notes?: string
+  cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
+  strengthLocation?: 'studio' | 'arbeit'
   source?: 'manuell' | 'plan' | 'import'
 }
 export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence; blockIntention?:BlockDayPlan }
