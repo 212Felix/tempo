@@ -976,3 +976,14 @@ input,select,textarea{max-width:100%}
  .tempo-home-brand p{font-size:14px;margin-top:5px}
  .page-home .page-heading{margin-bottom:10px}
 }
+
+/* Phase 24: platzsparende Sport-Navigation */
+.tempo-nav-activities{min-width:0}
+.tempo-activities-toggle{cursor:pointer}
+.tempo-activities-toggle.group-active{color:#dcecf3}
+.tempo-activities-arrow{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;transition:transform .18s ease;flex:0 0 auto!important}
+.tempo-activities-arrow.expanded{transform:rotate(180deg)}
+.tempo-activities-children{border-left:1px solid #8fb2c04d;margin:3px 0 8px 24px;padding-left:7px;display:grid;gap:2px}
+.tempo-activity-child{padding:10px 12px;font-size:12px}
+.tempo-activity-child svg{opacity:.88}
+@media(prefers-reduced-motion:reduce){.tempo-activities-arrow{transition:none}}

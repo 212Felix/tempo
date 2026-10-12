@@ -6,6 +6,7 @@ import {PROFILE_ID} from '../planning/engine'
 import {deNumber,rideSummary,unlinkedManualCycling,strengthSummary,uniqueImported,emptyStat,addRide,type DoneWithContext,type RideEnvironment,type RideWithLocation} from './activity'
 import {RIDE_SETTINGS_ID} from '../cycling/zones'
 import HelpDisclosure from '../ui/HelpDisclosure'
+import {swimSummary} from './swimming'
 import './stats.css'
 
 type RideEnvSettings=TempoRecord & {overrides?:Record<string,RideEnvironment>}
@@ -28,6 +29,7 @@ export default function ProgressPanel(){
  const separate=useMemo(()=>unlinkedManualCycling(completed,since),[completed,since])
  const separateStats=useMemo(()=>{const totals={indoor:emptyStat(),outdoor:emptyStat(),unknown:emptyStat()};for(const item of separate)addRide(totals[item.cyclingEnvironment??'unknown'],item);return totals},[separate])
  const runs=useMemo(()=>garmin.filter(x=>x.sport==='running'&&(!since||x.date>=since)),[garmin,since])
+ const swimming=useMemo(()=>swimSummary(garmin,completed,since),[garmin,completed,since])
  const format=(number:number)=>deNumber(number)
  return <div className="tempo-stats-stack">
    <section className="panel tempo-stats-panel"><div className="eyebrow">FORTSCHRITT · LEISTUNGSWERTE</div><h2>Deine Entwicklung</h2>
@@ -44,6 +46,12 @@ export default function ProgressPanel(){
      <p className="tempo-stats-muted">Nur tatsächlich abgeschlossene Krafttrainings. Historische Einheiten ohne Ortsangabe werden bewusst nicht nachträglich einem Ort zugewiesen.</p>
    </section>
    <section className="panel tempo-stats-panel"><div className="eyebrow">LAUFEN · IMPORTIERTE AKTIVITÄTEN</div><h2>Garmin-Läufe</h2><div className="tempo-stats-grid"><div><small>Läufe</small><strong>{runs.length}</strong></div><div><small>Distanz</small><strong>{format(runs.reduce((sum,x)=>sum+(x.distanceKm??0),0))} km</strong></div><div><small>Bewegungszeit</small><strong>{format(runs.reduce((sum,x)=>sum+x.durationMin,0)/60)} h</strong></div></div><p className="tempo-stats-muted">Garmin-Läufe ohne manuell doppelt angelegte zusätzliche Abschlüsse. Die übrige Laufhistorie bleibt unter „Laufen“ und im Kalender verfügbar.</p></section>
+   <section className="panel tempo-stats-panel"><div className="eyebrow">SCHWIMMEN · GARMIN UND FREIE EINHEITEN</div><h2>Schwimmstatistik</h2>
+     <div className="tempo-stats-grid"><div><small>Gesamt (ohne wahrscheinliche Dubletten)</small><strong>{swimming.combined.count} ×</strong><span>{deNumber(swimming.combined.km,3)} km</span></div>
+       <div><small>Garmin importiert</small><strong>{swimming.garmin.count} ×</strong><span>{deNumber(swimming.garmin.km,3)} km</span></div>
+       <div><small>Frei protokolliert</small><strong>{swimming.manual.count} ×</strong><span>{deNumber(swimming.manual.km,3)} km</span></div></div>
+     <p className="tempo-stats-muted">Schwimmkilometer entsprechen den gespeicherten Distanzen. TEMPO zählt bereits verknüpfte Garmin- und TEMPO-Abschlüsse nicht doppelt. {swimming.possibleDuplicates>0?`${swimming.possibleDuplicates} mögliche Doppelmeldung(en) wurden vorsichtshalber nicht zur Gesamtsumme addiert – bitte im Garmin-Abgleich prüfen.`:'Bei mehreren Schwimmeinheiten am selben Tag bitte mögliche Dopplungen im Garmin-Abgleich prüfen.'}</p>
+   </section>
    <p className="tempo-stats-feedback" role="status">{notice}</p>
  </div>
 }

@@ -43,6 +43,8 @@ export type TrainingRecord = TempoRecord & {
   rpe?: number
   cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
   strengthLocation?: 'studio' | 'arbeit'
+  swimEnvironment?: 'pool' | 'openwater'
+  swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
   status: 'geplant' | 'erledigt' | 'nicht-erledigt'
   createdBy?: string
   locked?: boolean
@@ -60,6 +62,8 @@ export type CompletedRecord = TempoRecord & {
   notes?: string
   cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
   strengthLocation?: 'studio' | 'arbeit'
+  swimEnvironment?: 'pool' | 'openwater'
+  swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
   source?: 'manuell' | 'plan' | 'import'
 }
 export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence; blockIntention?:BlockDayPlan }
@@ -182,7 +186,7 @@ export function generatePlan(args: {
     // Event taper and recovery always win over an overlapping voluntary focus block.
     const safeToTailor=!day.eventInfluence && !day.blockIntention && loadCalendar[date]?.level==='none' && !(date===today&&readinessLevel(args.readiness)==='rot')
     let adjusted=safeToTailor?tailorSession(item,active,profile?.ftpWatts):item
-    if(safeToTailor&&active?.focus==='swimming'&&item.sessionType==='endurance')adjusted={...item,sessionType:'manual-swimming',title:'Schwimmtechnik & ruhige Ausdauer',durationMin:active.capacity==='reduced'?30:45,target:'Kontrolliertes Schwimmen, Technikblöcke mit langen Pausen, keine Maximalintervalle',description:'Schwimm-Schwerpunkt im Sonderblock; auf Erholung und Technik achten.',notes:`Fokusblock ${active.name}`}
+    // Schwimmen ist ausschließlich eine selbst ausgewählte freie Aktivität.
     if(safeToTailor&&active?.focus==='running'&&item.sessionType==='endurance'){
       const countRunning=completed.filter(c=>c.profileId===PROFILE_ID&&c.date<date&&c.date>=offsetDate(date,-28)&&(c.sessionType==='run'||c.sessionType==='manual-running')).length
       if(countRunning>=4 && (active.capacity==='more'||active.capacity==='much') && !nearType(date,['run'],2)) adjusted={...item,sessionType:'run',title:'Zusätzlicher lockerer Lauf',durationMin:25,target:'Sehr locker, RPE 2–3, bei Bedarf Gehpausen',description:'Nur bei etablierter Laufverträglichkeit; andernfalls lockeres Radfahren.',notes:`Fokusblock ${active.name}`}

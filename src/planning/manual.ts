@@ -24,8 +24,10 @@ export type ManualForm = {
   notes: string
   cyclingEnvironment: 'outdoor'|'indoor'|'unknown'
   strengthLocation: 'studio'|'arbeit'
+  swimEnvironment: 'pool'|'openwater'
+  swimFocus: 'technik'|'ausdauer'|'intervalle'|'locker'
 }
-export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:'',cyclingEnvironment:'unknown',strengthLocation:'studio'})
+export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:'',cyclingEnvironment:'unknown',strengthLocation:'studio',swimEnvironment:'pool',swimFocus:'locker'})
 export type Editable = {kind:'planned'; record:TrainingRecord} | {kind:'completed'; record:CompletedRecord}
 export const sportFor = (kind: TrainingRecord['sessionType'] | undefined): ManualSport => {
   if (kind==='commute'||kind==='long'||kind==='quality'||kind==='endurance'||kind==='manual-cycling') return 'cycling'
@@ -50,6 +52,8 @@ export const toForm = (entry:Editable):ManualForm => {
     target:entry.kind==='planned'?entry.record.target:'', notes:r.notes??'',
     cyclingEnvironment:r.cyclingEnvironment==='outdoor'||r.cyclingEnvironment==='indoor'?r.cyclingEnvironment:'unknown',
     strengthLocation:r.strengthLocation==='arbeit'?'arbeit':'studio',
+    swimEnvironment:r.swimEnvironment==='openwater'?'openwater':'pool',
+    swimFocus:r.swimFocus==='technik'||r.swimFocus==='ausdauer'||r.swimFocus==='intervalle'?r.swimFocus:'locker',
   }
 }
 const decimal=(value:string, label:string, max:number, required=false):number|undefined => {
@@ -93,6 +97,7 @@ export async function saveManualPlanned(form:ManualForm, previous?:TrainingRecor
     target:form.target.trim()||'Nach Tagesform und persönlichem Ziel',
     notes:form.notes.trim(),expectedKm:distance,elevationM:elevation,rpe,cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
     strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,
+    swimEnvironment:form.sport==='swimming'?form.swimEnvironment:undefined, swimFocus:form.sport==='swimming'?form.swimFocus:undefined,
     status:'geplant',createdBy:'tempo-user',locked:true,
     createdAt:previous?.createdAt??now,updatedAt:now,
   }
@@ -122,6 +127,7 @@ export async function saveManualCompleted(form:ManualForm, previous?:CompletedRe
     distanceKm:distance,elevationM:elevation,rpe,notes:form.notes.trim(),
     cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
     strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,
+    swimEnvironment:form.sport==='swimming'?form.swimEnvironment:undefined, swimFocus:form.sport==='swimming'?form.swimFocus:undefined,
     source:planned?'plan':previous?.source??'manuell',
     plannedSessionId:planned?.id??previous?.plannedSessionId,
     createdAt:previous?.createdAt??now,updatedAt:now,
