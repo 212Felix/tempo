@@ -1,5 +1,6 @@
 import {plusDays,validDate} from '../events/library'
 import type {TrainingBlock} from './library'
+import type {ClimbInterval} from './intervals'
 
 /** Individual intentions belong to the block, not completed sessions or Garmin originals. */
 export type BlockDayKind='leisure'|'rest'|'travel'|'group-ride'|'ride-training'|'challenge'
@@ -11,7 +12,8 @@ export type BlockDayPlan={
   title?:string
   routeSource?:BlockDayRouteSource
   routeId?:string
-  climbKey?:string
+  climbKey?:string // Old one-climb plans remain readable.
+  climbIntervals?:ClimbInterval[]
   routeName?:string
   routeDistanceKm?:number
   effort?:BlockDayEffort
@@ -57,6 +59,15 @@ export function planDayValid(block:TrainingBlock,plan:BlockDayPlan):boolean{
   if(plan.notes&&plan.notes.length>600)return false
   if(plan.durationMin!==undefined&&(!Number.isFinite(plan.durationMin)||plan.durationMin<0||plan.durationMin>1440))return false
   if(plan.routeId&&(!plan.routeSource||plan.routeId.length>180))return false
+  if(plan.climbIntervals!==undefined){
+    if(!Array.isArray(plan.climbIntervals)||plan.climbIntervals.length>8||!plan.routeId||plan.routeSource!=='garmin')return false
+    const seen=new Set<string>()
+    for(const target of plan.climbIntervals){
+      if(!target||typeof target.climbKey!=='string'||target.climbKey.length>250||seen.has(target.climbKey)||!['steady','tempo','threshold'].includes(target.effort))return false
+      seen.add(target.climbKey)
+    }
+    if(plan.climbIntervals.filter(x=>x.effort!=='steady').length>2)return false
+  }
   return true
 }
 export function putBlockDay(block:TrainingBlock,plan:BlockDayPlan):TrainingBlock{

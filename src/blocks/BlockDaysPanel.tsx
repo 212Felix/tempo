@@ -8,6 +8,7 @@ import type {GarminActivity} from '../garmin/csv'
 import type {FitTrace} from '../garmin/fit'
 import {dayKindLabels,effortLabels,dropBlockDay,isTrainingFree,itineraryDates,planDayValid,putBlockDay,safeBlockDays,type BlockDayEffort,type BlockDayKind,type BlockDayPlan} from './days'
 import type {TrainingBlock} from './library'
+import {chosenIntervals,routeWorkout,climbEffortNames,type ClimbInterval,type ClimbEffort} from './intervals'
 
 const labels:Record<string,string>={garmin:'Garmin-Aufzeichnung',route:'Gespeicherte Strecke'}
 const fmt=(date:string)=>new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00Z'))
@@ -45,18 +46,27 @@ export default function BlockDaysPanel({block,onSaved}:{block:TrainingBlock;onSa
   const chooseDay=(date:string)=>{setPicked(date);setForm(days.find(d=>d.date===date)??emptyPlan(date));setMessage('')}
   const selectedRoute = form.routeId ? form.routeSource==='garmin' ? activities.find(a=>a.id===form.routeId) : routes.find(r=>r.id===form.routeId) : undefined
   const matchedClimbs=useMemo(()=>form.routeSource==='garmin'&&form.routeId?climbs.filter(x=>x.activityId===form.routeId):[],[climbs,form.routeSource,form.routeId])
-  const chosenClimb=matchedClimbs.find(c=>c.key===form.climbKey)
   const watt=profile?.ftpWatts
-  const workoutNote=useMemo(()=>{
-    if(form.effort!=='tempo'&&form.effort!=='threshold')return ''
-    const target=form.effort==='tempo'?watt?`${Math.round(watt*.76)}–${Math.round(watt*.85)} W`:'RPE 5–6':watt?`${Math.round(watt*.88)}–${Math.round(watt*.95)} W`:'RPE 6–7'
-    const sufficient=Boolean(chosenClimb && chosenClimb.climb.elapsedSeconds >= (form.effort==='tempo'?600:480))
-    const segment=sufficient&&chosenClimb?`Gespeicherter Anstieg bei km ${chosenClimb.climb.startKm.toLocaleString('de-DE')}–${chosenClimb.climb.endKm.toLocaleString('de-DE')}`:'Nur auf einem sicheren, ausreichend langen Streckenabschnitt'
-    return `${segment}: optional ${form.effort==='tempo'?'2 × 10 Minuten Tempo':'2 × 8 Minuten kontrollierte Schwelle'} bei ${target}, 5–8 Minuten locker dazwischen. Wenn nur ein passender Anstieg vorhanden ist: maximal eine Wiederholung, kein erzwungener Rückweg. Vorher 15 Minuten einrollen, nachher 10 Minuten ausrollen. Bei Gruppe, Verkehr oder Müdigkeit auslassen.`
-  },[form.effort,chosenClimb,watt])
+  /* Legacy single-climb choices remain visible until this day is edited. */
+  const selectedIntervals:ClimbInterval[]=form.climbIntervals??(form.climbKey?[{climbKey:form.climbKey,effort:form.effort==='threshold'?'threshold':form.effort==='tempo'?'tempo':'steady'}]:[])
+  const selectedClimbs=chosenIntervals(selectedIntervals,matchedClimbs)
+  const workout=routeWorkout(selectedIntervals,matchedClimbs,watt)
+  const workoutNote=workout.text
+  const toggleClimb=(key:string)=>{
+    const next=selectedIntervals.some(x=>x.climbKey===key)?selectedIntervals.filter(x=>x.climbKey!==key):[...selectedIntervals,{climbKey:key,effort:'steady' as ClimbEffort}]
+    update({climbIntervals:next,climbKey:undefined})
+  }
+  const setClimbEffort=(key:string,effort:ClimbEffort)=>{
+    update({climbIntervals:selectedIntervals.map(x=>x.climbKey===key?{...x,effort}:x),climbKey:undefined})
+  }
   const save=async(e:FormEvent)=>{
     e.preventDefault();if(busy)return
-    const chosen={...form,date:picked,routeName:looksRide(form.kind)?(form.routeSource==='garmin'?activities.find(a=>a.id===form.routeId)?.title:routes.find(r=>r.id===form.routeId)?.name):undefined,routeDistanceKm:looksRide(form.kind)?selectedRoute?.distanceKm:undefined,routeId:looksRide(form.kind)?form.routeId:undefined,routeSource:looksRide(form.kind)?form.routeSource:undefined,climbKey:looksRide(form.kind)?form.climbKey:undefined,effort:looksRide(form.kind)?form.effort:undefined}
+    if(selectedIntervals.length>0){
+      if(selectedClimbs.length!==selectedIntervals.length){setMessage('Ein gewählter Anstieg ist nicht mehr mit dieser Route verknüpft. Bitte Auswahl kontrollieren.');return}
+      if(workout.hardCount>2){setMessage('Bitte höchstens zwei intensive Anstiege wählen; weitere Abschnitte können locker gefahren werden.');return}
+      if(workout.warnings.length>0&&!window.confirm('Einige Bergabschnitte sind wegen ihrer Dauer oder Messqualität nicht als sichere Intervalle geeignet. Trotzdem als optionalen Tourenplan speichern?'))return
+    }
+    const chosen={...form,date:picked,climbIntervals:looksRide(form.kind)&&form.routeSource==='garmin'&&form.routeId&&selectedIntervals.length?selectedIntervals:undefined,climbKey:undefined,routeName:looksRide(form.kind)?(form.routeSource==='garmin'?activities.find(a=>a.id===form.routeId)?.title:routes.find(r=>r.id===form.routeId)?.name):undefined,routeDistanceKm:looksRide(form.kind)?selectedRoute?.distanceKm:undefined,routeId:looksRide(form.kind)?form.routeId:undefined,routeSource:looksRide(form.kind)?form.routeSource:undefined,effort:looksRide(form.kind)?form.effort:undefined}
     if(!planDayValid(block,chosen)){setMessage('Bitte Eingaben oder Datum prüfen.');return}
     const plannedDays=safeBlockDays(block)
     const before=plannedDays.find(d=>d.date===plusDays(picked,-1))
@@ -88,15 +98,24 @@ export default function BlockDaysPanel({block,onSaved}:{block:TrainingBlock;onSa
       </div>
       <label>Bezeichnung (optional)<input maxLength={100} value={form.title??''} onChange={e=>update({title:e.target.value})} placeholder={form.kind==='leisure'?'z. B. Strandtag mit Freunden':'z. B. Küstenrunde / Sa Calobra'}/></label>
       {looksRide(form.kind)&&<>
-        <label>Bekannte Route / vorherige Fahrt (optional)<select value={form.routeId?`${form.routeSource}:${form.routeId}`:''} onChange={e=>{const v=e.target.value;const index=v.indexOf(':');update({routeSource:index<0?undefined:v.slice(0,index) as 'garmin'|'route',routeId:index<0?undefined:v.slice(index+1),climbKey:undefined})}}><option value="">Noch keine Route auswählen</option>
+        <label>Bekannte Route / vorherige Fahrt (optional)<select value={form.routeId?`${form.routeSource}:${form.routeId}`:''} onChange={e=>{const v=e.target.value;const index=v.indexOf(':');update({routeSource:index<0?undefined:v.slice(0,index) as 'garmin'|'route',routeId:index<0?undefined:v.slice(index+1),climbKey:undefined,climbIntervals:[]})}}><option value="">Noch keine Route auswählen</option>
           <optgroup label="Eigene gespeicherte Routen">{routes.map(r=><option key={r.id} value={`route:${r.id}`}>{r.name}{r.distanceKm?` · ${r.distanceKm} km`:''}</option>)}</optgroup>
           <optgroup label="Vergangene Garmin-Radfahrten">{activities.map(a=><option key={a.id} value={`garmin:${a.id}`}>{a.date} · {a.title} · {a.distanceKm?.toLocaleString('de-DE')??'?'} km</option>)}</optgroup>
         </select></label>
         {selectedRoute&&<p className="tempo-day-route-info">{labels[form.routeSource??'']}: {form.routeSource==='garmin'?activities.find(a=>a.id===form.routeId)?.title:routes.find(r=>r.id===form.routeId)?.name} · {selectedRoute.distanceKm?.toLocaleString('de-DE')??'?'} km · {'elevationM' in selectedRoute&&selectedRoute.elevationM!==undefined?`${selectedRoute.elevationM} hm`: 'Höhenmeter offen'}.</p>}
-        <label>Trainingscharakter<select value={form.effort??'easy'} onChange={e=>update({effort:e.target.value as BlockDayEffort,climbKey:undefined})}>{(Object.entries(effortLabels) as [BlockDayEffort,string][]).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
-        {matchedClimbs.length>0&&<label>Bekannter Anstieg (optional)<select value={form.climbKey??''} onChange={e=>update({climbKey:e.target.value||undefined})}><option value="">Keinen Anstieg festlegen</option>{matchedClimbs.map(c=><option key={c.key} value={c.key}>km {c.climb.startKm.toLocaleString('de-DE')}–{c.climb.endKm.toLocaleString('de-DE')} · {c.climb.elapsedSeconds>=60?Math.round(c.climb.elapsedSeconds/60)+' min':'kurz'} · +{c.climb.riseM} hm</option>)}</select></label>}
-        {chosenClimb&&<p className="tempo-day-route-info">Historischer Abschnitt: Ø {chosenClimb.climb.averagePowerW??'–'} W · Ø {chosenClimb.climb.averageHrBpm??'–'} bpm · {chosenClimb.climb.gradePct}% Steigung. Das ist keine sichere Prognose für eine erneute Befahrung.</p>}
-        {(form.effort==='tempo'||form.effort==='threshold')&&<div className="tempo-day-preview"><strong>Optionaler Garmin-Trainingsaufbau</strong><p>{workoutNote}</p><button type="button" onClick={()=>{if(navigator.clipboard?.writeText)void navigator.clipboard.writeText(workoutNote).then(()=>setMessage('Aufbau kopiert ✓')).catch(()=>setMessage('Kopieren im Browser nicht verfügbar.'));else setMessage('Kopieren im Browser nicht verfügbar.')}}>Aufbau kopieren</button></div>}
+        <label>Trainingscharakter<select value={form.effort??'easy'} onChange={e=>update({effort:e.target.value as BlockDayEffort})}>{(Object.entries(effortLabels) as [BlockDayEffort,string][]).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
+        {matchedClimbs.length>0&&<div className="tempo-multi-climbs"><strong>Mehrere Anstiege für die Tour auswählen (optional)</strong>
+          <p className="tempo-day-caption">In Streckenreihenfolge; maximal zwei intensive Abschnitte. Du kannst zusätzlich lockere Anstiege markieren.</p>
+          {matchedClimbs.map(c=>{const selected=selectedIntervals.find(x=>x.climbKey===c.key);return <div className={`tempo-climb-row ${selected?'selected':''}`} key={c.key}>
+            <label className="tempo-climb-check"><input type="checkbox" checked={!!selected} onChange={()=>toggleClimb(c.key)}/><span>km {c.climb.startKm.toLocaleString('de-DE')}–{c.climb.endKm.toLocaleString('de-DE')} · {Math.round(c.climb.elapsedSeconds/60)} min · +{c.climb.riseM} hm</span></label>
+            {selected&&<><label>Reiz auf diesem Anstieg<select aria-label={`Trainingsreiz bei Kilometer ${c.climb.startKm}`} value={selected.effort} onChange={e=>setClimbEffort(c.key,e.target.value as ClimbEffort)}>{(Object.entries(climbEffortNames) as [ClimbEffort,string][]).map(([value,name])=><option key={value} value={value}>{name}</option>)}</select></label>
+              <small>Historisch: Ø {c.climb.averagePowerW??'–'} W · Ø {c.climb.averageHrBpm??'–'} bpm · Ø {c.climb.gradePct}% Steigung</small></>}
+          </div>})}
+          <span className="tempo-day-caption">Ausgewählt: {selectedClimbs.length} · intensiv: {workout.hardCount}/2</span>
+        </div>}
+        {selectedClimbs.length>0&&<div className="tempo-day-preview"><strong>Optionaler Ablauf für Garmin · {selectedClimbs.length} Anstiege</strong><p className="tempo-workout-notes">{workoutNote}</p>
+          {workout.warnings.map((warning,i)=><p className="tempo-climb-warning" key={i}>Hinweis: {warning}</p>)}
+          <button type="button" onClick={()=>{if(navigator.clipboard?.writeText)void navigator.clipboard.writeText(workoutNote).then(()=>setMessage('Ablauf kopiert ✓')).catch(()=>setMessage('Kopieren im Browser nicht verfügbar.'));else setMessage('Kopieren im Browser nicht verfügbar.')}}>Ablauf kopieren</button></div>}
         <label>Geschätzte Fahrzeit in Minuten (optional)<input type="number" min={0} max={1440} step={5} value={form.durationMin??''} onChange={e=>update({durationMin:e.target.value===''?undefined:Number(e.target.value)})} placeholder="z. B. 180"/></label>
       </>}
       {isTrainingFree(form.kind)&&<p className="tempo-day-rest">Dieser Tag bleibt im nächsten Planvorschlag sportfrei. Bereits gespeicherte Trainings oder Dienstpendeln werden nicht gelöscht; solche Konflikte müssen separat geprüft werden.</p>}

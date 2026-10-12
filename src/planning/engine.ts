@@ -252,7 +252,7 @@ export function generatePlan(args: {
       const target=intention.effort==='tempo'?(power?`${Math.round(power*.76)}–${Math.round(power*.85)} W`:'RPE 5–6'):intention.effort==='threshold'?(power?`${Math.round(power*.88)}–${Math.round(power*.95)} W`:'RPE 6–7'):''
       ride.target=target?`Optionaler Abschnitt (${target}), nur bei sicherer Strecke und passender Tagesform. Nicht verpflichtend.`:'Locker mit der Gruppe fahren, Anstiege nach Gefühl.'
       ride.description='Vorab eingetragene Urlaubstour; keine automatische Trainingsfreigabe. Gruppensicherheit und Erholung haben Vorrang.'
-      ride.notes=[intention.routeName?`Route: ${intention.routeName}`:undefined,intention.climbKey?'Historischer Anstieg vorgemerkt (in Blockübersicht ansehen)':undefined,intention.notes].filter(Boolean).join(' · ')
+      ride.notes=[intention.routeName?`Route: ${intention.routeName}`:undefined,(intention.climbIntervals?.length||intention.climbKey)?`${intention.climbIntervals?.length??1} historische Anstiege als optionale Abschnitte vorgemerkt (in Blockübersicht ansehen)`:undefined,intention.notes].filter(Boolean).join(' · ')
       put(date,ride); return
     }
     if (loadCalendar[date]?.level === 'recovery') {

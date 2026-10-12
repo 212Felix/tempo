@@ -18,19 +18,28 @@ export const blockIsValid=(b:TrainingBlock)=>validDate(b.startDate)&&validDate(b
 export function matchingBlock(date:string, blocks:TrainingBlock[]):TrainingBlock|undefined {
   return blocks.filter(b=>b.enabled&&blockIsValid(b)&&b.startDate<=date&&b.endDate>=date).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))[0]
 }
-export type Phase={id:string; title:string; startDate:string; endDate:string; detail:string; eventId?:string}
+export type Phase={id:string; title:string; startDate:string; endDate:string; detail:string; eventId?:string; tentative?:boolean}
 /** Neutral phase skeleton, anchored only to actual locally saved event dates. */
 export function deriveSeasonPhases(events:GoalEvent[], today:string):Phase[]{
   const anchors=events.filter(x=>x.status!=='abgeschlossen'&&x.kind!=='trainingsblock'&&validDate(x.date??'')&&x.date!>=today)
     .sort((a,b)=>a.date!.localeCompare(b.date!))
-  // Smaller B/C events may add a local taper, but never replace A-event anchors.
+  // A events take precedence. A preceding *long* B challenge can define an
+  // intermediate training milestone without displacing the eventual A goal.
   const aEvents=anchors.filter(x=>x.priority==='A')
-  const primary=aEvents.length?aEvents:anchors
-  const first=primary[0],second=primary[1]
+  let first:GoalEvent|undefined
+  let second:GoalEvent|undefined
+  if(aEvents.length>=2){[first,second]=aEvents}
+  else if(aEvents.length===1){
+    const a=aEvents[0]
+    const longB=anchors.filter(x=>x.priority==='B'&&x.date!<a.date!&&(x.distanceKm??0)>=180).at(-1)
+    if(longB){first=longB;second=a}
+    else first=a
+  }else [first,second]=anchors
+
   if(!first?.date)return []
   const output:Phase[]=[]
-  const push=(id:string,title:string,startDate:string,endDate:string,detail:string,eventId?:string)=>{
-    if(startDate<=endDate&&validDate(startDate)&&validDate(endDate))output.push({id,title,startDate,endDate,detail,eventId})
+  const push=(id:string,title:string,startDate:string,endDate:string,detail:string,eventId?:string,tentative=false)=>{
+    if(startDate<=endDate&&validDate(startDate)&&validDate(endDate))output.push({id,title,startDate,endDate,detail,eventId,tentative})
   }
   const firstStart=plusDays(first.date,-195)
   push('B01','Wiedereinstieg',firstStart,plusDays(first.date,-166),'Routine, Grundlagentraining und behutsamer Laufaufbau',first.id)
@@ -47,7 +56,7 @@ export function deriveSeasonPhases(events:GoalEvent[], today:string):Phase[]{
     push('B09','Wettkampfform',plusDays(second.date,-28),plusDays(second.date,-14),'Spezifische Schlüsselreize, Belastung kontrollieren',second.id)
     push('B10','Taper & Event',plusDays(second.date,-13),second.date,'Frische, kurze Aktivierung, Wettkampf',second.id)
   }
-  return output
+  return output.map(phase=>({...phase,tentative:anchors.find(e=>e.id===phase.eventId)?.status!=='bestaetigt'}))
 }
 
 export function describeBlock(b:TrainingBlock){
