@@ -1,14 +1,14 @@
 import {durationFor} from '../time/duration'
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { deleteRecord, getRecord, listRecords, openTempoDatabase } from '../db/storage'
-import FitImportPanel from './FitImportPanel'
+import { useEffect, useMemo, useState } from 'react'
+import { deleteRecord, getRecord, listRecords } from '../db/storage'
+import BatchImportPanel from './BatchImportPanel'
 import ReconciliationPanel from '../planning/ReconciliationPanel'
 import type {LinkedCompleted} from '../planning/reconcile'
 import FitChart from './FitChart'
 import FitInsights from './FitInsights'
 import ClimbLibraryPanel from './ClimbLibraryPanel'
 import type { FitTrace } from './fit'
-import { parseGarminCsv, type GarminActivity, type CsvParseResult } from './csv'
+import type { GarminActivity } from './csv'
 import './garmin.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 
@@ -19,14 +19,11 @@ const formatDate=(s:string)=>new Intl.DateTimeFormat('de-DE',{day:'2-digit',mont
 
 export default function GarminLibraryPanel(){
   const [stored,setStored]=useState<GarminActivity[]>([])
-  const [preview,setPreview]=useState<CsvParseResult|null>(null)
-  const [fileName,setFileName]=useState('')
   const [busy,setBusy]=useState(false)
   const [notice,setNotice]=useState('Aktivitätsbibliothek wird geladen …')
   const [filter,setFilter]=useState<'all'|GarminActivity['sport']>('all')
   const [showAll,setShowAll]=useState(false)
   const [selected,setSelected]=useState<string|null>(null)
-  const [batchId,setBatchId]=useState('')
   const [chosenTrace,setChosenTrace]=useState<FitTrace|null>(null)
   const [fitVersion,setFitVersion]=useState(0)
 
@@ -42,45 +39,6 @@ export default function GarminLibraryPanel(){
     setStored(data);setNotice(data.length?`${data.length} importierte Garmin-Aktivitäten lokal verfügbar.`:'Noch keine Garmin-Aktivitäten importiert.')
   }).catch(error=>{if(live)setNotice('Datenbankfehler: '+String(error))});return()=>{live=false}},[])
 
-  async function readCsv(e:ChangeEvent<HTMLInputElement>){
-    const file=e.target.files?.[0];e.target.value=''
-    if(!file)return
-    if(!/\.csv$/i.test(file.name)){setNotice('Bitte eine CSV-Datei aus Garmin Connect wählen.');return}
-    if(file.size>20_000_000){setNotice('CSV größer als 20 MB. Bitte einen kleineren Export verwenden.');return}
-    setBusy(true);setPreview(null)
-    try{
-      const id=`import:garmin:${new Date().toISOString()}`
-      const parsed=parseGarminCsv(await file.text(),id)
-      const known=new Set(stored.map(x=>x.id))
-      const fresh=parsed.activities.filter(x=>!known.has(x.id))
-      setBatchId(id);setPreview({...parsed,activities:fresh})
-      setFileName(file.name)
-      setNotice(`${parsed.activities.length} CSV-Aktivitäten erkannt; ${fresh.length} neu, ${parsed.activities.length-fresh.length} bereits vorhanden.`)
-    }catch(error){setNotice(`Import-Vorschau fehlgeschlagen: ${error instanceof Error?error.message:String(error)}`)}
-    finally{setBusy(false)}
-  }
-
-  async function storeCsv(){
-    if(!preview||!preview.activities.length)return
-    setBusy(true)
-    try{
-      const now=new Date().toISOString(),db=await openTempoDatabase()
-      await new Promise<void>((resolve,reject)=>{
-        const tx=db.transaction(['externalActivities','importBatches'],'readwrite')
-        const activities=tx.objectStore('externalActivities')
-        for(const entry of preview.activities)activities.put(entry)
-        tx.objectStore('importBatches').put({id:batchId,profileId:PROFILE_ID,source:'garmin-csv',fileName,
-          count:preview.activities.length,date:now,createdAt:now,updatedAt:now})
-        tx.oncomplete=()=>{db.close();resolve()}
-        tx.onerror=()=>{db.close();reject(tx.error??new Error('Speichern fehlgeschlagen.'))}
-        tx.onabort=()=>{db.close();reject(tx.error??new Error('Transaktion abgebrochen.'))}
-      })
-      const added=preview.activities.length
-      setPreview(null);setFileName('');await refresh()
-      setNotice(`${added} Garmin-Aktivitäten lokal gespeichert. Bitte TEMPO-Backup unter Profil & Daten herunterladen.`)
-    }catch(error){setNotice(`Speichern fehlgeschlagen: ${error instanceof Error?error.message:String(error)}`)}
-    finally{setBusy(false)}
-  }
   useEffect(()=>{
     let live=true
     const record=stored.find(x=>x.id===selected)
@@ -116,19 +74,7 @@ export default function GarminLibraryPanel(){
         <div><strong>{formatNumber(totalKm)}</strong><small>Kilometer</small></div>
         <div><strong>{formatNumber(totalHm,{maximumFractionDigits:0})}</strong><small>Höhenmeter</small></div>
       </div>
-      <div className="tempo-garmin-import">
-        <div><h3>1. CSV aus Garmin Connect importieren</h3><HelpDisclosure id="garmin-csv-help"><p>Garmin Connect → Aktivitäten → Alle Aktivitäten → CSV-Datei exportieren. Mehrere CSV-Dateien nacheinander sind möglich; vorhandene Einträge werden erkannt.</p></HelpDisclosure></div>
-        <label className="tempo-garmin-file">CSV-Datei auswählen<input type="file" accept=".csv,text/csv" disabled={busy} onChange={e=>void readCsv(e)}/></label>
-      </div>
-      {preview&&<div className="tempo-garmin-preview">
-        <h3>2. Vorschau: {fileName}</h3>
-        <p><strong>{preview.activities.length} neue Aktivitäten</strong> bereit zum Import. {preview.skipped?`${preview.skipped} Zeilen wurden übersprungen. `:''}Die Daten werden erst durch deine Bestätigung gespeichert.</p>
-        <div className="tempo-garmin-notes">{preview.notes.map((n,i)=><p key={i}>{n}</p>)}</div>
-        <div className="tempo-garmin-preview-rows">{preview.activities.slice(0,5).map(x=><div key={x.id}><span>{formatDate(x.date)} · {x.title}</span><span>{x.distanceKm==null?'–':formatNumber(x.distanceKm)+' km'} · {durationFor(x)}</span></div>)}</div>
-        <div className="tempo-garmin-actions"><button type="button" className="tempo-garmin-button" disabled={busy||!preview.activities.length} onClick={()=>void storeCsv()}>Nur neue Aktivitäten importieren</button><button type="button" className="tempo-garmin-muted-button" disabled={busy} onClick={()=>setPreview(null)}>Abbrechen</button></div>
-      </div>}
-      <div className="tempo-garmin-status" role="status">{busy?'TEMPO verarbeitet die Datei …':notice}</div>
-      <FitImportPanel onSaved={id=>{void refresh().then(()=>{setSelected(id);setFitVersion(n=>n+1)})}}/>
+      <BatchImportPanel onSaved={()=>{void refresh().then(()=>setFitVersion(n=>n+1))}}/>
     </div>
     <ReconciliationPanel context="garmin" key={`${stored.length}-${fitVersion}`}/>
     <ClimbLibraryPanel activities={stored} refreshVersion={fitVersion}/>
