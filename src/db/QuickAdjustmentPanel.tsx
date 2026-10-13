@@ -67,6 +67,8 @@ export default function QuickAdjustmentPanel({onSaved}:{onSaved:(record:ShiftRec
         homeIntervals:kind==='tagdienst' && commute===previous?.commute ? Boolean(previous.homeIntervals) : false,
         workStrength:kind==='tagdienst'?Boolean(previous?.workStrength):false,
         workRun:kind==='tagdienst'?Boolean(previous?.workRun):false,
+        afterWorkStrength:kind==='tagdienst'?Boolean(previous?.afterWorkStrength):false,
+        afterWorkRun:kind==='tagdienst'?Boolean(previous?.afterWorkRun):false,
         afterWorkCycling:kind==='tagdienst'?Boolean(previous?.afterWorkCycling):false,
         afterWorkRide:kind==='tagdienst'?(previous?.afterWorkRide??'egal'):'egal',
         createdAt:previous?.createdAt??now, updatedAt:now,

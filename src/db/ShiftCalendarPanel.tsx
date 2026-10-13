@@ -17,6 +17,8 @@ type ShiftEntry = TempoRecord & {
   shift?: ShiftKind
   workStrength?: boolean
   workRun?: boolean
+  afterWorkStrength?: boolean
+  afterWorkRun?: boolean
   afterWorkCycling?: boolean
   afterWorkRide?: AfterWorkRide
   commute?: CommuteKind
@@ -26,6 +28,8 @@ type ShiftValues = {
   shift: ShiftKind
   workStrength: boolean
   workRun: boolean
+  afterWorkStrength: boolean
+  afterWorkRun: boolean
   afterWorkCycling: boolean
   afterWorkRide: AfterWorkRide
   commute: CommuteKind
@@ -36,7 +40,7 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const shiftName: Record<ShiftKind, string> = { offen: 'Offen', frei: 'Frei', tagdienst: 'Tagdienst', einsatz: 'Einsatz' }
 const emptyValues = (date: string): ShiftValues => ({
   shift: isWeekend(date) ? 'frei' : 'offen',
-  workStrength: false, workRun: false, afterWorkCycling: false, afterWorkRide: 'egal',
+  workStrength: false, workRun: false, afterWorkStrength:false, afterWorkRun:false, afterWorkCycling: false, afterWorkRide: 'egal',
   commute: 'nein', homeIntervals: false,
 })
 function formatKey(date: Date): string {
@@ -59,6 +63,7 @@ function toValues(entry: ShiftEntry | undefined, date: string): ShiftValues {
     ...entry,
     shift: entry?.shift && entry.shift !== 'offen' ? entry.shift : (isWeekend(date) ? 'frei' : 'offen'),
     workStrength: Boolean(entry?.workStrength), workRun: Boolean(entry?.workRun),
+    afterWorkStrength: Boolean(entry?.afterWorkStrength), afterWorkRun: Boolean(entry?.afterWorkRun),
     afterWorkCycling: Boolean(entry?.afterWorkCycling), afterWorkRide: entry?.afterWorkRide ?? 'egal',
     commute: entry?.commute ?? 'nein', homeIntervals: Boolean(entry?.homeIntervals),
   }
@@ -75,6 +80,8 @@ function makeEntry(date: string, values: ShiftValues, previous?: ShiftEntry): Sh
     shift: values.shift,
     workStrength: values.shift === 'tagdienst' && values.workStrength,
     workRun: values.shift === 'tagdienst' && values.workRun,
+    afterWorkStrength: values.shift === 'tagdienst' && values.afterWorkStrength,
+    afterWorkRun: values.shift === 'tagdienst' && values.afterWorkRun,
     afterWorkCycling: values.shift === 'tagdienst' && values.afterWorkCycling,
     afterWorkRide: values.shift === 'tagdienst' ? values.afterWorkRide : 'egal',
     commute: values.shift === 'tagdienst' ? values.commute : 'nein',
@@ -239,6 +246,8 @@ export default function ShiftCalendarPanel() {
         <div className="tempo-shift-choices">
           <Choice selected={draft.workStrength} onClick={() => update({workStrength:!draft.workStrength})}>Kraft auf Arbeit</Choice>
           <Choice selected={draft.workRun} onClick={() => update({workRun:!draft.workRun})}>Laufen auf Arbeit</Choice>
+          <Choice selected={draft.afterWorkStrength} onClick={() => update({afterWorkStrength:!draft.afterWorkStrength})}>Kraft nach Dienst</Choice>
+          <Choice selected={draft.afterWorkRun} onClick={() => update({afterWorkRun:!draft.afterWorkRun})}>Laufen nach Dienst</Choice>
           <Choice selected={draft.afterWorkCycling} onClick={() => update({afterWorkCycling:!draft.afterWorkCycling})}>Rad nach Dienst</Choice>
         </div>
         {draft.afterWorkCycling && <><h3>Rad nach Dienst</h3><div className="tempo-shift-choices">

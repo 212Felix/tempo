@@ -1,0 +1,11 @@
+.tempo-movement-preview{margin:15px 0 19px;padding:13px;border-radius:15px;border:1px solid rgba(159,203,221,.25);background:rgba(34,64,78,.45)}
+.tempo-movement-pair{display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);align-items:center;gap:6px}
+.tempo-movement-frame{display:flex;flex-direction:column;align-items:center;min-width:0;gap:4px;color:#bdd9e8}
+.tempo-movement-frame span{font-size:.74rem;font-weight:700;text-align:center}
+.tempo-movement-frame svg{width:min(100%,146px);height:auto;stroke:#abcfdf;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.tempo-movement-frame svg circle{fill:#234455}
+.tempo-movement-frame svg .tempo-motion{stroke:#8fdbb8;stroke-width:2.5}
+.tempo-movement-frame svg .tempo-ground,.tempo-movement-frame svg .tempo-wall{stroke:#678392;stroke-width:2}
+.tempo-movement-arrow{color:#a1d1e0;font-size:1.3rem;text-align:center}
+.tempo-movement-preview>small{display:block;font-size:.74rem;color:#a6b9c5;margin-top:10px;line-height:1.5}
+@media(max-width:380px){.tempo-movement-pair{gap:2px}.tempo-movement-frame span{font-size:.7rem}}

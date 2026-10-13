@@ -14,3 +14,10 @@
 .tempo-daily-actions span{color:#aebdc6;font-size:11px}
 
 .tempo-daily-actions .tempo-daily-plan-link{background:#213e49;color:#e5f7fc;border:1px solid #b5d5e064}
+
+.tempo-daily-availability{margin-top:16px;padding:14px;border:1px solid #829ca266;border-radius:12px;background:#0e21274d}
+.tempo-daily-availability h3{font-size:1rem;margin:0 0 11px}
+.tempo-daily-availability-buttons{display:flex;gap:9px;flex-wrap:wrap}
+.tempo-daily-availability-buttons button{color:#e5f1f5;border:1px solid #617885;background:#263c45;padding:11px 13px;border-radius:12px;font-weight:650;min-height:44px}
+.tempo-daily-availability-buttons button.selected{border-color:#a6d6e2;background:#3c6370}
+.tempo-daily-availability p{font-size:.82rem;color:#acd6c8;line-height:1.5}

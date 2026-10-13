@@ -1,3 +1,4 @@
+import TimeFields from '../time/TimeFields'
 import {parseHms,durationFor} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,PROFILE_ID,type TrainingRecord} from '../planning/engine'
@@ -165,7 +166,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
           })}</div>
       </section>)}
       <section className="panel tw-panel"><div className="eyebrow">ABSCHLUSS · DEINE IST-WERTE</div><h3>Training dokumentieren</h3>
-        <div className="tw-form-grid"><label>Dauer (hh:mm:ss)<input required disabled={done} type="text" inputMode="numeric" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" value={duration} onChange={e=>setDuration(e.target.value)}/></label><label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option value={i+1} key={i}>{i+1}</option>)}</select></label></div>
+        <div className="tw-form-grid"><TimeFields label="Krafttrainingsdauer" value={duration} onChange={setDuration} required disabled={Boolean(done)}/><label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option value={i+1} key={i}>{i+1}</option>)}</select></label></div>
         <label className="tw-notes">Bemerkungen<textarea disabled={done} value={notes} maxLength={1500} onChange={e=>setNotes(e.target.value)} placeholder="Schultergefühl, Adduktoren, Kraftreserve …"/></label>
         <div className="tw-actions"><button type="button" disabled={busy||done} className="tw-secondary" onClick={()=>void saveDraft()}>Sätze zwischenspeichern</button><button type="submit" disabled={busy||done}>{busy?'Speichere …':'Training abschließen ✓'}</button></div>
         <div className="tw-feedback" role="status">{message}</div>

@@ -21,6 +21,8 @@ export type ShiftRecord = TempoRecord & {
   homeIntervals?: boolean
   workStrength?: boolean
   workRun?: boolean
+  afterWorkStrength?: boolean
+  afterWorkRun?: boolean
   afterWorkCycling?: boolean
   afterWorkRide?: 'egal' | 'indoor' | 'outdoor'
 }
@@ -311,7 +313,7 @@ export function generatePlan(args: {
       const strengthDate = week.filter(date => {
         const shift = shifts[date]
         return canUse(date) && !eventInfluences[date] && loadCalendar[date]?.level === 'none' &&
-          (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workStrength)) &&
+          (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!(shift.workStrength || shift.afterWorkStrength))) &&
           !nearType(date, ['long','commute','quality'], 1) && !nearType(date, ['strength-a','strength-b'], 1) &&
           !(date === today && readinessToday === 'gelb')
       }).sort((a,b) => a.localeCompare(b))[0]
@@ -324,14 +326,23 @@ export function generatePlan(args: {
         ...[...map.values()].filter(x => x.date < strengthDate && x.session && x.session.sessionType.startsWith('strength')).map(x => ({date:x.date,type:x.session!.sessionType})),
       ].sort((a,b) => a.date.localeCompare(b.date)).at(-1)
       const type:SessionKind = last?.type === 'strength-a' ? 'strength-b' : 'strength-a'
-      put(strengthDate,candidate(strengthDate,type,profile))
+      const item=candidate(strengthDate,type,profile)
+      if(shifts[strengthDate]?.shift==='tagdienst'){
+        item.strengthLocation=shifts[strengthDate]?.workStrength?'arbeit':'studio'
+        item.notes=[item.notes,shifts[strengthDate]?.workStrength?'Kraft auf Arbeit möglich':'Kraft nach Dienst möglich – nur bei tatsächlicher Zeit und Erholung'].filter(Boolean).join(' · ')
+      }
+      put(strengthDate,item)
     }
     const runDate = select(date => {
       const shift = shifts[date]
-      return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.workRun)) &&
+      return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!(shift.workRun || shift.afterWorkRun))) &&
         !nearType(date, ['long','commute'], 1)
     }, date => shiftRunScore(shifts[date]))
-    if (runDate) put(runDate, candidate(runDate, 'run', profile, undefined, false, weekNumber))
+    if (runDate) {
+      const item=candidate(runDate, 'run', profile, undefined, false, weekNumber)
+      if(shifts[runDate]?.shift==='tagdienst')item.notes=[item.notes,shifts[runDate]?.workRun?'Laufen auf Arbeit möglich':'Laufen nach Dienst möglich – ohne zusätzliche Intensität'].filter(Boolean).join(' · ')
+      put(runDate,item)
+    }
     const easyDate = select(date => {
       const shift = shifts[date]
       return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&

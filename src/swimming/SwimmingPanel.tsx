@@ -1,3 +1,4 @@
+import TimeFields from '../time/TimeFields'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {listRecords} from '../db/storage'
 import type {GarminActivity} from '../garmin/csv'
@@ -58,7 +59,7 @@ export default function SwimmingPanel(){
     <section className="panel tw-panel"><div className="eyebrow">FREIE AKTIVITÄT</div><h3>Schwimmen protokollieren</h3>
       <form onSubmit={e=>void submit(e)}><div className="tw-form-grid">
         <label>Datum<input type="date" required value={date} onChange={e=>setDate(e.target.value)}/></label>
-        <label>Dauer (hh:mm:ss)<input type="text" required inputMode="numeric" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" value={duration} onChange={e=>setDuration(e.target.value)}/></label>
+        <TimeFields label="Schwimmdauer" value={duration} onChange={setDuration} required/>
         <label>Geschwommene Distanz (Meter)<input type="text" inputMode="decimal" required value={meters} placeholder="z. B. 750" onChange={e=>setMeters(e.target.value)}/></label>
         <label>Ort<select value={environment} onChange={e=>setEnvironment(e.target.value as SwimEnvironment)}><option value="pool">Schwimmbad</option><option value="openwater">Freiwasser</option></select></label>
         <label>Schwerpunkt<select value={focus} onChange={e=>setFocus(e.target.value as SwimFocus)}>{Object.entries(focusLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>

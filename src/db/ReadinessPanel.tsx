@@ -32,17 +32,19 @@ type ReadyData = {
   shift: ShiftKind
   workStrength: boolean
   workRun: boolean
+  afterWorkStrength: boolean
+  afterWorkRun: boolean
   afterWorkCycling: boolean
   afterWorkRide: AfterWorkRide
   commute: CommuteKind
 }
 
 type DayEntry = TempoRecord & { date: string; ratings?: Ratings; illness?: 'nein' | 'ja' | ''; illnessKind?: IllnessKind | ''; note?: string }
-type ShiftEntry = TempoRecord & { date: string; shift?: ShiftKind; workStrength?: boolean; workRun?: boolean; afterWorkCycling?: boolean; afterWorkRide?: AfterWorkRide; commute?: CommuteKind }
+type ShiftEntry = TempoRecord & { date: string; shift?: ShiftKind; workStrength?: boolean; workRun?: boolean; afterWorkStrength?: boolean; afterWorkRun?: boolean; afterWorkCycling?: boolean; afterWorkRide?: AfterWorkRide; commute?: CommuteKind }
 
 const fresh: ReadyData = {
   ratings: {}, illness: '', illnessKind: '', note: '', shift: 'offen',
-  workStrength: false, workRun: false, afterWorkCycling: false,
+  workStrength: false, workRun: false, afterWorkStrength:false, afterWorkRun:false, afterWorkCycling: false,
   afterWorkRide: 'egal', commute: 'nein',
 }
 
@@ -106,7 +108,7 @@ export default function ReadinessPanel() {
         ratings: ready?.ratings ?? {}, illness: ready?.illness ?? '',
         illnessKind: ready?.illnessKind ?? '', note: ready?.note ?? '',
         shift: shift?.shift ?? 'offen', workStrength: !!shift?.workStrength,
-        workRun: !!shift?.workRun, afterWorkCycling: !!shift?.afterWorkCycling,
+        workRun: !!shift?.workRun, afterWorkStrength:!!shift?.afterWorkStrength, afterWorkRun:!!shift?.afterWorkRun, afterWorkCycling: !!shift?.afterWorkCycling,
         afterWorkRide: shift?.afterWorkRide ?? 'egal', commute: shift?.commute ?? 'nein',
       }
       latest.current = merged
@@ -142,6 +144,7 @@ export default function ReadinessPanel() {
         ...previousShift, id, date: day, profileId: PROFILE_ID,
         createdAt: previousShift?.createdAt || stamp, updatedAt: stamp,
         shift: next.shift, workStrength: next.workStrength, workRun: next.workRun,
+        afterWorkStrength: next.shift==='tagdienst'&&next.afterWorkStrength, afterWorkRun: next.shift==='tagdienst'&&next.afterWorkRun,
         afterWorkCycling: next.afterWorkCycling, afterWorkRide: next.afterWorkRide,
         commute: next.commute,
       }
@@ -180,6 +183,8 @@ export default function ReadinessPanel() {
         <div className="tempo-ready-choices">
           <Choice chosen={data.workStrength} onClick={() => change({ workStrength: !data.workStrength })}>Kraft auf Arbeit</Choice>
           <Choice chosen={data.workRun} onClick={() => change({ workRun: !data.workRun })}>Laufen auf Arbeit</Choice>
+          <Choice chosen={data.afterWorkStrength} onClick={() => change({ afterWorkStrength: !data.afterWorkStrength })}>Kraft nach Dienst</Choice>
+          <Choice chosen={data.afterWorkRun} onClick={() => change({ afterWorkRun: !data.afterWorkRun })}>Laufen nach Dienst</Choice>
           <Choice chosen={data.afterWorkCycling} onClick={() => change({ afterWorkCycling: !data.afterWorkCycling })}>Rad nach Dienst</Choice>
         </div>
         {data.afterWorkCycling && <div className="tempo-ready-choices tempo-ready-small">

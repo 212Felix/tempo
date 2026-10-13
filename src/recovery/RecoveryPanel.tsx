@@ -1,3 +1,4 @@
+import MovementPreview from './MovementPreview'
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {listRecords,openTempoDatabase} from '../db/storage'
 import type {TempoRecord} from '../db/types'
@@ -83,6 +84,7 @@ export default function RecoveryPanel(){
      <div className="eyebrow">DEINE ROUTINE · {duration} MINUTEN</div>
      <div className="tempo-recovery-timer-head"><h2>{current?.step.name??'Geschafft!'}</h2><strong>{formatSeconds(Math.max(0,plannedSeconds-shown))}</strong></div>
      <p className="tempo-recovery-instruction">{current?.step.instructions??'Routine geschafft! Speichere deinen Abschluss, damit TEMPO die Erholung dokumentiert.'}</p>
+     {current?.step.kind==='movement'&&<MovementPreview name={current.step.name}/> }
      <div className="tempo-recovery-progress" role="progressbar" aria-valuenow={shown} aria-valuemin={0} aria-valuemax={plannedSeconds} aria-label="Fortschritt der Routine"><span style={{width:`${percentage}%`}}/></div>
      <p className="tempo-recovery-step">{current?.step.kind==='transition'?'10 Sekunden Wechselpause':`${Math.max(1,Math.ceil((current?.remaining??0)))} Sekunden für diese Übung`} · {formatSeconds(shown)} vergangen</p>
      <div className="tempo-recovery-controls">

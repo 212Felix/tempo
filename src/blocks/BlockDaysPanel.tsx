@@ -1,3 +1,5 @@
+import TimeFields from '../time/TimeFields'
+import {formatSeconds,parseHms} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {listRecords,saveRecord} from '../db/storage'
 import type {ProfileRecord} from '../db/types'
@@ -116,7 +118,7 @@ export default function BlockDaysPanel({block,onSaved}:{block:TrainingBlock;onSa
         {selectedClimbs.length>0&&<div className="tempo-day-preview"><strong>Optionaler Ablauf für Garmin · {selectedClimbs.length} Anstiege</strong><p className="tempo-workout-notes">{workoutNote}</p>
           {workout.warnings.map((warning,i)=><p className="tempo-climb-warning" key={i}>Hinweis: {warning}</p>)}
           <button type="button" onClick={()=>{if(navigator.clipboard?.writeText)void navigator.clipboard.writeText(workoutNote).then(()=>setMessage('Ablauf kopiert ✓')).catch(()=>setMessage('Kopieren im Browser nicht verfügbar.'));else setMessage('Kopieren im Browser nicht verfügbar.')}}>Ablauf kopieren</button></div>}
-        <label>Geschätzte Fahrzeit in Minuten (optional)<input type="number" min={0} max={1440} step={5} value={form.durationMin??''} onChange={e=>update({durationMin:e.target.value===''?undefined:Number(e.target.value)})} placeholder="z. B. 180"/></label>
+        <TimeFields label="Geschätzte Fahrzeit" allowEmpty maxHours={24} value={form.durationMin===undefined?'':formatSeconds(Math.round(form.durationMin*60))} onChange={v=>update({durationMin:v?parseHms(v,true).minutes:undefined})}/>
       </>}
       {isTrainingFree(form.kind)&&<p className="tempo-day-rest">Dieser Tag bleibt im nächsten Planvorschlag sportfrei. Bereits gespeicherte Trainings oder Dienstpendeln werden nicht gelöscht; solche Konflikte müssen separat geprüft werden.</p>}
       {form.kind==='challenge'&&<p className="tempo-day-rest">TEMPO empfiehlt automatisch den unmittelbar vorherigen Tag als Ruhetag, sofern dort keine andere Tagesentscheidung hinterlegt ist. Datum und Durchführung der Challenge bleiben freiwillig.</p>}

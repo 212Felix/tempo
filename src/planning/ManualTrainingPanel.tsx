@@ -1,3 +1,4 @@
+import TimeFields from '../time/TimeFields'
 import {durationFor,parseHms} from '../time/duration'
 import {useEffect,useMemo,useRef,useState, type FormEvent, type ReactNode} from 'react'
 import {listRecords} from '../db/storage'
@@ -175,7 +176,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           {draft.sport==='swimming'&&<><Field>Schwimmen: Umgebung<select value={draft.swimEnvironment} onChange={e=>patch('swimEnvironment',e.target.value)}><option value="pool">Schwimmbad</option><option value="openwater">Freiwasser</option></select></Field><Field>Schwimmen: Schwerpunkt<select value={draft.swimFocus} onChange={e=>patch('swimFocus',e.target.value)}><option value="locker">Locker</option><option value="technik">Technik</option><option value="ausdauer">Ausdauer</option><option value="intervalle">Intervalle</option></select></Field></>}
           {draft.sport==='strength'&&<Field>Krafttraining: Ort<select value={draft.strengthLocation} onChange={e=>patch('strengthLocation',e.target.value)}><option value="studio">Fitnessstudio</option><option value="arbeit">Auf Arbeit</option></select></Field>}
           <Field>Trainingsname<input required maxLength={120} value={draft.title} placeholder="z. B. Gravelrunde mit Freunden" onChange={e=>patch('title',e.target.value)}/></Field>
-          <Field>Dauer (hh:mm:ss)<input type="text" inputMode="numeric" value={draft.duration} onChange={e=>patch('duration',e.target.value)} placeholder="01:30:00" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" required/></Field>
+          <TimeFields label="Trainingsdauer" value={draft.duration} onChange={value=>patch('duration',value)} required/>
           <Field>{draft.sport==='swimming'?'Distanz (km, z. B. 0,75 = 750 m)':'Distanz (km, optional)'}{numInput(draft.distance,v=>patch('distance',v),'z. B. 75')}</Field>
           <Field>Höhenmeter (optional){numInput(draft.elevation,v=>patch('elevation',v),'z. B. 800')}</Field>
           {mode==='planned'?<>

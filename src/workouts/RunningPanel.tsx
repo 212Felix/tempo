@@ -1,3 +1,4 @@
+import TimeFields from '../time/TimeFields'
 import {parseHms,durationFor} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,type TrainingRecord} from '../planning/engine'
@@ -80,7 +81,7 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
     </section>
     <section className="panel tw-panel"><div className="eyebrow">LAUFFEEDBACK · ABSOLVIERT</div><h3>Ist-Werte eintragen</h3>
       <form onSubmit={e=>void submit(e)}><div className="tw-form-grid">
-        <label>Dauer (hh:mm:ss)<input disabled={done} type="text" inputMode="numeric" pattern="[0-9]{1,3}:[0-5][0-9]:[0-5][0-9]" required value={duration} onChange={e=>setDuration(e.target.value)}/></label>
+        <TimeFields label="Laufdauer" value={duration} onChange={setDuration} disabled={Boolean(done)} required/>
         <label>Distanz (km)<input disabled={done} type="number" min="0.01" max="150" step="0.01" required inputMode="decimal" value={distance} onChange={e=>setDistance(e.target.value)} placeholder="z. B. 5,0"/></label>
         <label>Ø Puls (optional)<input disabled={done} type="number" min="40" max="230" step="1" value={heart} onChange={e=>setHeart(e.target.value)} placeholder="z. B. 135"/></label>
         <label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option key={i} value={i+1}>{i+1}</option>)}</select></label>

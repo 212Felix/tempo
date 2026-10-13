@@ -1,0 +1,8 @@
+.tempo-time-fields{padding:0;margin:0;border:0;min-width:0;max-width:100%}
+.tempo-time-fields legend{padding:0 0 8px;font-size:.92rem;font-weight:650;color:inherit}
+.tempo-time-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;min-width:0}
+.tempo-time-parts label{display:flex;min-width:0;flex-direction:column;gap:6px;font-weight:500}
+.tempo-time-parts label span{font-size:.75rem;opacity:.78}
+.tempo-time-parts input{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:48px!important;text-align:center;padding:10px 5px!important;font-size:1.02rem!important;font-variant-numeric:tabular-nums;border-radius:12px}
+.tempo-time-parts input:focus{outline:2px solid #9ec7d7;outline-offset:1px}
+@media(max-width:390px){.tempo-time-parts{gap:6px}.tempo-time-parts label span{font-size:.7rem}.tempo-time-parts input{font-size:1rem!important}}
