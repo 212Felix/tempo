@@ -1,14 +1,18 @@
 import {parseHms,durationFor} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,type TrainingRecord} from '../planning/engine'
+import {listRecords} from '../db/storage'
+import {type GoalEvent,dateLabel} from '../events/library'
+import {upcomingCooper,paceText} from '../events/running'
 import {paceLabel,runInstructions} from './catalog'
 import {alreadyDone,finalizeWorkout,isRun,loadWorkoutData,numberField,readinessWarning} from './sessionStore'
 import './workouts.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 
 type Data=Awaited<ReturnType<typeof loadWorkoutData>>
-export default function RunningPanel({focusId}:{focusId?:string}){
+export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onOpenEvents?:()=>void}){
   const [data,setData]=useState<Data>({planned:[],completed:[],readiness:[],sets:[]})
+  const [cooper,setCooper]=useState<GoalEvent|undefined>()
   const [plannedId,setPlannedId]=useState('')
   const [date,setDate]=useState(currentKey())
   const [duration,setDuration]=useState('00:30:00')
@@ -28,6 +32,11 @@ export default function RunningPanel({focusId}:{focusId?:string}){
     const refresh=()=>void loadWorkoutData().then(next=>{if(live){setData(next);setMessage('Lauftraining bereit. Keine harte Pace oder Intervalle erzwingen.')}}).catch(err=>{if(live)setMessage(`Ladefehler: ${String(err)}`)})
     refresh();window.addEventListener('tempo:training-change',refresh)
     return()=>{live=false;window.removeEventListener('tempo:training-change',refresh)}
+  },[])
+  useEffect(()=>{let live=true
+    const reload=()=>void listRecords<GoalEvent>('events').then(rows=>{if(live)setCooper(upcomingCooper(rows))}).catch(()=>undefined)
+    reload();window.addEventListener('tempo:events-change',reload)
+    return()=>{live=false;window.removeEventListener('tempo:events-change',reload)}
   },[])
   useEffect(()=>{if(!focusId)return
     const found=data.planned.find(x=>x.id===focusId&&isRun(x))
@@ -51,6 +60,8 @@ export default function RunningPanel({focusId}:{focusId?:string}){
     }catch(err){setMessage(`Nicht gespeichert: ${err instanceof Error?err.message:String(err)}`)}finally{setBusy(false)}
   }
   return <div className="tw-stack">
+    {cooper&&<section className="panel tw-panel tempo-running-goal"><div className="eyebrow">LAUFZIEL · COOPER-TEST</div><h2>3.200 Meter in 12:00</h2><p>Zieltempo: <strong>{paceText(3.2,720)}</strong> · {cooper.date?`Testtermin: ${dateLabel(cooper.date)}`:'Testtermin noch offen'}</p><p>Wir bauen zuerst lockere Laufkilometer und Laufverträglichkeit auf. Das Zieltempo ist noch keine Vorgabe für die nächste Einheit.</p>{onOpenEvents&&<button type="button" className="outline" onClick={onOpenEvents}>{cooper.date?'Laufziel bearbeiten':'Testdatum festlegen'} ↗</button>}</section>}
+
     <section className="panel tw-panel"><div className="eyebrow">LAUFEN · KONSERVATIVER AUFBAU</div><h2>Locker laufen, konstant aufbauen</h2>
       <HelpDisclosure id="running-intro"><p>Der Laufteil startet bewusst behutsam: erst Umfang und Sehnenverträglichkeit, später gezielte Geschwindigkeit. Aktuell keine harten 800-m- oder 1.000-m-Intervalle.</p></HelpDisclosure>
       <div className="tw-form-grid"><label>Geplante Laufeinheit<select value={plannedId} onChange={e=>{

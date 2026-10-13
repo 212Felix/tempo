@@ -3,6 +3,7 @@ import {matchingBlock,tailorSession, type TrainingBlock} from '../blocks/library
 import {blockDayForDate,isTrainingFree,type BlockDayPlan} from '../blocks/days'
 import { createLoadCalendar, type LoadCalendar } from './load'
 import { buildEventInfluences, type EventInfluence, type GoalEvent, type RouteEntry } from '../events/library'
+import { upcomingCooper } from '../events/running'
 
 /** Conservative starter scheduling rules, intentionally transparent and changeable. */
 export const PLANNER_VERSION = 'tempo-planner-v1'
@@ -134,6 +135,7 @@ export function generatePlan(args: {
 }): PlanDay[] {
   const { days, shifts, profile, existing, completed } = args
   const today = currentKey()
+  const cooperGoal=upcomingCooper(args.events??[])
   const eventInfluences = buildEventInfluences(days, args.events ?? [], args.routes ?? [])
   const loadCalendar: LoadCalendar = createLoadCalendar(
     days, completed.filter(x => x.profileId === PROFILE_ID), existing.filter(x => x.profileId === PROFILE_ID), args.readiness
@@ -199,6 +201,15 @@ export function generatePlan(args: {
       const existingMinutes=existing.filter(x=>x.profileId===PROFILE_ID&&weekDates.includes(x.date)&&x.status==='geplant').reduce((n,x)=>n+Math.max(0,x.durationMin),0)
       const generatedMinutes=weekDates.filter(d=>d>=weekStart).reduce((n,d)=>n+(map.get(d)?.session?.durationMin??0),0)
       if(existingMinutes+generatedMinutes+adjusted.durationMin>active.weeklyHours*60)return
+    }
+    // Laufziel dient als Orientierung, nicht als Erlaubnis für sofortige harte Intervalle.
+    if(adjusted.sessionType==='run'&&cooperGoal){
+      const recentRuns=completed.filter(c=>c.profileId===PROFILE_ID && c.date<date && c.date>=offsetDate(date,-42) && ['run','manual-running'].includes(c.sessionType??'')).length
+      const settled=recentRuns>=6 && loadCalendar[date]?.level==='none' && !nearType(date,['run'],2)
+      const goalDate=cooperGoal.date && cooperGoal.date>=date?cooperGoal.date:undefined
+      adjusted={...adjusted,title:settled?'Lockerer Lauf + Lauftechnik · Cooper-Aufbau':'Easy Run · Cooper-Aufbau',
+        target:settled?'Locker, RPE 3–4. Optional 4 × 12 Sekunden Steigerung mit vollständiger Gehpause. Keine Tempovorgabe.':'Lockeres Gesprächstempo, RPE 3–4; Gehpausen erlaubt. Keine harten 800-m-Intervalle.',
+        notes:[adjusted.notes,`Langfristiges Ziel: Cooper-Test 3.200 m in 12:00 (3:45 min/km). ${goalDate?`Testdatum: ${goalDate}.`:'Testdatum noch offen.'} Tempo erst nach ausreichender Laufverträglichkeit schrittweise aufbauen.`].filter(Boolean).join(' · ')}
     }
     day.session = adjusted
     preassigned.add(date)

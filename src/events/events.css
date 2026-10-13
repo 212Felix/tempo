@@ -36,3 +36,10 @@
  .tempo-event-form label{font-size:12px;line-height:1.45}
  .tempo-event-actions button{min-height:44px}
 }
+
+/* Phase 26 · sport-specific event goals, compact controls on iPhone */
+.tempo-event-sport,.tempo-event-preset{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.tempo-event-sport button,.tempo-event-preset button{min-height:44px;border:1px solid #667d8b;border-radius:22px;color:#dfebf2;background:#263646;padding:10px 15px;font-weight:650}
+.tempo-event-sport button.selected{background:#98c4d2;border-color:#b9dce6;color:#152b37}
+.tempo-event-preset{margin:10px 0 18px}.tempo-event-preset span{color:#a6b4c2;font-size:12px}
+.tempo-event-pace{min-width:0;display:grid;align-content:center;gap:6px;border:1px solid #536978;border-radius:10px;padding:11px 14px}.tempo-event-pace span{font-size:12px;color:#b6c4d0}.tempo-event-pace strong{font-size:16px;color:#d6e8ee}

@@ -5,10 +5,13 @@ export type EventKind = 'rennen' | 'challenge' | 'trainingsblock'
 export type EventStatus = 'offen' | 'bestaetigt' | 'flexibel' | 'abgeschlossen'
 export type EventPriority = 'A' | 'B' | 'C'
 export type VacationStatus = 'nicht_noetig' | 'offen' | 'bestaetigt'
-export type Surface = 'rennrad' | 'gravel' | 'mtb' | 'gemischt'
+export type Surface = 'rennrad' | 'gravel' | 'mtb' | 'gemischt' | 'strasse' | 'trail' | 'bahn'
+export type GoalSport = 'cycling' | 'running' | 'other'
+export type RunningDiscipline = 'cooper'|'funrun'|'fivek'|'tenk'|'half'|'marathon'|'trail'|'other'
 
 export type RouteEntry = TempoRecord & {
   name: string
+  sport?: GoalSport
   surface: Surface
   distanceKm?: number
   elevationM?: number
@@ -19,6 +22,9 @@ export type RouteEntry = TempoRecord & {
 
 export type GoalEvent = TempoRecord & {
   name: string
+  sport?: GoalSport
+  runningKind?: RunningDiscipline
+  targetSeconds?: number
   kind: EventKind
   status: EventStatus
   priority: EventPriority
