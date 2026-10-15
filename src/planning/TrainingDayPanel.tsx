@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react'
 import {listRecords} from '../db/storage'
 import {currentKey, friendlyDate, PROFILE_ID, type TrainingRecord} from './engine'
 import ManualTrainingPanel from './ManualTrainingPanel'
+import DayShiftEditor from './DayShiftEditor'
 import DailyDecisionPanel from './DailyDecisionPanel'
 import { isStrength, isRun } from '../workouts/sessionStore'
 import './plan.css'
@@ -29,9 +30,9 @@ const askAdd=(date:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-a
 const askEdit=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-edit',{detail:{kind:'planned',id}}))
 const askDone=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-finish',{detail:id}))
 
-export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenWorkout}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void}){
+export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenWorkout,initialDate}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void;initialDate?:string}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
-  const [selected,setSelected]=useState('')
+  const [selected,setSelected]=useState(initialDate??currentKey())
   const [loading,setLoading]=useState(true)
   const [notice,setNotice]=useState('Gespeicherte Einheiten werden geladen …')
   const today=currentKey()
@@ -46,26 +47,26 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
     return()=>{live=false;window.removeEventListener('tempo:training-change',load)}
   },[])
   const dates=[...new Set(entries.map(x=>x.date))].sort()
-  const selectedDay=selected||dates.find(x=>x>=today)||dates[dates.length-1]||today
+  const selectedDay=selected||today
   const atDate=entries.filter(x=>x.date===selectedDay)
-  const pos=dates.indexOf(selectedDay)
-  return <div className="tempo-workout">
-    <DailyDecisionPanel onOpenReadiness={onOpenReadiness} onOpenCalendar={onOpenCalendar}/>
+  const previousDate=dates.filter(x=>x<selectedDay).at(-1)
+  const nextDate=dates.find(x=>x>selectedDay)
+  return <div className="tempo-workout tempo-28-daily">
     <section className="panel tempo-workout-head">
-      <div className="eyebrow">TAGESTRAINING · DEIN KALENDER</div>
-      <h2>Training selbst gestalten</h2>
-      <HelpDisclosure id="training-manual-intro"><p>Du kannst an jedem Tag eigene Trainings ergänzen und gespeicherte Einheiten bearbeiten oder verschieben – auch an freien Tagen und zusätzlich zu vorgeschlagenen Workouts.</p></HelpDisclosure>
-      <div className="tempo-workout-nav"><button disabled={pos<=0} onClick={()=>setSelected(dates[pos-1])}>‹ Vorheriges Training</button><strong>{friendlyDate(selectedDay)}</strong><button disabled={pos<0||pos>=dates.length-1} onClick={()=>setSelected(dates[pos+1])}>Nächstes Training ›</button></div>
-      <div className="tempo-manual-actions"><button onClick={()=>askAdd(selectedDay)}>＋ Training ergänzen</button><button className="outline" onClick={()=>document.querySelector('#tempo-own-training')?.scrollIntoView({behavior:'smooth'})}>Freies Training protokollieren ↓</button></div>
+      <div className="eyebrow">DEIN TAG · {friendlyDate(selectedDay)}</div>
+      <h2>Geplante Einheiten</h2>
+      <div className="tempo-workout-nav"><button type="button" onClick={()=>setSelected(previousDate??today)} disabled={!previousDate}>‹ Vorherige Einheit</button><strong>{friendlyDate(selectedDay)}</strong><button type="button" onClick={()=>setSelected(nextDate??today)} disabled={!nextDate}>Nächste Einheit ›</button></div>
+      <label className="tempo-28-day-picker">Anderen Tag öffnen <input type="date" value={selectedDay} onChange={e=>setSelected(e.target.value||today)}/></label>
+      {loading&&<p>{notice}</p>}
+      {!loading&&atDate.length===0&&<p>Für diesen Tag ist noch keine Einheit geplant. Auch ein Ruhetag ist eine bewusste Entscheidung.</p>}
+      {!loading&&atDate.map(x=><details key={x.id} className="tempo-28-session-card" open={atDate.length===1}>
+        <summary><span>{x.sessionType.includes('strength')?'🏋️':x.sessionType.includes('run')?'🏃':x.sessionType.includes('recovery')?'🧘':'🚴'} <strong>{x.title}</strong></span><small>{x.status==='erledigt'?'✓ Absolviert':x.priority} · {x.durationMin?durationFor(x):'Dauer offen'}</small></summary>
+        <div className="tempo-28-session-content"><p>{x.description}</p><p><strong>Ziel:</strong> {x.target}</p>{x.notes&&<p>{x.notes}</p>}{x.commuteLeg&&<p>🚲 Pendeln {x.commuteLeg==='rueck'?'Rückweg':x.commuteLeg==='hin'?'Hinweg':'Hin & Rück'} · diese Fahrt nur einmal zählen</p>}
+        <div className="tempo-manual-entry-actions">{(isStrength(x)||isRun(x))&&<button type="button" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm öffnen →'}</button>}{x.status!=='erledigt'&&<><button type="button" onClick={()=>askEdit(x.id)}>Bearbeiten</button><button type="button" onClick={()=>askDone(x.id)}>Training abschließen</button></>}</div></div>
+      </details>)}
     </section>
-    {loading?<section className="panel tempo-workout-detail"><p>{notice}</p></section>:atDate.length?atDate.map(x=><section className="panel tempo-workout-detail" key={x.id}>
-      <div className="eyebrow">{x.status==='erledigt'?'✓ ABSOLVIERT':x.createdBy==='tempo-user'?'VON DIR GEPLANT':'TEMPO-VORSCHLAG'} · {x.priority}</div>
-      <h3>{x.title}</h3><p>{x.durationMin?`${durationFor(x)} · `:''}{x.description}</p>
-      <div className="tempo-workout-badges"><span>{x.target}</span>{x.expectedKm?<span>{x.expectedKm} km</span>:null}</div>
-      {x.notes&&<p style={{marginTop:12}}>{x.notes}</p>}
-      {(isStrength(x)||isRun(x))&&<div style={{margin:'14px 0'}}><button className="tw-open-action" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm & Feedback öffnen →'}</button></div>}
-      {x.status!=='erledigt'&&<div className="tempo-manual-entry-actions"><button onClick={()=>askEdit(x.id)}>Bearbeiten / verschieben</button><button onClick={()=>askDone(x.id)}>Als absolviert erfassen</button></div>}
-    </section>):<section className="panel tempo-workout-detail"><h3>Kein Training für diesen Tag geplant</h3><p>Du kannst selbst ein Training hinzufügen oder unter „14 Tage“ einen Entwurf bestätigen.</p></section>}
-    <ManualTrainingPanel/>
+    <DayShiftEditor key={selectedDay} date={selectedDay}/>
+    {selectedDay===today&&<DailyDecisionPanel onOpenReadiness={onOpenReadiness} onOpenCalendar={onOpenCalendar}/> }
+    <ManualTrainingPanel days={[selectedDay]}/>
   </div>
 }

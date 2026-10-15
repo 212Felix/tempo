@@ -1,0 +1,9 @@
+
+.tempo-28-session-timer{display:inline-flex;gap:9px;align-items:center;border:1px solid #536b76;border-radius:12px;padding:7px 9px;background:#1b2d38;margin:11px 0;color:#eaf5f7}
+.tempo-28-time-value{font-variant-numeric:tabular-nums;font-size:16px;letter-spacing:.3px;font-weight:700}
+.tempo-28-timer-button{font-size:12px;background:#9fc5d2;color:#12232e;border:0;border-radius:8px;min-height:38px;padding:8px 12px;font-weight:700;cursor:pointer}
+.tempo-28-hold-timer{grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap;background:#1a2e39;border-radius:10px;padding:8px;margin:6px 0}
+.tempo-28-hold-target,.tempo-28-hold-done{font-size:12px;color:#c8d9e2}
+.tempo-28-hold-done{display:flex;gap:5px;align-items:center}
+.tempo-28-hold-done input{width:19px!important;height:19px!important}
+.tempo-28-timer-confirm{font-size:11px;color:#adcfbe}
