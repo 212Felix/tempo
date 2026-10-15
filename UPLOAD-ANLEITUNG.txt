@@ -1,17 +1,25 @@
-TEMPO – ERSTER UPLOAD (für Einsteiger)
+TEMPO PHASE 28 – DIREKTER GITHUB-UPLOAD (wie bisher)
+====================================================
 
-1. Diese ZIP-Datei auf dem Mac herunterladen.
-2. Auf die ZIP-Datei doppelklicken. Es entsteht der Ordner "tempo-starter".
-3. GitHub.dev darf offen bleiben. In einem NEUEN Browser-Tab github.com aufrufen.
-4. Dein Repository "tempo" öffnen (nicht github.dev, sondern github.com).
-5. Oben über der Dateiliste "Add file" (Datei hinzufügen) -> "Upload files" (Dateien hochladen) klicken.
-6. Im Finder den entpackten Ordner tempo-starter öffnen.
-7. ALLE enthaltenen Dateien und die Ordner "src", "public", "docs" auswählen und auf die Upload-Fläche ziehen.
-   WICHTIG: NICHT die ZIP-Datei als einzelne Datei hochladen!
-   WICHTIG: Die Dateien müssen direkt im Repository landen, nicht in einem zusätzlichen "tempo-starter"-Unterordner.
-8. Unten auf "Commit changes" klicken und bestätigen.
-9. Hier im Chat schreiben: "Dateien hochgeladen".
+WICHTIG VORHER: Aktuelles iPhone-Backup unter iCloud Drive/TEMPO/01_Backups speichern
+UND Kopie pruefen. Phase 28 ersetzt keinen bestehenden IndexedDB-Datensatz absichtlich.
 
-Sollte das Hochladen ganzer Ordner im Browser nicht funktionieren, nicht improvisieren: einfach hier Bescheid sagen.
+1. Dieses ZIP entpacken. Den darin liegenden Ordner "tempo-main" OEFFNEN.
+2. Im Finder Cmd + Shift + Punkt druecken, um .github und .gitignore zu sehen.
+3. Auf github.com/212Felix/tempo --> Code --> Branch "main" auswaehlen.
+4. Add file --> Upload files.
+5. ALLE INHALTE aus "tempo-main" auswaehlen (Cmd + A), NICHT den Ordner selbst.
+   Insbesondere muessen .github/workflows/deploy.yml, verify.yml,
+   scripts/check-release-source.mjs und package.json ersetzt werden.
+6. Hochgeladene Dateien duerfen NICHT in einem neuen Unterordner liegen.
+7. Commit directly to MAIN branch -- wie bei Phase 27.
+8. GitHub --> Actions --> Workflow "TEMPO veroeffentlichen" oeffnen.
+   Der Build fuehrt zuerst die Sicherheits- und Trainingslogiktests aus.
+   Erst nach Erfolg wird die iPhone-Webseite automatisch aktualisiert.
+9. Bei ROT: NICHT manuell Daten aus Backups zurueckschreiben. Screenshot der
+   ersten rot markierten Fehlermeldung an ChatGPT senden.
+10. Bei GRUEN: iPhone-App neu oeffnen, Trainings vergleichen, Backup erneut
+    exportieren und mit der gesicherten Ausgangsdatei vergleichen.
 
-HINWEIS: Dies ist Phase 1 (UI-Vorschau), noch KEINE aktive Trainingsdatenbank.
+Die alte Pull Request #1 (212Felix-patch-1) NICHT mergen.
+Alte/neuere persoenliche Backups niemals in ein oeffentliches GitHub-Repository laden.
