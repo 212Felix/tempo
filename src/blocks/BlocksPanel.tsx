@@ -6,6 +6,7 @@ import {blockIsValid,capacityLabels,deriveSeasonPhases,describeBlock,focusLabels
 import HelpDisclosure from '../ui/HelpDisclosure'
 import BlockDaysPanel from './BlockDaysPanel'
 import './blocks.css'
+import PeriodizationOverview from '../phase28/PeriodizationOverview'
 
 type Fields={name:string;startDate:string;endDate:string;focus:BlockSport;target:BlockTarget;capacity:BlockCapacity;weeklyHours:string;eventId:string;notes:string;enabled:boolean}
 const blank=():Fields=>({name:'',startDate:currentKey(),endDate:plusDays(currentKey(),13),focus:'cycling',target:'basis',capacity:'more',weeklyHours:'',eventId:'',notes:'',enabled:true})
@@ -24,11 +25,11 @@ export default function BlocksPanel({onOpenEvents}:{onOpenEvents:()=>void}){
   const refresh=async()=>{
     const [stored,goals,done]=await Promise.all([listRecords<TrainingBlock>('trainingBlocks'),listRecords<GoalEvent>('events'),listRecords<CompletedRecord>('completedSessions')])
     setBlocks(stored.filter(x=>x.profileId===PROFILE_ID&&x.createdBy==='tempo-user').sort(sortByDate))
-    setEvents(goals.filter(x=>x.profileId===PROFILE_ID&&x.kind!=='trainingsblock'))
+    setEvents(goals.filter(x=>x.profileId===PROFILE_ID))
     setCompleted(done.filter(x=>x.profileId===PROFILE_ID))
   }
   useEffect(()=>{let live=true;const load=async()=>{
-    try{const [stored,goals,done]=await Promise.all([listRecords<TrainingBlock>('trainingBlocks'),listRecords<GoalEvent>('events'),listRecords<CompletedRecord>('completedSessions')]);if(live){setBlocks(stored.filter(x=>x.profileId===PROFILE_ID&&x.createdBy==='tempo-user').sort(sortByDate));setEvents(goals.filter(x=>x.profileId===PROFILE_ID&&x.kind!=='trainingsblock'));setCompleted(done.filter(x=>x.profileId===PROFILE_ID))}}
+    try{const [stored,goals,done]=await Promise.all([listRecords<TrainingBlock>('trainingBlocks'),listRecords<GoalEvent>('events'),listRecords<CompletedRecord>('completedSessions')]);if(live){setBlocks(stored.filter(x=>x.profileId===PROFILE_ID&&x.createdBy==='tempo-user').sort(sortByDate));setEvents(goals.filter(x=>x.profileId===PROFILE_ID));setCompleted(done.filter(x=>x.profileId===PROFILE_ID))}}
     catch(error){if(live)setMessage(`Daten konnten nicht geladen werden: ${String(error)}`)}
   };void load();return()=>{live=false}},[])
   const season=useMemo(()=>deriveSeasonPhases(events,currentKey()),[events])
@@ -66,6 +67,7 @@ export default function BlocksPanel({onOpenEvents}:{onOpenEvents:()=>void}){
   }
   const completedWithin=(startDate:string,endDate:string)=>completed.filter(c=>c.date>=startDate&&c.date<=endDate)
   return <div className="tempo-block-stack">
+    <PeriodizationOverview events={events} blocks={blocks}/>
     <section className="panel tempo-block-overview">
       <div className="eyebrow">DEIN TRAININGSJAHR · FLEXIBEL</div><h2>Trainingsblöcke</h2>
       <HelpDisclosure id="blocks-intro"><p>Hauptevents bilden den langfristigen Rahmen. Eigene Sonderblöcke für Urlaub, Weihnachtsfreizeit, Schichtwechsel oder ein weiteres Rennen legen einen zusätzlichen Schwerpunkt fest. Sie verändern niemals abgeschlossene oder manuell geschützte Einheiten.</p></HelpDisclosure>

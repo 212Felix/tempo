@@ -1,17 +1,47 @@
-TEMPO – ERSTER UPLOAD (für Einsteiger)
+TEMPO PHASE 28 – FREIGABE IN ZWEI STUFEN (MAC / GITHUB)
+=========================================================
 
-1. Diese ZIP-Datei auf dem Mac herunterladen.
-2. Auf die ZIP-Datei doppelklicken. Es entsteht der Ordner "tempo-starter".
-3. GitHub.dev darf offen bleiben. In einem NEUEN Browser-Tab github.com aufrufen.
-4. Dein Repository "tempo" öffnen (nicht github.dev, sondern github.com).
-5. Oben über der Dateiliste "Add file" (Datei hinzufügen) -> "Upload files" (Dateien hochladen) klicken.
-6. Im Finder den entpackten Ordner tempo-starter öffnen.
-7. ALLE enthaltenen Dateien und die Ordner "src", "public", "docs" auswählen und auf die Upload-Fläche ziehen.
-   WICHTIG: NICHT die ZIP-Datei als einzelne Datei hochladen!
-   WICHTIG: Die Dateien müssen direkt im Repository landen, nicht in einem zusätzlichen "tempo-starter"-Unterordner.
-8. Unten auf "Commit changes" klicken und bestätigen.
-9. Hier im Chat schreiben: "Dateien hochgeladen".
+WICHTIG: Das hier ist ein Release-Kandidat. Niemals ungeprüft die vorhandene iPhone-App löschen!
 
-Sollte das Hochladen ganzer Ordner im Browser nicht funktionieren, nicht improvisieren: einfach hier Bescheid sagen.
+A. VOR DEM HOCHLADEN
+1. iPhone: TEMPO > Profil & Daten > Backup herunterladen.
+2. Backup in iCloud Drive / TEMPO / 01_Backups / 01_iPhone_Originale sichern.
+3. Eine zweite Backup-Kopie außerhalb desselben Ordners verwahren.
+4. Die JSON-Datei muss lesbar sein, und das Datum muss aktuell sein.
+5. Eine private Backup-/FIT-Datei NIEMALS nach GitHub hochladen.
 
-HINWEIS: Dies ist Phase 1 (UI-Vorschau), noch KEINE aktive Trainingsdatenbank.
+B. ZUERST QUELLCODE PRÜFEN, OHNE PHASE 27 ZU VERÖFFENTLICHEN
+1. Im Mac-Finder das bereitgestellte ZIP durch Doppelklick entpacken.
+2. Auf github.com/212felix/tempo gehen.
+3. Über die Branch-Auswahl eine neue Branch "phase28-test" von "main" erstellen.
+   Nicht in "main" hochladen, bevor der Build grün ist.
+4. Auf der neuen Branch "Add file" > "Upload files" öffnen.
+5. Im Finder DEN INHALT des Ordners tempo-main auswählen und auf GitHub ziehen.
+   NICHT den umgebenden Ordner tempo-main als zusätzlichen Unterordner hochladen.
+   "src", "public", "docs", "scripts", "tests" UND ".github" müssen mit hochgeladen werden.
+   Hinweis: Finder blendet ".github" aus; mit Cmd+Shift+. kann man versteckte Dateien sehen.
+6. Commit erstellen. Prüfen, dass die Dateien direkt im Repository liegen.
+7. Unter "Actions" nach Workflow "TEMPO Phase 28 - Prüfung" sehen.
+8. Nur wenn Tests UND "Produktions-Build prüfen" grün sind, fortfahren.
+   Rot -> STOPP und das GitHub-Protokoll im Chat mitteilen.
+
+C. ABNAHME UND VERÖFFENTLICHUNG
+1. Erst nachdem der Build grün ist, auf dem Mac die ausgelieferte Version prüfen.
+   Besonders Tageskacheln (3/2/2), Tag bearbeiten, Pendeln, Timer und Blockübersicht.
+2. VOR VERÖFFENTLICHUNG noch ein iPhone-Backup erstellen und separat sichern.
+3. Die getestete Branch per Pull Request in "main" übernehmen.
+4. Unter "Actions" erneut den Testlauf auf main kontrollieren.
+5. Nur nach ausdrücklicher Freigabe: Actions > "TEMPO Phase 28 - Bewusst veröffentlichen" > Run workflow, Branch main.
+   Dieser Workflow führt die Tests selbst NOCH EINMAL aus und veröffentlicht erst bei Erfolg.
+6. Auf dem iPhone TEMPO aktualisieren, ohne die Home-Screen-App zu löschen und ohne Website-Daten zu bereinigen.
+7. Datenbestände in TEMPO prüfen und SOFORT ein Nachher-Backup exportieren.
+8. Vorher und Nachher gegen die Datenintegritätsprüfung vergleichen:
+   node scripts/verify-data-preservation.mjs vorher.json nachher.json
+   Bei fehlenden/veränderten bestehenden Datensätzen: STOPP, nichts zurücksetzen und den Fehler melden.
+
+D. HINWEISE
+- Ein GitHub-Upload ist nicht dasselbe wie die Veröffentlichung auf dem iPhone.
+- Ohne grünen GitHub-Produktions-Build keine Freigabe.
+- Ohne anschließenden echten iPhone-Test keine vollständige Qualitätsbestätigung.
+- Keine direkte iCloud-Datenbanksynchronisation: Garmin-Import über ein ausgewähltes Importpaket erfolgt separat.
+- Bestätigte manuelle bzw. absolvierte Einheiten nie automatisch ersetzen.

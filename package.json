@@ -1,24 +1,30 @@
 {
   "name": "tempo-training",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.28.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:phase28": "node --test tests/*.test.mjs",
+    "test:logic": "node scripts/prepare-integration-tests.mjs && node --test tests/*.test.mjs",
+    "test:security": "node scripts/check-release-source.mjs"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "@garmin/fitsdk": "^21.214.0"
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "@garmin/fitsdk": "21.214.0"
   },
   "devDependencies": {
-    "@types/node": "^22.18.0",
-    "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.9.2",
-    "vite": "^7.1.0"
+    "@types/node": "22.18.0",
+    "@types/react": "19.1.10",
+    "@types/react-dom": "19.1.7",
+    "@vitejs/plugin-react": "5.0.0",
+    "typescript": "5.9.2",
+    "vite": "7.1.0"
+  },
+  "engines": {
+    "node": ">=22 <23"
   }
 }

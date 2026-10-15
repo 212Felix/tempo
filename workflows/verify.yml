@@ -1,0 +1,35 @@
+name: TEMPO Phase 28 - Prüfung
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Quellcode, Logiktests und Produktions-Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode laden
+        uses: actions/checkout@v4
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Abhängigkeiten installieren
+        run: npm install --no-audit --no-fund
+      - name: Quellcode auf private Daten prüfen
+        run: npm run test:security
+      - name: Adaptive Planung, Kalender und Datensicherheit testen
+        run: npm run test:logic
+      - name: Produktions-Build prüfen
+        run: npm run build
+      - name: Build als Prüf-Artefakt sichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: tempo-phase28-build
+          path: dist/
+          retention-days: 7

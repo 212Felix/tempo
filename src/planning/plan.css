@@ -80,3 +80,6 @@
 .tempo-plan-one-button{justify-self:start;grid-column:2;border-radius:9px;border:1px solid #9bc6d488;background:linear-gradient(140deg,#334b57,#253644);color:#d7edf5;font-weight:650;font-size:11px;min-height:38px;padding:8px 12px;cursor:pointer}
 .tempo-plan-one-button:disabled{opacity:.5;cursor:wait}
 @media(max-width:530px){.tempo-plan-one-button{grid-column:1}}
+
+/* Phase 28: day-specific shift/commute controls in the opened calendar tile. */
+.tempo-28-day-shift{margin-top:14px;padding:16px}.tempo-28-day-shift summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tempo-28-day-shift summary span{font-size:12px;color:var(--muted,#9ca9b7)}.tempo-28-shift-body{padding-top:14px}.tempo-28-shift-body h3{margin-top:16px;margin-bottom:8px;font-size:15px}.tempo-28-choice-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.tempo-28-choice-row button{border:1px solid #667d8b;background:#233241;color:#e9f0f5;padding:8px 12px;border-radius:18px;min-height:40px}.tempo-28-choice-row button.selected{border-color:#9dd9c4;background:#244a45}.tempo-28-choice-row button:disabled{opacity:.5}.tempo-28-home-intervals{display:flex;gap:9px;align-items:center;line-height:1.4;margin:14px 0}.tempo-28-day-shift .tempo-db-primary{margin:16px 0 8px}

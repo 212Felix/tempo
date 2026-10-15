@@ -21,7 +21,7 @@ export function matchingBlock(date:string, blocks:TrainingBlock[]):TrainingBlock
 export type Phase={id:string; title:string; startDate:string; endDate:string; detail:string; eventId?:string; tentative?:boolean}
 /** Neutral phase skeleton, anchored only to actual locally saved event dates. */
 export function deriveSeasonPhases(events:GoalEvent[], today:string):Phase[]{
-  const anchors=events.filter(x=>x.status!=='abgeschlossen'&&x.kind!=='trainingsblock'&&validDate(x.date??'')&&x.date!>=today)
+  const anchors=events.filter(x=>x.status!=='abgeschlossen'&&(x.kind!=='trainingsblock'||(x.priority==='B'&&(x.distanceKm??0)>=180))&&validDate(x.date??'')&&x.date!>=today)
     .sort((a,b)=>a.date!.localeCompare(b.date!))
   // A events take precedence. A preceding *long* B challenge can define an
   // intermediate training milestone without displacing the eventual A goal.

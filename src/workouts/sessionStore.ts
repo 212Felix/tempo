@@ -5,7 +5,7 @@ import type {StrengthPlace} from '../stats/activity'
 
 export type StrengthSet = TempoRecord & {
   date:string; sessionKey:string; plannedSessionId?:string; exerciseId:string; setIndex:number
-  reps?:number; weightKg?:number; holdSeconds?:number; rir?:number; note?:string; exerciseVariant?:string; trainingLocation?:StrengthPlace
+  reps?:number; weightKg?:number; holdSeconds?:number; completed?:boolean; rir?:number; note?:string; exerciseVariant?:string; trainingLocation?:StrengthPlace
 }
 export type StrengthInput = {exerciseId:string;setIndex:number;reps:string;weightKg:string;holdSeconds:string;rir:string}
 export const strengthSessionKey=(date:string,kind:'A'|'B',plannedId?:string)=>plannedId??`free-strength:${date}:${kind}`
