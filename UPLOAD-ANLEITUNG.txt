@@ -1,48 +1,15 @@
-TEMPO PHASE 30 - ZUVERLAESSIGER EINMAL-UPLOAD UEBER GITHUB
-=============================================================
+TEMPO PHASE 31 – NUR DIE KLEINE UPLOAD-ZIP IM BROWSER VERWENDEN
 
-WICHTIG: Dies ist die KORRIGIERTE Upload-Ausgabe von Phase 30.
-GitHub erlaubt pro Web-Upload maximal 100 Dateien. Das vollstaendige
-Projekt enthaelt mehr als 100 Dateien und darf NICHT in einem Schritt
-ueber die Webseite hochgeladen werden.
+1. Auf dem iPhone ein neues Backup erstellen und zusätzlich zur bisherigen Sicherung in iCloud Drive aufheben.
+2. TEMPO_Phase31_EINFACHER_GITHUB_UPLOAD.zip am Mac entpacken.
+3. Den Ordner tempo-main öffnen. Zum Anzeigen von .github mit Cmd+Shift+Punkt versteckte Dateien einblenden.
+4. Auf https://github.com/212Felix/tempo im Branch main -> Add file -> Upload files.
+5. NUR die INHALTE von tempo-main (nicht den Ordner selbst) auf die Uploadfläche ziehen.
+6. Vor dem Commit sicherstellen, dass src/App.tsx und src/phase31/rest-days.ts in der GitHub-Liste stehen.
+7. Commit directly to main bestätigen.
+8. GitHub -> main -> src -> App.tsx öffnen: Dort muss PHASE 31 stehen.
+9. GitHub Actions: Neuester Lauf muss sowohl Build als auch Deploy grün zeigen.
+10. Online-App in privatem Safari-Fenster überprüfen, erst dann installierte iPhone-App kontrollieren.
 
-BENUTZE NUR DIE DATEI:
-  TEMPO_Phase30_EINMAL_UPLOAD_GITHUB.zip
-
-1. Auf dem iPhone vorab eine frische Sicherung in iCloud Drive erstellen.
-   Niemals Backup-Daten, Garmin FIT oder persoenliche GPX-Dateien nach GitHub laden.
-2. Die EINMAL_UPLOAD ZIP herunterladen und ENTPACKEN.
-3. Auf dem Mac im Finder den Ordner "tempo-main" IN DIESER ZIP oeffnen.
-   Cmd + Shift + . blendet den versteckten Ordner .github ein.
-4. Auf GitHub: https://github.com/212Felix/tempo -> Branch main ->
-   Add file -> Upload files.
-5. ALLE INHALTE INNERHALB von "tempo-main" auf GitHub ziehen,
-   nicht den Ordner "tempo-main" selbst.
-   In diesem Paket sind NUR die erforderlichen geaenderten und neuen
-   Phase-30-Dateien: unter 100 Stueck fuer einen GitHub-Upload.
-6. Auf der Uploadliste muessen sowohl src/App.tsx als auch
-   src/phase30/FuelingPanel.tsx und tests/phase29-release.test.mjs
-   sowie package.json stehen.
-   Fehlende Dateien -> NICHT committen, sondern abbrechen.
-7. "Commit directly to main" auswaehlen und committen.
-8. SOFORT PRUEFEN: GitHub -> Code -> main -> src -> App.tsx
-   Suchbegriff: PHASE 30. Nur wenn die Datei "PHASE 30" enthaelt,
-   ist der Quellcode erfolgreich ersetzt.
-9. GitHub Actions muss Build UND Deploy gruen melden.
-10. TEMPO zuerst auf dem Mac privat und danach auf dem iPhone pruefen.
-    App nicht loeschen. Website-/IndexedDB-Daten nicht loeschen.
-
-HINWEIS:
-Das andere Paket TEMPO_Phase30_NEU_VOLLSTAENDIG.zip ist die
-vollstaendige Projektkopie fuer Archiv oder GitHub Desktop und
-enthaelt ueber 100 Dateien. Es ist NICHT fuer EINEN Web-Upload geeignet.
-
-WARUM DIESE ZUSAETZLICHE TESTDATEI?
-Tests/phase29-release.test.mjs liegt in der bestehenden Phase-29-
-Installation auf GitHub. Ein Web-Upload loescht sie nicht. Hier liegt
-deshalb eine kompatible Phase-30-Version bei, die den alten Test ersetzt.
-
-PERSOENLICHE DATEN:
-Keine privaten Backups in diesem Paket. IndexedDB tempo-local
-bleibt unveraendert, Version 1 und 20 Stores. Vorhandene Trainings
-werden durch das Hochladen von Quellcode nicht direkt veraendert.
+Nicht die vorhandene App löschen, keine Website-Daten leeren und keine Backup-Datei in GitHub hochladen.
+Die VOLLSTÄNDIGE ZIP dient nur als Sicherung; Browser-Upload über 100 Dateien ist unzuverlässig.

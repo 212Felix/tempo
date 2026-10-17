@@ -5,6 +5,7 @@ import { createLoadCalendar, type LoadCalendar } from './load'
 import { buildEventInfluences, type EventInfluence, type GoalEvent, type RouteEntry } from '../events/library'
 import { upcomingCooper } from '../events/running'
 import {deriveAdaptiveWeeks,adjustSuggestedSession,plannedEvents,type AdaptiveWeek} from '../phase28/adaptive-planner'
+import type {RestDayRecord} from '../phase31/rest-days'
 
 /** Conservative starter scheduling rules, intentionally transparent and changeable. */
 export const PLANNER_VERSION = 'tempo-planner-v1'
@@ -139,6 +140,8 @@ export function generatePlan(args: {
   events?: GoalEvent[]
   routes?: RouteEntry[]
   blocks?: TrainingBlock[]
+  restDays?: RestDayRecord[]
+  provisionalUnconfirmed?: boolean
 }): PlanDay[] {
   const { days, shifts, profile, existing, completed } = args
   const today = currentKey()
@@ -161,6 +164,7 @@ export function generatePlan(args: {
     if (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant') lockedDates.add(item.date)
   }
   for (const item of completed) if (item.profileId === PROFILE_ID && item.date) lockedDates.add(item.date)
+  for (const day of args.restDays??[]) if(day.profileId===PROFILE_ID)lockedDates.add(day.date)
   const map = new Map<string, PlanDay>()
   const preassigned = new Set<string>()
   const heavy = new Set<string>()
@@ -202,7 +206,7 @@ export function generatePlan(args: {
   days.forEach(date => {
     const shift = shifts[date]
     const confirmed = isConfirmed(shift)
-    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date],blockIntention:blockDayForDate(date,args.blocks??[]),seasonEvent:milestoneByDate.get(date)?.name,seasonEventTentative:milestoneByDate.get(date)?.status!=='bestaetigt'||milestoneByDate.get(date)?.vacation==='offen'})
+    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : args.provisionalUnconfirmed ? 'frei' : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date],blockIntention:blockDayForDate(date,args.blocks??[]),seasonEvent:milestoneByDate.get(date)?.name,seasonEventTentative:milestoneByDate.get(date)?.status!=='bestaetigt'||milestoneByDate.get(date)?.vacation==='offen'})
   })
   const offsetDate=(date:string,diff:number)=>{const t=new Date(`${date}T12:00:00Z`);t.setUTCDate(t.getUTCDate()+diff);return t.toISOString().slice(0,10)}
   const put = (date: string, item: TrainingRecord) => {
@@ -247,7 +251,7 @@ export function generatePlan(args: {
   const canUse = (date: string) => {
     const day = map.get(date)
     const weekAdvice=coachingWeekFor(date)
-    return weekAdvice?.kind!=='RECOVERY' && !!day && date >= today && day.confirmed && !day.protected && !preassigned.has(date) && day.shift !== 'einsatz' && ! (day.blockIntention && (isTrainingFree(day.blockIntention.kind)||day.blockIntention.kind==='challenge'))
+    return weekAdvice?.kind!=='RECOVERY' && !!day && date >= today && (day.confirmed || args.provisionalUnconfirmed) && !day.protected && !preassigned.has(date) && day.shift !== 'einsatz' && ! (day.blockIntention && (isTrainingFree(day.blockIntention.kind)||day.blockIntention.kind==='challenge'))
   }
   const index = (key: string) => days.indexOf(key)
   const nearType = (date: string, types: SessionKind[], maxDistance: number) => {
@@ -279,7 +283,7 @@ export function generatePlan(args: {
     const intention=day.blockIntention
     if (intention && isTrainingFree(intention.kind)) { preassigned.add(date); return }
     if (intention?.kind==='challenge') { preassigned.add(date); heavy.add(date); return }
-    if (!day.confirmed || day.protected) return
+    if ((!day.confirmed && !args.provisionalUnconfirmed) || day.protected) return
     // Radpendeln ist echte Dienstbelastung und darf nicht als Erholung verbucht werden.
     // Wenn es auf eine Event-Entlastung fällt, wird im Kalender ein Konflikthinweis angezeigt.
     if (day.shift === 'tagdienst' && shift?.commute && shift.commute !== 'nein') {

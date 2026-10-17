@@ -1,3 +1,7 @@
+# TEMPO Phase 31
+
+**Neu:** rollierende 10+-Tage-Kalender-Vorschau, bewusst freigehaltene Rest-/Recoverytage und sichere, explizit bestätigte Umplanung über Wochengrenzen. Siehe [Phase-31-Details](docs/PHASE31-RELEASE.md).
+
 # TEMPO – Train smarter · Phase 30
 
 **Release-Paket vom 17.10.2026:** Vollständiger Projektstand zum direkten GitHub-Upload auf `main`, basierend auf der funktionierenden Phase 29. Ohne personenbezogene Trainingsbackups oder GPS-Tracks.

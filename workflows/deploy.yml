@@ -1,6 +1,6 @@
-# TEMPO Phase 30: upload to main triggers tests and publishes only if build succeeds.
+# TEMPO Phase 31: upload to main triggers tests and publishes only if build succeeds.
 # Uploads auf Test-Branches aktualisieren die iPhone-App NICHT.
-name: TEMPO Phase 30 veroeffentlichen
+name: TEMPO Phase 31 veroeffentlichen
 
 on:
   push:
@@ -43,13 +43,13 @@ jobs:
           path: ./dist
 
   deploy:
-    name: TEMPO Phase 30 nach bestandener Pruefung veroeffentlichen
+    name: TEMPO Phase 31 nach bestandener Pruefung veroeffentlichen
     runs-on: ubuntu-latest
     needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: TEMPO Phase 30 veroeffentlichen
+      - name: TEMPO Phase 31 veroeffentlichen
         id: deployment
         uses: actions/deploy-pages@v4

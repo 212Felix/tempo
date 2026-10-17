@@ -2,6 +2,7 @@ import {durationFor} from '../time/duration'
 import { useEffect, useMemo, useState } from 'react'
 import { getRecord, listRecords } from '../db/storage'
 import type { ProfileRecord } from '../db/types'
+import {isRestDay,type RestDayRecord} from '../phase31/rest-days'
 import {matchingBlock,describeBlock,type TrainingBlock} from '../blocks/library'
 import {isTrainingFree,dayKindLabels} from '../blocks/days'
 import {
@@ -23,6 +24,7 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
   const [events, setEvents] = useState<GoalEvent[]>([])
   const [routes, setRoutes] = useState<RouteEntry[]>([])
   const [blocks, setBlocks] = useState<TrainingBlock[]>([])
+  const [restDays,setRestDays]=useState<RestDayRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
   const [savingDate, setSavingDate] = useState<string | null>(null)
@@ -46,14 +48,15 @@ export default function PlanPreview({days, shifts, refreshIndex}: {days:string[]
       listRecords<GoalEvent>('events'),
       listRecords<RouteEntry>('routes'),
       listRecords<TrainingBlock>('trainingBlocks'),
-    ]).then(([p,r,old,done,ev,rt,bl]) => {
+      listRecords('settings'),
+    ]).then(([p,r,old,done,ev,rt,bl,settings]) => {
       if (!live) return
-      setProfile(p); setReady(r); setExisting(old); setCompleted(done); setEvents(ev); setRoutes(rt); setBlocks(bl); setLoading(false)
+      setProfile(p); setReady(r); setExisting(old); setCompleted(done); setEvents(ev); setRoutes(rt); setBlocks(bl); setRestDays(settings.filter(isRestDay)); setLoading(false)
     }).catch(err => { if (live) {setLoading(false);setNotice(`Daten konnten nicht geladen werden: ${String(err)}`)} })
     return () => {live = false}
   }, [rangeId,refreshIndex,manualRefresh])
-  const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed, events, routes, blocks}),
-    [rangeId, shifts, profile, ready, existing, completed, events, routes, blocks])
+  const planned = useMemo(() => generatePlan({days, shifts, profile, readiness:ready, existing, completed, events, routes, blocks, restDays}),
+    [rangeId, shifts, profile, ready, existing, completed, events, routes, blocks, restDays])
   const eventInfluences = useMemo(() => buildEventInfluences(days,events,routes),[rangeId,events,routes])
   const currentBlocks = blocks.filter(b=>days.some(d=>matchingBlock(d,[b])?.id===b.id))
   const already = existing.filter(s => s.profileId === PROFILE_ID && days.includes(s.date))

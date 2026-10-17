@@ -10,6 +10,7 @@ import {
 } from './manual'
 import './manual.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
+import {isRestDay} from '../phase31/rest-days'
 
 type Mode = 'planned' | 'completed'
 const showMinutes = (entry:{durationMin?:number;durationSec?:number}) => entry.durationMin || entry.durationSec ? durationFor(entry) : 'Dauer offen'
@@ -21,6 +22,7 @@ const numInput = (value:string,set:(v:string)=>void,placeholder:string)=>
 /** Gemeinsam auf 14-Tage- und Tagestraining-Seite. Mehrfachbelegung pro Tag erlaubt. */
 export default function ManualTrainingPanel({days}:{days?:string[]}) {
   const [shifts,setShifts]=useState<Record<string,ShiftRecord>>({})
+  const [blockedDays,setBlockedDays]=useState<string[]>([])
   const [planned,setPlanned]=useState<TrainingRecord[]>([])
   const [completed,setCompleted]=useState<CompletedRecord[]>([])
   const [selectedDate,setSelectedDate]=useState(days?.[0]??currentKey())
@@ -40,6 +42,11 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
     }).catch(()=>undefined)
     load();window.addEventListener('tempo:shift-change',load)
     return()=>{active=false;window.removeEventListener('tempo:shift-change',load)}
+  },[])
+  useEffect(()=>{let active=true
+    const load=()=>void listRecords('settings').then(rows=>{if(active)setBlockedDays(rows.filter(isRestDay).map(x=>x.date))}).catch(()=>undefined)
+    load();window.addEventListener('tempo:training-change',load)
+    return()=>{active=false;window.removeEventListener('tempo:training-change',load)}
   },[])
   async function refresh() {
     const result=await loadManualEntries()
@@ -95,6 +102,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
   async function submit(event:FormEvent) {
     event.preventDefault()
     if(!draft || busy) return
+    if(mode==='planned'&&blockedDays.includes(draft.date)){setFeedback('Dieser Tag wurde von dir für Erholung gesperrt. Bitte zuerst im Tagestraining die Freigabe aufheben, bevor du neue Einheiten planst.');return}
     if(mode==='planned' && shifts[draft.date]?.shift==='einsatz' && draft.sport!=='mobility' &&
       !window.confirm('Dieser Tag ist als Einsatz bestätigt. TEMPO empfiehlt hier nur Recovery oder Pause. Möchtest du trotzdem selbstständig dieses Training planen?')) return
     setBusy(true)
@@ -172,6 +180,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
         <div className="tempo-manual-fields">
           <Field>Datum<input type="date" required value={draft.date} onChange={e=>patch('date',e.target.value)}/></Field>
           <Field>Sportart<select value={draft.sport} onChange={e=>patch('sport',e.target.value as ManualSport)}>{sports.map(s=><option value={s.value} key={s.value}>{s.label}</option>)}</select></Field>
+          {mode==='planned'&&blockedDays.includes(draft.date)&&<p className="tempo-plan-warning">🔒 Trainingsfreier Tag: Zuerst im Tagestraining die Freigabe aufheben, bevor ein neues Training geplant werden kann.</p>}
           {draft.sport==='cycling'&&<div className="tempo-28-commute-select"><strong>Pendeln · nur Kennzeichnung der Radfahrt</strong><div role="group" aria-label="Pendeln" className="tempo-28-commute-choices">{([['none','Kein Pendeln'],['hin','Hinfahrt'],['rueck','Rückfahrt'],['beide','Hin & Rück']] as const).map(([key,label])=><button type="button" key={key} aria-pressed={draft.commuteLeg===key} className={draft.commuteLeg===key?'selected':''} onClick={()=>patch('commuteLeg',key)}>{label}</button>)}</div><small>Eine Trainingsfahrt auf dem Rückweg wird einmal gespeichert und nur als Rückweg markiert – keine zweite Belastung.</small></div>}
           {draft.sport==='cycling'&&<Field>Radtraining: Umgebung<select value={draft.cyclingEnvironment} onChange={e=>patch('cyclingEnvironment',e.target.value)}><option value="unknown">Noch unklar</option><option value="outdoor">Outdoor / draußen</option><option value="indoor">Indoor / Zwift / Rolle</option></select></Field>}
           {draft.sport==='swimming'&&<><Field>Schwimmen: Umgebung<select value={draft.swimEnvironment} onChange={e=>patch('swimEnvironment',e.target.value)}><option value="pool">Schwimmbad</option><option value="openwater">Freiwasser</option></select></Field><Field>Schwimmen: Schwerpunkt<select value={draft.swimFocus} onChange={e=>patch('swimFocus',e.target.value)}><option value="locker">Locker</option><option value="technik">Technik</option><option value="ausdauer">Ausdauer</option><option value="intervalle">Intervalle</option></select></Field></>}

@@ -2,10 +2,11 @@ import {useMemo} from 'react';
 import {buildCalendar,todayLocal,WEEK_PATTERN,type ActivityLike,type ShiftLike} from './calendar-model';
 import './compact-calendar.css';
 import {holidaySaxony,isWeekendOrHoliday} from '../phase30/saxon-holidays';
+import type {RestDayRecord} from '../phase31/rest-days';
 
 /** Read-only calendar view: all persistence stays in the existing TEMPO modules. */
-export default function CompactCalendar({shifts,plans,done,onOpenDay,days}:{
- shifts:ShiftLike[];plans:ActivityLike[];done:ActivityLike[];onOpenDay:(date:string)=>void;days:string[];
+export default function CompactCalendar({shifts,plans,done,onOpenDay,days,restDays=[],blockKinds={}}:{
+ shifts:ShiftLike[];plans:ActivityLike[];done:ActivityLike[];onOpenDay:(date:string)=>void;days:string[];restDays?:RestDayRecord[];blockKinds?:Record<string,string>;
 }){
  const dates=days;
  const horizon=days.length;
@@ -16,11 +17,11 @@ export default function CompactCalendar({shifts,plans,done,onOpenDay,days}:{
   {Array.from({length:horizon/7},(_,week)=><div key={dates[week*7]} className="tempo-28-week">
    <div className="tempo-28-week-caption">{fmt(dates[week*7])} – {fmt(dates[week*7+6])}</div>
    {WEEK_PATTERN.map((row,i)=><div key={i} className={`tempo-28-row tempo-28-cols-${row.length}`}>
-    {row.map(idx=>{const day=cells[week*7+idx];return <button type="button" className={`tempo-28-tile ${day.date===todayLocal()?'is-today':''} ${isWeekendOrHoliday(day.date)?'is-holiday':''}`} key={day.date} onClick={()=>onOpenDay(day.date)} aria-label={`${fmt(day.date)}, ${day.service}, ${day.activities.length} Trainingsaktivitäten`}>
-     <strong className="tempo-28-date">{fmt(day.date)}</strong>{holidaySaxony(day.date)&&<small className="tempo30-holiday-caption">{holidaySaxony(day.date)}</small>}<small className="tempo-28-duty">{day.service}</small>
+    {row.map(idx=>{const day=cells[week*7+idx],rest=restDays.find(x=>x.date===day.date),kind=blockKinds[day.date]??'';return <button type="button" className={`tempo-28-tile ${day.date===todayLocal()?'is-today':''} ${isWeekendOrHoliday(day.date)?'is-holiday':''} ${rest?'tempo31-calendar-rest':''}`} key={day.date} onClick={()=>onOpenDay(day.date)} aria-label={`${fmt(day.date)}, ${day.service}, ${day.activities.length} Trainingsaktivitäten`}>
+     <strong className="tempo-28-date">{fmt(day.date)}</strong>{holidaySaxony(day.date)&&<small className="tempo30-holiday-caption">{holidaySaxony(day.date)}</small>}<small className="tempo-28-duty">{day.service}</small>{kind&&<span className={`tempo31-block-label tempo31-block-${kind.toLowerCase()}`}>{kind}</span>}{rest&&<span className="tempo31-rest-marker">🌿 {rest.mode==='free'?'Trainingsfrei':'Recovery'} 🔒</span>}
      {day.commuteNote&&<span className="tempo-28-commute">🚲 {day.commuteNote}</span>}
-     {day.activities.map(a=><span key={a.id} className="tempo-28-training"><span aria-hidden="true">{a.icon} </span>{a.title}{a.commuteLeg&&<span className="tempo-28-route"> ↩ {a.commuteLeg==='rueck'?'Rückweg':a.commuteLeg==='hin'?'Hinweg':'Hin&Rück'}</span>}{a.done&&<span aria-label="Absolviert"> ✓</span>}</span>)}
-     {day.activities.length===0&&!day.commuteNote&&<span className="tempo-28-empty">Ruhetag / frei</span>}
+     {day.activities.filter(a=>!rest||!a.id.startsWith('preview:')).map(a=><span key={a.id} className={`tempo-28-training ${a.id.startsWith('preview:')?'tempo31-calendar-proposal':''}`}><span aria-hidden="true">{a.icon} </span>{a.title}{a.commuteLeg&&<span className="tempo-28-route"> ↩ {a.commuteLeg==='rueck'?'Rückweg':a.commuteLeg==='hin'?'Hinweg':'Hin&Rück'}</span>}{a.done&&<span aria-label="Absolviert"> ✓</span>}</span>)}
+     {day.activities.length===0&&!day.commuteNote&&!rest&&<span className="tempo-28-empty">Ruhetag / frei</span>}
     </button>})}
    </div>)}
   </div>)}

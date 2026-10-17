@@ -32,26 +32,26 @@ test('Phase30: Sachsens Buß- und Bettag, Ostermontag und regionaler Feiertag',(
 })
 const make=(date,id,sessionType,priority='SOLL')=>({id,date,profileId:'local-primary-profile',sessionType,title:id,priority,target:'',durationMin:60,status:'geplant',updatedAt:'initial'})
 test('Phase30: Schwelle auf Samstag verschieben – Umfang, Lauf, Kraft bleiben bestehen',()=>{
- const sessions=[make('2026-10-19','kraft-a','strength-a'),make('2026-10-20','z2','endurance'),make('2026-10-21','schwelle','quality','MUSS'),make('2026-10-23','kraft-b','strength-b'),make('2026-10-24','lang','long','MUSS'),make('2026-10-25','lauf','run')]
- const p=proposeWeek({sessions,completed:[],shifts:[],anchorId:'schwelle',targetDate:'2026-10-24'})
- assert.equal(p.assigned.schwelle,'2026-10-24')
+ const sessions=[make('2037-10-19','kraft-a','strength-a'),make('2037-10-20','z2','endurance'),make('2037-10-21','schwelle','quality','MUSS'),make('2037-10-23','kraft-b','strength-b'),make('2037-10-24','lang','long','MUSS'),make('2037-10-25','lauf','run')]
+ const p=proposeWeek({sessions,completed:[],shifts:[],anchorId:'schwelle',targetDate:'2037-10-24'})
+ assert.equal(p.assigned.schwelle,'2037-10-24')
  assert.equal(p.all.length,sessions.length)
  assert.equal(p.all.filter(x=>x.sessionType==='run').length,1)
  assert.equal(p.all.filter(x=>x.sessionType.startsWith('strength')).length,2)
  assert.notEqual(p.assigned.lang,p.assigned.schwelle)
- assert.equal(weekDates('2026-10-21')[0],'2026-10-19')
- assert.deepEqual(sessions.map(x=>x.date),['2026-10-19','2026-10-20','2026-10-21','2026-10-23','2026-10-24','2026-10-25'])
+ assert.equal(weekDates('2037-10-21')[0],'2037-10-19')
+ assert.deepEqual(sessions.map(x=>x.date),['2037-10-19','2037-10-20','2037-10-21','2037-10-23','2037-10-24','2037-10-25'])
 })
 test('Phase30: absolvierte Einheit blockiert, kein stummes Überschreiben',()=>{
- const sessions=[make('2026-10-21','quality','quality','MUSS'),make('2026-10-24','long','long','MUSS')]
- const completed=[{id:'done',profileId:'local-primary-profile',date:'2026-10-24',sessionType:'manual-cycling'}]
- const p=proposeWeek({sessions,completed,shifts:[],anchorId:'quality',targetDate:'2026-10-24'})
+ const sessions=[make('2037-10-21','quality','quality','MUSS'),make('2037-10-24','long','long','MUSS')]
+ const completed=[{id:'done',profileId:'local-primary-profile',date:'2037-10-24',sessionType:'manual-cycling'}]
+ const p=proposeWeek({sessions,completed,shifts:[],anchorId:'quality',targetDate:'2037-10-24'})
  assert.ok(p.conflicts.some(x=>/absolviertes/.test(x)))
 })
 
 
 test('Phase30: bereits fixiertes Krafttraining bleibt am gewählten Tag',()=>{
- const sessions=[make('2026-10-21','q','quality','MUSS'),{...make('2026-10-23','kraft-b','strength-b'),'locked':true,'createdBy':'tempo-user'},make('2026-10-24','lang','long','MUSS')]
- const p=proposeWeek({sessions,completed:[],shifts:[],anchorId:'q',targetDate:'2026-10-24'})
- assert.equal(p.assigned['kraft-b'],'2026-10-23')
+ const sessions=[make('2037-10-21','q','quality','MUSS'),{...make('2037-10-23','kraft-b','strength-b'),'locked':true,'createdBy':'tempo-user'},make('2037-10-24','lang','long','MUSS')]
+ const p=proposeWeek({sessions,completed:[],shifts:[],anchorId:'q',targetDate:'2037-10-24'})
+ assert.equal(p.assigned['kraft-b'],'2037-10-23')
 })

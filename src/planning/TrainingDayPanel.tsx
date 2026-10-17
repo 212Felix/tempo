@@ -1,6 +1,7 @@
 import {durationFor} from '../time/duration'
 import {useEffect,useState} from 'react'
-import {listRecords} from '../db/storage'
+import {listRecords,deleteRecord} from '../db/storage'
+import {isRestDay,type RestDayRecord} from '../phase31/rest-days'
 import {currentKey, friendlyDate, PROFILE_ID, type TrainingRecord} from './engine'
 import ManualTrainingPanel from './ManualTrainingPanel'
 import DayShiftEditor from './DayShiftEditor'
@@ -37,6 +38,7 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
   const [entries,setEntries]=useState<TrainingRecord[]>([])
   const [selected,setSelected]=useState(initialDate??currentKey())
   const [reschedule,setReschedule]=useState<TrainingRecord|null>(null)
+  const [restPreview,setRestPreview]=useState(false),[fixedRest,setFixedRest]=useState<RestDayRecord[]>([])
   const [loading,setLoading]=useState(true)
   const [notice,setNotice]=useState('Gespeicherte Einheiten werden geladen …')
   const today=currentKey()
@@ -50,9 +52,20 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
     load();window.addEventListener('tempo:training-change',load)
     return()=>{live=false;window.removeEventListener('tempo:training-change',load)}
   },[])
+  useEffect(()=>{let active=true
+    const load=()=>void listRecords('settings').then(records=>{if(active)setFixedRest(records.filter(isRestDay))}).catch(()=>undefined)
+    load();window.addEventListener('tempo:training-change',load)
+    return()=>{active=false;window.removeEventListener('tempo:training-change',load)}
+  },[])
   const dates=[...new Set(entries.map(x=>x.date))].sort()
   const selectedDay=selected||today
   const atDate=entries.filter(x=>x.date===selectedDay)
+  const savedRest=fixedRest.find(x=>x.date===selectedDay)
+  async function releaseDay(){
+    if(!savedRest||!window.confirm('Den selbst festgelegten Ruhetag wieder für die Planung freigeben? Bereits gespeicherte Trainingseinheiten werden dadurch nicht automatisch ergänzt.'))return
+    await deleteRecord('settings',savedRest.id)
+    window.dispatchEvent(new Event('tempo:training-change'))
+  }
   const previousDate=addDays(selectedDay,-1)
   const nextDate=addDays(selectedDay,1)
   return <div className="tempo-workout tempo-28-daily">
@@ -62,14 +75,18 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
       <div className="tempo-workout-nav"><button type="button" onClick={()=>setSelected(previousDate)} aria-label="Vorheriger Kalendertag">‹</button><strong>{friendlyDate(selectedDay)}</strong><button type="button" onClick={()=>setSelected(nextDate)} aria-label="Nächster Kalendertag">›</button></div>
       <label className="tempo-28-day-picker">Anderen Tag öffnen <input type="date" value={selectedDay} onChange={e=>setSelected(e.target.value||today)}/></label>
       {loading&&<p>{notice}</p>}
-      {!loading&&atDate.length===0&&<p>Für diesen Tag ist noch keine Einheit geplant. Auch ein Ruhetag ist eine bewusste Entscheidung.</p>}
+      {!loading&&atDate.length===0&&<p>Für diesen Tag ist noch keine Einheit geplant. Unter „🌿 Trainingsfreien Tag festlegen“ kannst du den Tag für Erholung reservieren.</p>}
       {!loading&&atDate.map(x=><details key={x.id} className="tempo-28-session-card" open={atDate.length===1}>
         <summary><span>{x.sessionType.includes('strength')?'🏋️':x.sessionType.includes('run')?'🏃':x.sessionType.includes('recovery')?'🧘':'🚴'} <strong>{x.title}</strong></span><small>{x.status==='erledigt'?'✓ Absolviert':x.priority} · {x.durationMin?durationFor(x):'Dauer offen'}</small></summary>
         <div className="tempo-28-session-content"><p>{x.description}</p><p><strong>Ziel:</strong> {x.target}</p>{x.notes&&<p>{x.notes}</p>}{x.commuteLeg&&<p>🚲 Pendeln {x.commuteLeg==='rueck'?'Rückweg':x.commuteLeg==='hin'?'Hinweg':'Hin & Rück'} · diese Fahrt nur einmal zählen</p>}
         <FuelingQuick session={x}/><div className="tempo-manual-entry-actions">{(isStrength(x)||isRun(x))&&<button type="button" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm öffnen →'}</button>}{x.status!=='erledigt'&&<><button type="button" onClick={()=>setReschedule(x)}>🗓️ Training verschieben</button><button type="button" onClick={()=>askEdit(x.id)}>Bearbeiten</button><button type="button" onClick={()=>askDone(x.id)}>Training abschließen</button></>}</div></div>
       </details>)}
     </section>
+    <section className="tempo31-rest-section"><div className="eyebrow">DEINE ENTSCHEIDUNG · ERHOLUNG PLANEN</div><h3>🌿 Trainingsfreien Tag festlegen</h3>
+      {savedRest?<><p><strong>🔒 {savedRest.mode==='free'?'Vollständig trainingsfrei':'Recoverytag'}</strong> · {savedRest.note||'Dieser Tag ist für neue Trainings gesperrt.'}</p><button className="outline" type="button" onClick={()=>void releaseDay()}>Freigabe für diesen Tag aufheben</button></>:<><p>Reserviere diesen Tag bewusst für vollständige Erholung, Sauna, Familie oder leichte Mobility. TEMPO zeigt danach eine neue Verteilung der übrigen Einheiten – erst nach deiner Bestätigung wird gespeichert.</p><button type="button" onClick={()=>setRestPreview(true)} disabled={selectedDay<today}>🌿 Ruhetag / Recovery festlegen & Plan anpassen</button></>}
+    </section>
     {reschedule&&<WeekReplanner anchor={reschedule} onClose={()=>setReschedule(null)} onSaved={()=>setSelected(selectedDay)}/>}
+    {restPreview&&<WeekReplanner restDate={selectedDay} onClose={()=>setRestPreview(false)} onSaved={()=>setSelected(selectedDay)}/>}
     <DayShiftEditor key={selectedDay} date={selectedDay}/>
     {selectedDay===today&&<DailyDecisionPanel onOpenReadiness={onOpenReadiness} onOpenCalendar={onOpenCalendar}/> }
     <ManualTrainingPanel days={[selectedDay]}/>

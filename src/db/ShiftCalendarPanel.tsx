@@ -7,7 +7,11 @@ import HelpDisclosure from '../ui/HelpDisclosure'
 import ReconciliationPanel from '../planning/ReconciliationPanel'
 import QuickAdjustmentPanel from './QuickAdjustmentPanel'
 import CompactCalendar from '../phase28/CompactCalendar'
-import type {TrainingRecord,CompletedRecord} from '../planning/engine'
+import {currentKey,generatePlan,type TrainingRecord,type CompletedRecord,type ReadinessRecord} from '../planning/engine'
+import {deriveAdaptiveWeeks} from '../phase28/adaptive-planner'
+import {rollingCalendarWeeks,isRestDay,type RestDayRecord} from '../phase31/rest-days'
+import type {GoalEvent,RouteEntry} from '../events/library'
+import type {TrainingBlock} from '../blocks/library'
 
 const PROFILE_ID = 'local-primary-profile'
 type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
@@ -112,9 +116,15 @@ export function ShiftHomeCard({ onOpen }: {onOpen: () => void}) {
 
 export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=>void}) {
   const [rangeOffset, setRangeOffset] = useState(0)
-  const [horizon, setHorizon] = useState<7 | 14>(14)
+  const [horizon, setHorizon] = useState<7 | 14 | 'rolling'>('rolling')
   const [entries, setEntries] = useState<Record<string, ShiftEntry>>({})
   const [profileKm, setProfileKm] = useState<number | null>(null)
+  const [profile,setProfile]=useState<ProfileRecord | undefined>()
+  const [readiness,setReadiness]=useState<ReadinessRecord|undefined>()
+  const [eventGoals,setEventGoals]=useState<GoalEvent[]>([])
+  const [routes,setRoutes]=useState<RouteEntry[]>([])
+  const [blocks,setBlocks]=useState<TrainingBlock[]>([])
+  const [restDays,setRestDays]=useState<RestDayRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [planRefresh, setPlanRefresh] = useState(0)
@@ -122,7 +132,7 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
   const [completedTrainings,setCompletedTrainings]=useState<CompletedRecord[]>([])
   const [feedback, setFeedback] = useState('Dienste werden geladen …')
   const start = useMemo(() => { const now = new Date(); const mondayOffset=(now.getDay()+6)%7; return addDays(now,-mondayOffset+rangeOffset) }, [rangeOffset])
-  const days = useMemo(() => Array.from({length:horizon}, (_, i) => formatKey(addDays(start, i))), [start, horizon])
+  const days = useMemo(() => Array.from({length:horizon==='rolling'?rollingCalendarWeeks(currentKey())*7:horizon}, (_, i) => formatKey(addDays(start, i))), [start, horizon])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShiftValues | null>(null)
 
@@ -136,6 +146,7 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
         shiftEntries.filter(entry => entry.profileId === PROFILE_ID && entry.date).forEach(entry => { map[entry.date] = entry })
         setEntries(map)
         setProfileKm(profile?.commuteOneWayKm ?? null)
+        setProfile(profile)
         setFeedback('Wähle einen Tag und bestätige den Dienst.')
         setLoading(false)
       })
@@ -144,10 +155,18 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
   }, [])
 
   useEffect(()=>{let live=true
-    const reload=()=>void Promise.all([listRecords<TrainingRecord>('plannedSessions'),listRecords<CompletedRecord>('completedSessions')]).then(([plans,done])=>{if(live){setSavedPlans(plans.filter(x=>x.profileId===PROFILE_ID));setCompletedTrainings(done.filter(x=>x.profileId===PROFILE_ID))}}).catch(()=>undefined)
-    reload();window.addEventListener('tempo:training-change',reload)
-    return()=>{live=false;window.removeEventListener('tempo:training-change',reload)}
+    const reload=()=>void Promise.all([listRecords<TrainingRecord>('plannedSessions'),listRecords<CompletedRecord>('completedSessions'),listRecords('settings'),listRecords<GoalEvent>('events'),listRecords<RouteEntry>('routes'),listRecords<TrainingBlock>('trainingBlocks'),getRecord<ReadinessRecord>('readinessEntries',`${PROFILE_ID}:${currentKey()}`)]).then(([plans,done,settings,goals,rt,bl,ready])=>{if(live){setSavedPlans(plans.filter(x=>x.profileId===PROFILE_ID));setCompletedTrainings(done.filter(x=>x.profileId===PROFILE_ID));setRestDays(settings.filter(isRestDay));setEventGoals(goals);setRoutes(rt);setBlocks(bl);setReadiness(ready)}}).catch(()=>undefined)
+    reload();window.addEventListener('tempo:training-change',reload);window.addEventListener('tempo:blocks-change',reload)
+    return()=>{live=false;window.removeEventListener('tempo:training-change',reload);window.removeEventListener('tempo:blocks-change',reload)}
   },[])
+  const tentativePlan=useMemo(()=>{
+    if(horizon!=='rolling')return [] as TrainingRecord[]
+    return generatePlan({days,shifts:entries,profile,readiness,existing:savedPlans,completed:completedTrainings,events:eventGoals,routes,blocks,restDays,provisionalUnconfirmed:true})
+      .filter(day=>day.date>=currentKey()&&day.session&&!savedPlans.some(s=>s.date===day.date)&&!completedTrainings.some(s=>s.date===day.date))
+      .map(day=>({...day.session!,id:`preview:${day.session!.id}`,title:`Vorschlag · ${day.session!.title}`,status:'geplant' as const}))
+  },[horizon,days,entries,profile,readiness,savedPlans,completedTrainings,eventGoals,routes,blocks,restDays])
+  const weeklyKinds=useMemo(()=>deriveAdaptiveWeeks({start:days[0],weeks:Math.ceil(days.length/7),events:eventGoals,blocks,planned:savedPlans,completed:completedTrainings,shifts:entries,readiness,ftpWatts:profile?.ftpWatts}),[days,eventGoals,blocks,savedPlans,completedTrainings,entries,readiness,profile])
+  const blockKinds=Object.fromEntries(weeklyKinds.flatMap(w=>days.filter(d=>d>=w.startDate&&d<=w.endDate).map(d=>[d,w.kind] as const)))
   const confirmed = days.filter(date => isConfirmed(entries[date])).length
   const proposedWeekends = days.filter(date => isWeekend(date) && !isConfirmed(entries[date]))
   const totalKm = draft?.commute === 'beide' ? (profileKm ?? 0) * 2 : draft?.commute === 'nein' ? 0 : profileKm ?? 0
@@ -206,6 +225,7 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
         <div className="tempo-shift-choices" role="group" aria-label="Planungshorizont">
           <Choice selected={horizon === 7} onClick={() => {setHorizon(7);setSelectedDate(null);setDraft(null)}}>7 Tage</Choice>
           <Choice selected={horizon === 14} onClick={() => {setHorizon(14);setSelectedDate(null);setDraft(null)}}>14 Tage</Choice>
+          <Choice selected={horizon === 'rolling'} onClick={() => {setHorizon('rolling');setSelectedDate(null);setDraft(null)}}>Rollierend 10+</Choice>
         </div>
         <div className="tempo-shift-stepper"><button type="button" onClick={() => {setRangeOffset(o=>o-7);setSelectedDate(null);setDraft(null)}} aria-label="Vorherige Woche">‹</button><button type="button" onClick={() => {setRangeOffset(0);setSelectedDate(null);setDraft(null)}}>Heute</button><button type="button" onClick={() => {setRangeOffset(o=>o+7);setSelectedDate(null);setDraft(null)}} aria-label="Nächste Woche">›</button></div>
       </div>
@@ -215,7 +235,9 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
 
 
 
-    <CompactCalendar shifts={Object.values(entries)} plans={savedPlans} done={completedTrainings} onOpenDay={onOpenDay} days={days}/>
+    {horizon==='rolling'&&<div className="tempo31-calendar-info"><strong>Rollierender Ausblick · mindestens 10 Tage ab heute.</strong> Die Kalenderwochen werden vollständig im 3/2/2-Raster gezeigt. Farbige Vorschläge an noch ungeklärten Diensttagen sind vorläufig und noch nicht gespeichert. Unter „Trainingsvorschläge“ kannst du geeignete Termine nach Dienstbestätigung fest übernehmen.</div>}
+    <CompactCalendar shifts={Object.values(entries)} plans={[...savedPlans,...tentativePlan]} done={completedTrainings} onOpenDay={onOpenDay} days={days} restDays={restDays} blockKinds={blockKinds}/>
+
     {proposedWeekends.length > 0 && <button className="tempo-shift-weekend-button" type="button" onClick={() => void confirmWeekends()} disabled={saving || loading}>Freie Wochenend-Vorschläge bestätigen ({proposedWeekends.length})</button>}
 
     {selectedDate && draft && <section className="panel tempo-shift-editor" id="tempo-shift-editor">
