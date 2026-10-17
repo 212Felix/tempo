@@ -1,0 +1,55 @@
+# TEMPO Phase 30: upload to main triggers tests and publishes only if build succeeds.
+# Uploads auf Test-Branches aktualisieren die iPhone-App NICHT.
+name: TEMPO Phase 30 veroeffentlichen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Sicherheitspruefung, Trainingslogik und Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Projekt laden
+        uses: actions/checkout@v4
+      - name: Node.js vorbereiten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Abhaengigkeiten installieren
+        run: npm install --no-audit --no-fund
+      - name: Keine privaten Trainingsdateien oder Datenbank-Neustarts
+        run: npm run test:security
+      - name: Adaptive Planung und Datenintegritaet pruefen
+        run: npm run test:logic
+      - name: TEMPO erstellen
+        run: npm run build
+      - name: GitHub Pages vorbereiten
+        uses: actions/configure-pages@v5
+      - name: Website hochladen
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./dist
+
+  deploy:
+    name: TEMPO Phase 30 nach bestandener Pruefung veroeffentlichen
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: TEMPO Phase 30 veroeffentlichen
+        id: deployment
+        uses: actions/deploy-pages@v4

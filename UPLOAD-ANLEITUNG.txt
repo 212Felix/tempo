@@ -1,7 +1,7 @@
-TEMPO PHASE 29 – EINFACHER GITHUB-UPLOAD
+TEMPO PHASE 30 – EINFACHER GITHUB-UPLOAD
 ========================================
 
-WICHTIG: Die bisherige Phase 27 bleibt auf dem iPhone, bis der Produktions-Build erfolgreich veröffentlicht wird. Vor dem Upload ein FRISCHES Backup direkt vom iPhone exportieren und im iCloud-Ordner TEMPO/01_Backups sicher ablegen. Backup niemals in GitHub hochladen.
+WICHTIG: Die bisherige funktionierende Phase 29 bleibt auf dem iPhone, bis der Produktions-Build erfolgreich veröffentlicht wird. Vor dem Upload ein FRISCHES Backup direkt vom iPhone exportieren und im iCloud-Ordner TEMPO/01_Backups sicher ablegen. Backup niemals in GitHub hochladen.
 
 1. Dieses ZIP herunterladen und auf dem Mac entpacken.
 2. Im Finder den Ordner tempo-main öffnen. Mit Cmd + Shift + . auch .github und .gitignore sichtbar machen.
@@ -10,8 +10,8 @@ WICHTIG: Die bisherige Phase 27 bleibt auf dem iPhone, bis der Produktions-Build
    NICHT den Ordner tempo-main selbst hineinziehen. Die Pfade auf GitHub müssen direkt src/App.tsx, .github/workflows/deploy.yml usw. lauten.
 5. Vor dem Commit kontrollieren, ob src/App.tsx UND package.json auf der Uploadliste stehen. Falls nicht, Upload abbrechen und noch einmal kontrollieren.
 6. "Commit directly to the main branch" wählen und Commit bestätigen.
-7. Danach GitHub → Code → main → src/App.tsx öffnen: dort muss PHASE 29 stehen.
-8. Unter GitHub → Actions den NEUESTEN Lauf "TEMPO Phase 29 veroeffentlichen" kontrollieren. Erst wenn build und deploy grün sind, TEMPO auf dem Mac kontrollieren.
+7. Danach GitHub → Code → main → src/App.tsx öffnen: dort muss PHASE 30 stehen.
+8. Unter GitHub → Actions den NEUESTEN Lauf "TEMPO Phase 30 veroeffentlichen" kontrollieren. Erst wenn build und deploy grün sind, TEMPO auf dem Mac kontrollieren.
 9. Zuletzt am iPhone kontrollieren, dass abgeschlossene Trainings, Garmin-Aktivitäten, Ziele und Leistungswerte weiterhin da sind. Keine Website-Daten löschen, die App nicht deinstallieren und kein altes Backup drüber importieren.
 
 Wenn der Build ROT wird: Nicht ein weiteres altes ZIP hochladen. Öffne den fehlgeschlagenen Step im Workflow, mache einen Screenshot der Fehlermeldung und gib ihn im Chat weiter. Die App bleibt bis dahin auf der vorherigen Veröffentlichung.

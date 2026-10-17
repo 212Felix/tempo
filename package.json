@@ -1,7 +1,7 @@
 {
   "name": "tempo-training",
   "private": true,
-  "version": "0.28.0-rc.1",
+  "version": "0.30.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test:phase28": "node --test tests/*.test.mjs",
     "test:logic": "node scripts/prepare-integration-tests.mjs && node --test tests/*.test.mjs",
-    "test:security": "node scripts/check-release-source.mjs"
+    "test:security": "node scripts/check-release-source.mjs",
+    "test:phase30": "node scripts/prepare-integration-tests.mjs && node --test tests/phase30-features.test.mjs",
+    "verify": "npm run test:security && npm run test:logic && npm run build"
   },
   "dependencies": {
     "react": "19.1.1",

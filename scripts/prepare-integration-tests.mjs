@@ -9,6 +9,7 @@ const files=[
  'src/phase28/periodization.ts','src/phase28/adaptive-planner.ts','src/phase28/strength-dose.ts','src/phase28/calendar-model.ts',
  'src/events/library.ts','src/events/running.ts','src/db/types.ts','src/db/storage.ts',
  'src/blocks/days.ts','src/blocks/library.ts','src/planning/load.ts','src/planning/engine.ts',
+ 'src/phase30/fueling.ts','src/phase30/saxon-holidays.ts','src/phase30/weekly-replanner.ts','src/phase30/block-guides.ts',
 ]
 for(const input of files){
  const source=readFileSync(input,'utf8')

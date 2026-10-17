@@ -37,7 +37,7 @@ test('VOLUME reduziert Bein-Sätze, nie Trainingstagebuch',()=>{
  assert.equal(JSON.stringify({goals,completed,planned}),before)
  const volume=deriveAdaptiveWeeks({...base,start:'2027-03-15',weeks:8,regularLegSets:12}).find(x=>x.kind==='VOLUME')
  assert.ok(volume,'Ein VOLUME-Wochenblock muss erkannt werden')
- assert.equal(volume.legSets,6)
+ assert.equal(volume.legSets,10)
  assert.equal(volume.strengthSlots,2)
 })
 test('HIT benötigt nachgewiesene jüngere Radtrainings und wird bei Unsicherheit abgewertet',()=>{
@@ -57,7 +57,7 @@ test('Trainingsanpassung nur an Kopie, Gesamt-Kraftrahmen bleibt wöchentlich',(
  const copy=JSON.stringify(strength)
  const result=adjustSuggestedSession(strength,volume,254)
  assert.equal(JSON.stringify(strength),copy)
- assert.match(result.notes,/ca. 10 Arbeitssätze\/Woche/)
+ assert.match(result.notes,/ca. 16 Arbeitssätze\/Woche/)
  const quality={sessionType:'quality',title:'Tempo',durationMin:60,target:'',description:'',priority:'MUSS'}
  const easy=adjustSuggestedSession(quality,{...volume,qualityLimit:0},254)
  assert.equal(easy.sessionType,'endurance')

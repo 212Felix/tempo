@@ -20,11 +20,11 @@ if(!text.includes("DATABASE_NAME = 'tempo-local'")||!text.includes('DATABASE_VER
   violations.push('Persistenzvertrag verändert: Datenbankname oder Schemaversion')
 const stores=text.split('export const STORE_NAMES = [')[1]?.split('] as const')[0]?.match(/'[^']+'/g)||[]
 if(stores.length!==20)violations.push(`Erwartet: 20 Stores; gefunden: ${stores.length}`)
-// Phase 29: refuse to publish accidentally mixed Phase-27/28 source packages.
+// Phase 30: refuse to publish accidentally mixed Phase-27/28 source packages.
 const appSource=readFileSync(join(root,'src/App.tsx'),'utf8')
 const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'))
-if(!appSource.includes('PHASE 29') || !appSource.includes('V0.29')) violations.push('Phase-29-Versionsanzeige fehlt')
-if(pkg.version!=='0.29.0') violations.push('Paketversion stimmt nicht mit Phase 29 überein')
+if(!appSource.includes('PHASE 30') || !appSource.includes('V0.30')) violations.push('Phase-30-Versionsanzeige fehlt')
+if(pkg.version!=='0.30.0') violations.push('Paketversion stimmt nicht mit Phase 30 überein')
 const planner=readFileSync(join(root,'src/phase28/adaptive-planner.ts'),'utf8')
 if(!/if\s*\(readiness\s*&&\s*readiness\.date/.test(planner)) violations.push('Readiness-Absicherung in der adaptiven Planung fehlt')
 const deploy=readFileSync(join(root,'.github/workflows/deploy.yml'),'utf8')

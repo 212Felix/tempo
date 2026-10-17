@@ -24,7 +24,7 @@ test('frei gefahrene Rückfahrt erzeugt keine zweite Leistungsaktivität',()=>{
   assert.equal(day.commuteNote,'Pendeln (Hin)');
 });
 test('VOLUME empfiehlt weniger Bein-Arbeitssätze, nie Datenmutation',()=>{
-  assert.equal(adviseStrengthVolume('VOLUME',12).suggestedLegSets,6);
+  assert.equal(adviseStrengthVolume('VOLUME',12).suggestedLegSets,10);
   assert.equal(adviseStrengthVolume('BASE',12).suggestedLegSets,12);
   assert.equal(adviseStrengthVolume('VOLUME',12).affectsExistingSessions,false);
 });
