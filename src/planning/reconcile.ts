@@ -32,7 +32,7 @@ export function kindSport(kind?:string):ReconcileSport{
   if(['strength-a','strength-b','manual-strength'].includes(kind??''))return 'strength'
   if(kind==='manual-swimming')return 'swimming'
   if(kind==='manual-martial')return 'martial'
-  if(kind==='manual-mobility'||kind==='recovery')return 'mobility'
+  if(kind==='manual-mobility'||kind==='manual-yoga'||kind==='manual-stabi'||kind==='recovery')return 'mobility'
   return 'other'
 }
 const relative=(a?:number,b?:number)=>a&&b?Math.abs(a-b)/Math.max(a,b):0

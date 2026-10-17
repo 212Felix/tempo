@@ -28,12 +28,12 @@ export interface WeekAdvice {
 /** Example defaults only. Athlete confirms actual load changes; no silent plan mutation. */
 export function adviseStrengthVolume(block: BlockKind, regularLegSets: number): WeekAdvice {
   if (!Number.isInteger(regularLegSets) || regularLegSets < 0) throw new Error('Satzanzahl muss >= 0 sein.');
-  const ratio: Record<BlockKind, number> = { BASE: 1, STRENGTH: 1, MIT: 0.85, HIT: 0.7, VOLUME: 0.5, MOUNTAIN: 0.7, RUN: 0.85 };
+  const ratio: Record<BlockKind, number> = { BASE: 1, STRENGTH: 1, MIT: 1, HIT: 0.90, VOLUME: 0.80, MOUNTAIN: 0.85, RUN: 0.95 };
   const suggestedLegSets = Math.min(regularLegSets, Math.round(regularLegSets * ratio[block]));
   const reductionPercent = regularLegSets ? Math.round(100 * (1 - suggestedLegSets / regularLegSets)) : 0;
   return {
     block, regularLegSets, suggestedLegSets, reductionPercent,
-    explanation: `${BLOCK_INFO[block].title}: unverbindlicher Vorschlag. Änderungen erst nach Bestätigung; Schmerz, Krankheit und Schichtbelastung separat prüfen.`,
+    explanation: `${BLOCK_INFO[block].title}: für erfahrene Kraftsportler erhaltender Ausgangsvorschlag, keine pauschale Halbierung. Änderungen erst nach Bestätigung; Schmerz, Krankheit und Schichtbelastung separat prüfen.`,
     affectsExistingSessions: false,
   };
 }

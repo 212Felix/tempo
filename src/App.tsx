@@ -14,6 +14,7 @@ import SwimmingPanel from './swimming/SwimmingPanel'
 import CyclingPanel from './cycling/CyclingPanel'
 import ProgressPanel from './stats/ProgressPanel'
 import RecoveryPanel from './recovery/RecoveryPanel'
+import FuelingPanel from './phase30/FuelingPanel'
 import { isRun, isStrength } from './workouts/sessionStore'
 import type { TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
@@ -47,7 +48,7 @@ const pages: PageInfo[] = [
 ]
 
 const primary: PageId[] = ['readiness', 'training', 'calendar', 'progress']
-const activityPages: PageId[] = ['cycling', 'running', 'strength', 'swimming']
+const activityPages: PageId[] = ['cycling', 'running', 'strength', 'swimming', 'recovery']
 
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const }
@@ -142,7 +143,7 @@ export default function App() {
       <nav aria-label="Hauptmenü">{pages.map(item => {
         if(item.id==='cycling')return <div className="tempo-nav-activities" key="activities">
           <button type="button" className={`nav-item tempo-activities-toggle ${activityPages.includes(page)?'group-active':''}`} aria-expanded={activitiesOpen} aria-controls="tempo-activities-list" onClick={()=>setActivitiesOpen(open=>!open)}>
-            <Icon name="layers" size={19}/><span>Aktivitäten</span><span className={`tempo-activities-arrow ${activitiesOpen?'expanded':''}`}><Icon name="chevron" size={17}/></span>
+            <Icon name="layers" size={19}/><span>Aktivitäten aufnehmen</span><span className={`tempo-activities-arrow ${activitiesOpen?'expanded':''}`}><Icon name="chevron" size={17}/></span>
           </button>
           {activitiesOpen&&<div id="tempo-activities-list" className="tempo-activities-children" role="group" aria-label="Sportarten">
             {activityPages.map(id=>{const sport=pages.find(p=>p.id===id)!;return <button type="button" key={id} className={`nav-item tempo-activity-child ${page===id?'active':''}`} onClick={()=>navigate(id)} aria-current={page===id?'page':undefined}><Icon name={sport.icon} size={18}/><span>{sport.name}</span>{page===id&&<span className="active-marker"/>}</button>})}
@@ -151,12 +152,12 @@ export default function App() {
         if(activityPages.includes(item.id))return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.29 · Adaptive Trainingssteuerung</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.30 · Leistung & Fueling</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 29</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 30</span></header>
       <main className={`content page-${page}`}><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
       <HelpProvider key={page}>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel onOpenDay={openCalendarDay}/> : page === 'training' ? <TrainingDayPanel key={dayFocus} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'recovery' ? <RecoveryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel onOpenDay={openCalendarDay}/> : page === 'training' ? <TrainingDayPanel key={dayFocus} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>

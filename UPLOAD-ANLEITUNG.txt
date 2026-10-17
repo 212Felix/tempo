@@ -1,19 +1,48 @@
-TEMPO PHASE 30 – EINFACHER GITHUB-UPLOAD
-========================================
+TEMPO PHASE 30 - ZUVERLAESSIGER EINMAL-UPLOAD UEBER GITHUB
+=============================================================
 
-WICHTIG: Die bisherige funktionierende Phase 29 bleibt auf dem iPhone, bis der Produktions-Build erfolgreich veröffentlicht wird. Vor dem Upload ein FRISCHES Backup direkt vom iPhone exportieren und im iCloud-Ordner TEMPO/01_Backups sicher ablegen. Backup niemals in GitHub hochladen.
+WICHTIG: Dies ist die KORRIGIERTE Upload-Ausgabe von Phase 30.
+GitHub erlaubt pro Web-Upload maximal 100 Dateien. Das vollstaendige
+Projekt enthaelt mehr als 100 Dateien und darf NICHT in einem Schritt
+ueber die Webseite hochgeladen werden.
 
-1. Dieses ZIP herunterladen und auf dem Mac entpacken.
-2. Im Finder den Ordner tempo-main öffnen. Mit Cmd + Shift + . auch .github und .gitignore sichtbar machen.
-3. Github: https://github.com/212Felix/tempo  → Code → Branch main → Add file → Upload files.
-4. ALLE INHALTE INNERHALB von tempo-main (inklusive .github, src, tests, scripts, public, docs sowie package.json, index.html, tsconfig.json und vite.config.ts) auf die Uploadfläche ziehen.
-   NICHT den Ordner tempo-main selbst hineinziehen. Die Pfade auf GitHub müssen direkt src/App.tsx, .github/workflows/deploy.yml usw. lauten.
-5. Vor dem Commit kontrollieren, ob src/App.tsx UND package.json auf der Uploadliste stehen. Falls nicht, Upload abbrechen und noch einmal kontrollieren.
-6. "Commit directly to the main branch" wählen und Commit bestätigen.
-7. Danach GitHub → Code → main → src/App.tsx öffnen: dort muss PHASE 30 stehen.
-8. Unter GitHub → Actions den NEUESTEN Lauf "TEMPO Phase 30 veroeffentlichen" kontrollieren. Erst wenn build und deploy grün sind, TEMPO auf dem Mac kontrollieren.
-9. Zuletzt am iPhone kontrollieren, dass abgeschlossene Trainings, Garmin-Aktivitäten, Ziele und Leistungswerte weiterhin da sind. Keine Website-Daten löschen, die App nicht deinstallieren und kein altes Backup drüber importieren.
+BENUTZE NUR DIE DATEI:
+  TEMPO_Phase30_EINMAL_UPLOAD_GITHUB.zip
 
-Wenn der Build ROT wird: Nicht ein weiteres altes ZIP hochladen. Öffne den fehlgeschlagenen Step im Workflow, mache einen Screenshot der Fehlermeldung und gib ihn im Chat weiter. Die App bleibt bis dahin auf der vorherigen Veröffentlichung.
+1. Auf dem iPhone vorab eine frische Sicherung in iCloud Drive erstellen.
+   Niemals Backup-Daten, Garmin FIT oder persoenliche GPX-Dateien nach GitHub laden.
+2. Die EINMAL_UPLOAD ZIP herunterladen und ENTPACKEN.
+3. Auf dem Mac im Finder den Ordner "tempo-main" IN DIESER ZIP oeffnen.
+   Cmd + Shift + . blendet den versteckten Ordner .github ein.
+4. Auf GitHub: https://github.com/212Felix/tempo -> Branch main ->
+   Add file -> Upload files.
+5. ALLE INHALTE INNERHALB von "tempo-main" auf GitHub ziehen,
+   nicht den Ordner "tempo-main" selbst.
+   In diesem Paket sind NUR die erforderlichen geaenderten und neuen
+   Phase-30-Dateien: unter 100 Stueck fuer einen GitHub-Upload.
+6. Auf der Uploadliste muessen sowohl src/App.tsx als auch
+   src/phase30/FuelingPanel.tsx und tests/phase29-release.test.mjs
+   sowie package.json stehen.
+   Fehlende Dateien -> NICHT committen, sondern abbrechen.
+7. "Commit directly to main" auswaehlen und committen.
+8. SOFORT PRUEFEN: GitHub -> Code -> main -> src -> App.tsx
+   Suchbegriff: PHASE 30. Nur wenn die Datei "PHASE 30" enthaelt,
+   ist der Quellcode erfolgreich ersetzt.
+9. GitHub Actions muss Build UND Deploy gruen melden.
+10. TEMPO zuerst auf dem Mac privat und danach auf dem iPhone pruefen.
+    App nicht loeschen. Website-/IndexedDB-Daten nicht loeschen.
 
-OFFENER TEST-BRANCH/PULL REQUEST aus Phase 28: NICHT MERGEN.
+HINWEIS:
+Das andere Paket TEMPO_Phase30_NEU_VOLLSTAENDIG.zip ist die
+vollstaendige Projektkopie fuer Archiv oder GitHub Desktop und
+enthaelt ueber 100 Dateien. Es ist NICHT fuer EINEN Web-Upload geeignet.
+
+WARUM DIESE ZUSAETZLICHE TESTDATEI?
+Tests/phase29-release.test.mjs liegt in der bestehenden Phase-29-
+Installation auf GitHub. Ein Web-Upload loescht sie nicht. Hier liegt
+deshalb eine kompatible Phase-30-Version bei, die den alten Test ersetzt.
+
+PERSOENLICHE DATEN:
+Keine privaten Backups in diesem Paket. IndexedDB tempo-local
+bleibt unveraendert, Version 1 und 20 Stores. Vorhandene Trainings
+werden durch das Hochladen von Quellcode nicht direkt veraendert.

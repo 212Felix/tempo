@@ -2,7 +2,7 @@ import {durationFor,parseHms,formatSeconds} from '../time/duration'
 import { deleteRecord, listRecords, openTempoDatabase, saveRecord } from '../db/storage'
 import { PLANNER_VERSION, PROFILE_ID, type CompletedRecord, type ManualSessionKind, type Priority, type TrainingRecord } from './engine'
 
-export type ManualSport = 'cycling' | 'running' | 'strength' | 'swimming' | 'martial' | 'mobility'
+export type ManualSport = 'cycling' | 'running' | 'strength' | 'swimming' | 'martial' | 'mobility' | 'yoga' | 'stabi'
 export const sports: {value:ManualSport; label:string; icon:string}[] = [
   {value:'cycling',label:'Radfahren',icon:'🚲'},
   {value:'running',label:'Laufen',icon:'🏃'},
@@ -10,6 +10,8 @@ export const sports: {value:ManualSport; label:string; icon:string}[] = [
   {value:'swimming',label:'Schwimmen',icon:'🏊'},
   {value:'martial',label:'Kampfsport',icon:'🥊'},
   {value:'mobility',label:'Recovery / Mobility',icon:'🧘'},
+  {value:'yoga',label:'Yoga (auch fremd angeleitet)',icon:'🧘'},
+  {value:'stabi',label:'Stabi Training (auch fremd angeleitet)',icon:'🤸'},
 ]
 export type ManualForm = {
   date: string
@@ -22,13 +24,14 @@ export type ManualForm = {
   priority: Priority
   target: string
   notes: string
+  sessionOrigin: 'self'|'extern'
   commuteLeg: 'none' | 'hin' | 'rueck' | 'beide'
   cyclingEnvironment: 'outdoor'|'indoor'|'unknown'
   strengthLocation: 'studio'|'arbeit'
   swimEnvironment: 'pool'|'openwater'
   swimFocus: 'technik'|'ausdauer'|'intervalle'|'locker'
 }
-export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:'',commuteLeg:'none',cyclingEnvironment:'unknown',strengthLocation:'studio',swimEnvironment:'pool',swimFocus:'locker'})
+export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:'',sessionOrigin:'self',commuteLeg:'none',cyclingEnvironment:'unknown',strengthLocation:'studio',swimEnvironment:'pool',swimFocus:'locker'})
 export type Editable = {kind:'planned'; record:TrainingRecord} | {kind:'completed'; record:CompletedRecord}
 export const sportFor = (kind: TrainingRecord['sessionType'] | undefined): ManualSport => {
   if (kind==='commute'||kind==='long'||kind==='quality'||kind==='endurance'||kind==='manual-cycling') return 'cycling'
@@ -36,6 +39,8 @@ export const sportFor = (kind: TrainingRecord['sessionType'] | undefined): Manua
   if (kind==='strength-a'||kind==='strength-b'||kind==='manual-strength') return 'strength'
   if (kind==='manual-swimming') return 'swimming'
   if (kind==='manual-martial') return 'martial'
+  if (kind==='manual-yoga') return 'yoga'
+  if (kind==='manual-stabi') return 'stabi'
   return 'mobility'
 }
 export const labelFor = (kind:TrainingRecord['sessionType'] | undefined) => sports.find(x=>x.value===sportFor(kind))!
@@ -49,7 +54,7 @@ export const toForm = (entry:Editable):ManualForm => {
     distance:entry.kind==='planned' ? (r.expectedKm==null?'':String(r.expectedKm)) : (r.distanceKm==null?'':String(r.distanceKm)),
     elevation:r.elevationM==null?'':String(r.elevationM),
     rpe:r.rpe==null?'':String(r.rpe),
-    priority:entry.kind==='planned'?entry.record.priority:'SOLL',
+    priority:entry.kind==='planned'?entry.record.priority:'SOLL',sessionOrigin:r.sessionOrigin==='extern'?'extern':'self',
     target:entry.kind==='planned'?entry.record.target:'', notes:r.notes??'',
     commuteLeg:r.commuteLeg==='hin'||r.commuteLeg==='rueck'||r.commuteLeg==='beide'?r.commuteLeg:'none',
     cyclingEnvironment:r.cyclingEnvironment==='outdoor'||r.cyclingEnvironment==='indoor'?r.cyclingEnvironment:'unknown',
@@ -97,7 +102,7 @@ export async function saveManualPlanned(form:ManualForm, previous?:TrainingRecor
     date:form.date,sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
     priority:form.priority,description:'Manuell geplant · nicht automatisch überschreiben',
     target:form.target.trim()||'Nach Tagesform und persönlichem Ziel',
-    notes:form.notes.trim(),expectedKm:distance,elevationM:elevation,rpe,commuteLeg:form.sport==='cycling'&&form.commuteLeg!=='none'?form.commuteLeg:undefined,cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
+    notes:form.notes.trim(),sessionOrigin:form.sessionOrigin,expectedKm:distance,elevationM:elevation,rpe,commuteLeg:form.sport==='cycling'&&form.commuteLeg!=='none'?form.commuteLeg:undefined,cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
     strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,
     swimEnvironment:form.sport==='swimming'?form.swimEnvironment:undefined, swimFocus:form.sport==='swimming'?form.swimFocus:undefined,
     status:'geplant',createdBy:'tempo-user',locked:true,
@@ -126,7 +131,7 @@ export async function saveManualCompleted(form:ManualForm, previous?:CompletedRe
   const record:CompletedRecord={
     ...(previous??{}),id:previous?.id??newId(),profileId:PROFILE_ID,date:form.date,
     sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
-    distanceKm:distance,elevationM:elevation,rpe,notes:form.notes.trim(),
+    distanceKm:distance,elevationM:elevation,rpe,notes:form.notes.trim(),sessionOrigin:form.sessionOrigin,
     commuteLeg:form.sport==='cycling'&&form.commuteLeg!=='none'?form.commuteLeg:undefined,
     cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
     strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,

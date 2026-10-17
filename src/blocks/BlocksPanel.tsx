@@ -1,8 +1,8 @@
-import {useEffect,useMemo,useState,type FormEvent} from 'react'
+import {useEffect,useState,type FormEvent} from 'react'
 import {deleteRecord,listRecords,saveRecord} from '../db/storage'
 import {currentKey,PROFILE_ID,type CompletedRecord} from '../planning/engine'
 import {dateLabel,dayDelta,plusDays,type GoalEvent} from '../events/library'
-import {blockIsValid,capacityLabels,deriveSeasonPhases,describeBlock,focusLabels,matchingBlock,targetLabels,type BlockCapacity,type BlockSport,type BlockTarget,type TrainingBlock} from './library'
+import {blockIsValid,capacityLabels,describeBlock,focusLabels,matchingBlock,targetLabels,type BlockCapacity,type BlockSport,type BlockTarget,type TrainingBlock} from './library'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import BlockDaysPanel from './BlockDaysPanel'
 import './blocks.css'
@@ -32,7 +32,6 @@ export default function BlocksPanel({onOpenEvents}:{onOpenEvents:()=>void}){
     try{const [stored,goals,done]=await Promise.all([listRecords<TrainingBlock>('trainingBlocks'),listRecords<GoalEvent>('events'),listRecords<CompletedRecord>('completedSessions')]);if(live){setBlocks(stored.filter(x=>x.profileId===PROFILE_ID&&x.createdBy==='tempo-user').sort(sortByDate));setEvents(goals.filter(x=>x.profileId===PROFILE_ID));setCompleted(done.filter(x=>x.profileId===PROFILE_ID))}}
     catch(error){if(live)setMessage(`Daten konnten nicht geladen werden: ${String(error)}`)}
   };void load();return()=>{live=false}},[])
-  const season=useMemo(()=>deriveSeasonPhases(events,currentKey()),[events])
   const upcomingAnchors=events.filter(e=>e.priority==='A'&&e.status!=='abgeschlossen'&&e.date&&e.date>=currentKey()).sort((a,b)=>a.date!.localeCompare(b.date!))
   const active=matchingBlock(currentKey(),blocks)
   const inFormEvent=events.find(x=>x.id===form.eventId)
@@ -109,10 +108,7 @@ export default function BlocksPanel({onOpenEvents}:{onOpenEvents:()=>void}){
     <section className="panel tempo-block-overview"><div className="eyebrow">DEIN JAHRESRAHMEN · EVENTDATEN</div><h3>Langfristige Blockübersicht</h3>
       <div className="tempo-block-anchor-summary"><strong>A-Ziele als Jahresanker</strong>{upcomingAnchors.length===0?<p>Noch keine A-Ziele gespeichert. Trage deine private Langdistanz und deinen späteren Hauptevent unter „Ziele & Events“ mit Datum ein. Auch eine noch offene Anmeldung ist für einen vorläufigen Jahresrahmen möglich.</p>:upcomingAnchors.map(e=><p key={e.id}>{e.name} · {dateLabel(e.date)} · {e.status==='bestaetigt'?'Termin bestätigt':'Planungsanker – noch nicht endgültig bestätigt'}</p>)}<button type="button" onClick={onOpenEvents}>Ziele & Events verwalten ↗</button></div>
       <HelpDisclosure id="blocks-season-help"><p>Die Phasen werden anhand vorhandener Eventdaten berechnet. Auch ein offener Startplatz mit eingegebenem Zieldatum erzeugt einen vorläufigen Jahresrahmen. Erst bestätigte Eventtermine beeinflussen den Taper und die Tagesplanung unmittelbar. Bei geändertem Eventdatum verschieben sich die noch offenen Orientierungsphasen. Sonderblöcke ergänzen sie, statt sie zu löschen. Nur bestätigte Tagesplanvorschläge werden zu konkreten Trainingseinheiten.</p></HelpDisclosure>
-      {season.length===0?<div className="tempo-block-muted">Noch keine zukünftigen Eventdaten gefunden. Hinterlege geplante A- und B-Ziele unter „Ziele & Events“, um einen vorläufigen Jahresrahmen zu erhalten.<button type="button" onClick={onOpenEvents}>Ziele & Events öffnen ↗</button></div>:season.map(phase=>{
-        const now=currentKey(),isNow=phase.startDate<=now&&phase.endDate>=now,isPast=phase.endDate<now
-        return <div className={`tempo-block-phase ${isNow?'current':''}`} key={phase.id}><span className="tempo-block-phase-code">{phase.id}</span><div><strong>{phase.title}</strong><p>{dateLabel(phase.startDate)} – {dateLabel(phase.endDate)}</p><small>{phase.detail}</small></div><span className="tempo-block-phase-status">{phase.tentative?'Vorläufig':isNow?'Aktuell':isPast?'Vergangen':'Geplant'}</span></div>
-      })}
+      <p className="tempo-block-muted">Die vollständigen Saisonphasen mit ausklappbaren Wochen-, Kilometer- und Workout-Zielen findest du oben unter „Adaptive Blockperiodisierung“. Hier verwaltest du nur zusätzliche eigene Trainingsblöcke.</p>
     </section>
     <p className="tempo-block-status" role="status">{message}</p>
   </div>

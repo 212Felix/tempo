@@ -8,6 +8,9 @@ import DailyDecisionPanel from './DailyDecisionPanel'
 import { isStrength, isRun } from '../workouts/sessionStore'
 import './plan.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
+import {FuelingQuick} from '../phase30/FuelingPanel'
+import WeekReplanner from '../phase30/WeekReplanner'
+import {addDays} from '../phase28/calendar-model'
 
 function HomeTrainingCard({onOpen}:{onOpen:()=>void}) {
   const [today,setToday]=useState<TrainingRecord[]>([])
@@ -33,6 +36,7 @@ const askDone=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-fi
 export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenWorkout,initialDate}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void;initialDate?:string}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
   const [selected,setSelected]=useState(initialDate??currentKey())
+  const [reschedule,setReschedule]=useState<TrainingRecord|null>(null)
   const [loading,setLoading]=useState(true)
   const [notice,setNotice]=useState('Gespeicherte Einheiten werden geladen …')
   const today=currentKey()
@@ -49,22 +53,23 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
   const dates=[...new Set(entries.map(x=>x.date))].sort()
   const selectedDay=selected||today
   const atDate=entries.filter(x=>x.date===selectedDay)
-  const previousDate=dates.filter(x=>x<selectedDay).at(-1)
-  const nextDate=dates.find(x=>x>selectedDay)
+  const previousDate=addDays(selectedDay,-1)
+  const nextDate=addDays(selectedDay,1)
   return <div className="tempo-workout tempo-28-daily">
     <section className="panel tempo-workout-head">
       <div className="eyebrow">DEIN TAG · {friendlyDate(selectedDay)}</div>
       <h2>Geplante Einheiten</h2>
-      <div className="tempo-workout-nav"><button type="button" onClick={()=>setSelected(previousDate??today)} disabled={!previousDate}>‹ Vorherige Einheit</button><strong>{friendlyDate(selectedDay)}</strong><button type="button" onClick={()=>setSelected(nextDate??today)} disabled={!nextDate}>Nächste Einheit ›</button></div>
+      <div className="tempo-workout-nav"><button type="button" onClick={()=>setSelected(previousDate)} aria-label="Vorheriger Kalendertag">‹</button><strong>{friendlyDate(selectedDay)}</strong><button type="button" onClick={()=>setSelected(nextDate)} aria-label="Nächster Kalendertag">›</button></div>
       <label className="tempo-28-day-picker">Anderen Tag öffnen <input type="date" value={selectedDay} onChange={e=>setSelected(e.target.value||today)}/></label>
       {loading&&<p>{notice}</p>}
       {!loading&&atDate.length===0&&<p>Für diesen Tag ist noch keine Einheit geplant. Auch ein Ruhetag ist eine bewusste Entscheidung.</p>}
       {!loading&&atDate.map(x=><details key={x.id} className="tempo-28-session-card" open={atDate.length===1}>
         <summary><span>{x.sessionType.includes('strength')?'🏋️':x.sessionType.includes('run')?'🏃':x.sessionType.includes('recovery')?'🧘':'🚴'} <strong>{x.title}</strong></span><small>{x.status==='erledigt'?'✓ Absolviert':x.priority} · {x.durationMin?durationFor(x):'Dauer offen'}</small></summary>
         <div className="tempo-28-session-content"><p>{x.description}</p><p><strong>Ziel:</strong> {x.target}</p>{x.notes&&<p>{x.notes}</p>}{x.commuteLeg&&<p>🚲 Pendeln {x.commuteLeg==='rueck'?'Rückweg':x.commuteLeg==='hin'?'Hinweg':'Hin & Rück'} · diese Fahrt nur einmal zählen</p>}
-        <div className="tempo-manual-entry-actions">{(isStrength(x)||isRun(x))&&<button type="button" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm öffnen →'}</button>}{x.status!=='erledigt'&&<><button type="button" onClick={()=>askEdit(x.id)}>Bearbeiten</button><button type="button" onClick={()=>askDone(x.id)}>Training abschließen</button></>}</div></div>
+        <FuelingQuick session={x}/><div className="tempo-manual-entry-actions">{(isStrength(x)||isRun(x))&&<button type="button" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm öffnen →'}</button>}{x.status!=='erledigt'&&<><button type="button" onClick={()=>setReschedule(x)}>🗓️ Training verschieben</button><button type="button" onClick={()=>askEdit(x.id)}>Bearbeiten</button><button type="button" onClick={()=>askDone(x.id)}>Training abschließen</button></>}</div></div>
       </details>)}
     </section>
+    {reschedule&&<WeekReplanner anchor={reschedule} onClose={()=>setReschedule(null)} onSaved={()=>setSelected(selectedDay)}/>}
     <DayShiftEditor key={selectedDay} date={selectedDay}/>
     {selectedDay===today&&<DailyDecisionPanel onOpenReadiness={onOpenReadiness} onOpenCalendar={onOpenCalendar}/> }
     <ManualTrainingPanel days={[selectedDay]}/>

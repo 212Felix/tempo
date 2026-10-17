@@ -13,7 +13,7 @@ export type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
 export type CommuteKind = 'nein' | 'hin' | 'zurueck' | 'beide'
 export type Priority = 'MUSS' | 'SOLL' | 'KANN'
 export type SessionKind = 'long' | 'quality' | 'endurance' | 'commute' | 'strength-a' | 'strength-b' | 'run' | 'recovery'
-export type ManualSessionKind = 'manual-cycling' | 'manual-running' | 'manual-strength' | 'manual-swimming' | 'manual-martial' | 'manual-mobility'
+export type ManualSessionKind = 'manual-cycling' | 'manual-running' | 'manual-strength' | 'manual-swimming' | 'manual-martial' | 'manual-mobility' | 'manual-yoga' | 'manual-stabi'
 
 export type ShiftRecord = TempoRecord & {
   date: string
@@ -50,6 +50,7 @@ export type TrainingRecord = TempoRecord & {
   strengthLocation?: 'studio' | 'arbeit'
   swimEnvironment?: 'pool' | 'openwater'
   swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
+  sessionOrigin?: 'self'|'extern'
   status: 'geplant' | 'erledigt' | 'nicht-erledigt'
   createdBy?: string
   locked?: boolean
@@ -70,6 +71,7 @@ export type CompletedRecord = TempoRecord & {
   strengthLocation?: 'studio' | 'arbeit'
   swimEnvironment?: 'pool' | 'openwater'
   swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
+  sessionOrigin?: 'self'|'extern'
   source?: 'manuell' | 'plan' | 'import'
 }
 export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence; blockIntention?:BlockDayPlan; seasonEvent?: string; seasonEventTentative?:boolean }
@@ -178,7 +180,7 @@ export function generatePlan(args: {
     if (type === 'manual-strength') return 'strength-a'
     if (type === 'manual-running') return 'run'
     if (type === 'manual-cycling') return (min ?? 0) >= 120 || (km ?? 0) >= 60 ? 'long' : 'endurance'
-    if (type === 'manual-mobility') return 'recovery'
+    if (type === 'manual-mobility' || type === 'manual-yoga' || type === 'manual-stabi') return 'recovery'
     if (type === 'manual-martial') return 'quality'
     if (type === 'manual-swimming') return 'endurance'
     return (type ?? 'recovery') as SessionKind
