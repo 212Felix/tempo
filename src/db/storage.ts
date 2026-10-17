@@ -136,13 +136,12 @@ function parseBackup(value: unknown): TempoBackup {
 }
 
 /**
- * Import vollständig in einer Transaktion: entweder alle Stores oder keiner.
- * mode=replace überschreibt vorhandene Daten. Niemals ohne Bestätigung aufrufen.
+ * Verlustfreier Backup-Import: ausschließlich noch nicht vorhandene IDs ergänzen.
+ * Ein bereits vorhandener Datensatz wird niemals von einer Backup-Datei überschrieben.
+ * Ein vollständiges Wiederherstellen durch Leeren der Datenbank ist bewusst NICHT möglich.
+ * Alle Änderungen liegen in einer einzigen IndexedDB-Transaktion.
  */
-export async function importTempoBackup(
-  untrustedJson: unknown,
-  mode: 'replace' | 'merge' = 'replace',
-): Promise<void> {
+export async function importTempoBackup(untrustedJson: unknown): Promise<void> {
   const backup = parseBackup(untrustedJson)
   const db = await openTempoDatabase()
   return new Promise((resolve, reject) => {
@@ -150,8 +149,13 @@ export async function importTempoBackup(
     try {
       for (const name of STORE_NAMES) {
         const store = tx.objectStore(name)
-        if (mode === 'replace') store.clear()
-        for (const item of backup.stores[name]) store.put(item)
+        for (const item of backup.stores[name]) {
+          const request = store.get(item.id)
+          request.onsuccess = () => {
+            if (request.result === undefined) store.add(item)
+          }
+          request.onerror = () => tx.abort()
+        }
       }
     } catch (error) {
       tx.abort()

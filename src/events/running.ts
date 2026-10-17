@@ -48,17 +48,21 @@ export async function ensureCooperGoal(): Promise<void> {
   const rows=(await listRecords<GoalEvent>('events')).filter(e=>e.profileId===LOCAL_PROFILE)
   const existing=rows.find(e=>e.status!=='abgeschlossen' && (e.runningKind==='cooper'||/cooper[\s-]*test|cooper\b/i.test(e.name)))
   const now=new Date().toISOString()
-  const record:GoalEvent=existing ? {
-    ...existing,updatedAt:now,sport:'running',runningKind:'cooper',
-    distanceKm:COOPER_TARGET,targetSeconds:COOPER_SECONDS,
-  } : {
-    id:'goal:cooper-test-3200',profileId:LOCAL_PROFILE,createdAt:now,updatedAt:now,
-    name:'Cooper-Test · 3.200 m in 12 Minuten',kind:'challenge',priority:'B',
-    status:'offen',vacation:'nicht_noetig',sport:'running',runningKind:'cooper',
-    distanceKm:COOPER_TARGET,targetSeconds:COOPER_SECONDS,
-    notes:'Termin noch offen. Wiedereinstieg zuerst über lockere Läufe und Laufverträglichkeit.',
+  if (!existing) {
+    // On older devices the historic fixed ID may be an unrelated (Mallorca) goal.
+    // Never overwrite it: choose a unique ID if already occupied.
+    const fixedId='goal:cooper-test-3200'
+    const id=rows.some(x=>x.id===fixedId) ? `goal:cooper-${Date.now()}-${Math.random().toString(36).slice(2)}` : fixedId
+    const record:GoalEvent={
+      id,profileId:LOCAL_PROFILE,createdAt:now,updatedAt:now,
+      name:'Cooper-Test · 3.200 m in 12 Minuten',kind:'challenge',priority:'B',
+      status:'offen',vacation:'nicht_noetig',sport:'running',runningKind:'cooper',
+      distanceKm:COOPER_TARGET,targetSeconds:COOPER_SECONDS,
+      notes:'Termin noch offen. Bitte manuell bearbeiten, keine automatische Überschreibung.',
+    }
+    await saveRecord('events',record)
   }
-  await saveRecord('events',record)
+  // Existing goal stays exactly as the user configured it.
   await saveRecord('settings',{id:FLAG_ID,createdAt:now,updatedAt:now,profileId:LOCAL_PROFILE,completed:true})
 }
 

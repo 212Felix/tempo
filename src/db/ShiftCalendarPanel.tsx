@@ -4,9 +4,10 @@ import type { ProfileRecord, TempoRecord } from './types'
 import './shift-calendar.css'
 import PlanPreview from '../planning/PlanPreview'
 import HelpDisclosure from '../ui/HelpDisclosure'
-import ManualTrainingPanel from '../planning/ManualTrainingPanel'
 import ReconciliationPanel from '../planning/ReconciliationPanel'
 import QuickAdjustmentPanel from './QuickAdjustmentPanel'
+import CompactCalendar from '../phase28/CompactCalendar'
+import type {TrainingRecord,CompletedRecord} from '../planning/engine'
 
 const PROFILE_ID = 'local-primary-profile'
 type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
@@ -109,7 +110,7 @@ export function ShiftHomeCard({ onOpen }: {onOpen: () => void}) {
   </section>
 }
 
-export default function ShiftCalendarPanel() {
+export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=>void}) {
   const [rangeOffset, setRangeOffset] = useState(0)
   const [horizon, setHorizon] = useState<7 | 14>(14)
   const [entries, setEntries] = useState<Record<string, ShiftEntry>>({})
@@ -117,8 +118,10 @@ export default function ShiftCalendarPanel() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [planRefresh, setPlanRefresh] = useState(0)
+  const [savedPlans,setSavedPlans]=useState<TrainingRecord[]>([])
+  const [completedTrainings,setCompletedTrainings]=useState<CompletedRecord[]>([])
   const [feedback, setFeedback] = useState('Dienste werden geladen …')
-  const start = useMemo(() => { const now = new Date(); return addDays(now, rangeOffset) }, [rangeOffset])
+  const start = useMemo(() => { const now = new Date(); const mondayOffset=(now.getDay()+6)%7; return addDays(now,-mondayOffset+rangeOffset) }, [rangeOffset])
   const days = useMemo(() => Array.from({length:horizon}, (_, i) => formatKey(addDays(start, i))), [start, horizon])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShiftValues | null>(null)
@@ -140,6 +143,11 @@ export default function ShiftCalendarPanel() {
     return () => { active = false }
   }, [])
 
+  useEffect(()=>{let live=true
+    const reload=()=>void Promise.all([listRecords<TrainingRecord>('plannedSessions'),listRecords<CompletedRecord>('completedSessions')]).then(([plans,done])=>{if(live){setSavedPlans(plans.filter(x=>x.profileId===PROFILE_ID));setCompletedTrainings(done.filter(x=>x.profileId===PROFILE_ID))}}).catch(()=>undefined)
+    reload();window.addEventListener('tempo:training-change',reload)
+    return()=>{live=false;window.removeEventListener('tempo:training-change',reload)}
+  },[])
   const confirmed = days.filter(date => isConfirmed(entries[date])).length
   const proposedWeekends = days.filter(date => isWeekend(date) && !isConfirmed(entries[date]))
   const totalKm = draft?.commute === 'beide' ? (profileKm ?? 0) * 2 : draft?.commute === 'nein' ? 0 : profileKm ?? 0
@@ -205,33 +213,9 @@ export default function ShiftCalendarPanel() {
       <div className="tempo-shift-meter"><span style={{width:`${days.length ? confirmed / days.length * 100 : 0}%`}}/></div>
     </section>
 
-    <QuickAdjustmentPanel onSaved={(record)=>{
-      setEntries(old=>({...old,[record.date]:record}))
-      setPlanRefresh(n=>n+1)
-      setSelectedDate(null);setDraft(null)
-      window.dispatchEvent(new Event('tempo:shift-change'))
-      setFeedback('Schnelle Tagesänderung gespeichert. Planvorschlag darunter vor Übernahme prüfen.')
-    }}/>
 
-    {Array.from({length: Math.ceil(days.length/7)}, (_, group) => {
-      const weekDays = days.slice(group*7, group*7+7)
-      return <section className="tempo-shift-week" key={weekDays[0]}>
-        <div className="tempo-shift-week-head"><h3>{group === 0 ? 'Erste 7 Tage' : 'Weitere 7 Tage'}</h3><span>{displayDate(weekDays[0])} – {displayDate(weekDays[weekDays.length - 1])}</span></div>
-        <div className="tempo-shift-grid">{weekDays.map(date => {
-          const entry = entries[date], confirmedDay = isConfirmed(entry)
-          const suggested = isWeekend(date) && !confirmedDay
-          const kind = confirmedDay ? (entry?.shift ?? 'offen') : (suggested ? 'frei' : 'offen')
-          return <button type="button" key={date} className={`tempo-shift-tile ${confirmedDay ? 'is-confirmed' : 'is-unconfirmed'} ${selectedDate === date ? 'is-selected' : ''}`} onClick={() => selectDay(date)} aria-label={`${displayDate(date, true)}, ${shiftName[kind]}, ${confirmedDay ? 'bestätigt' : 'noch offen'}`} aria-pressed={selectedDate === date}>
-            <span className="tempo-shift-tile-date">{displayDate(date, true)}</span>
-            <strong>{shiftName[kind]}</strong>
-            <small>{confirmedDay ? '✓ BESTÄTIGT' : suggested ? 'VORSCHLAG' : 'NOCH OFFEN'}</small>
-            {confirmedDay && kind === 'tagdienst' && entry?.commute && entry.commute !== 'nein' && <span className="tempo-shift-tile-detail">🚲 {entry.commute === 'beide' ? 'Hin + zurück' : entry.commute === 'hin' ? 'Hinfahrt' : 'Heimfahrt'}</span>}
-            {confirmedDay && kind === 'einsatz' && <span className="tempo-shift-tile-detail">Recovery bevorzugt</span>}
-          </button>
-        })}</div>
-      </section>
-    })}
 
+    <CompactCalendar shifts={Object.values(entries)} plans={savedPlans} done={completedTrainings} onOpenDay={onOpenDay} days={days}/>
     {proposedWeekends.length > 0 && <button className="tempo-shift-weekend-button" type="button" onClick={() => void confirmWeekends()} disabled={saving || loading}>Freie Wochenend-Vorschläge bestätigen ({proposedWeekends.length})</button>}
 
     {selectedDate && draft && <section className="panel tempo-shift-editor" id="tempo-shift-editor">
@@ -268,12 +252,11 @@ export default function ShiftCalendarPanel() {
         </>}
       </div>}
       <div className="tempo-shift-editor-actions"><button type="button" disabled={saving || loading} className="tempo-shift-save" onClick={() => void saveDay()}>{saving ? 'Wird gespeichert …' : 'Tag bestätigen & speichern'}</button>
-        <button type="button" className="tempo-shift-choice" onClick={() => window.dispatchEvent(new CustomEvent('tempo:manual-add',{detail:selectedDate}))}>＋ Eigenes Training für diesen Tag</button>
+        <button type="button" className="tempo-shift-choice" onClick={() => onOpenDay(selectedDate)}>Training für diesen Tag öffnen →</button>
       </div>
     </section>}
     <div className="tempo-shift-feedback" role="status">{feedback}</div>
-    <ReconciliationPanel context="calendar"/>
-    <ManualTrainingPanel days={days}/>
-    <PlanPreview days={days} shifts={entries} refreshIndex={planRefresh}/>
+    <details className="tempo-28-plan-tools"><summary>Schnelle Dienstkorrektur öffnen</summary><QuickAdjustmentPanel onSaved={(record)=>{setEntries(old=>({...old,[record.date]:record}));setPlanRefresh(n=>n+1);window.dispatchEvent(new Event('tempo:shift-change'));setFeedback('Dienstkorrektur gespeichert.')}}/></details>
+    <details className="tempo-28-plan-tools"><summary>Trainingsvorschläge, Abgleich & Belastungsprüfung öffnen</summary><ReconciliationPanel context="calendar"/><PlanPreview days={days} shifts={entries} refreshIndex={planRefresh}/></details>
   </div>
 }

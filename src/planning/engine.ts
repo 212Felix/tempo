@@ -4,6 +4,7 @@ import {blockDayForDate,isTrainingFree,type BlockDayPlan} from '../blocks/days'
 import { createLoadCalendar, type LoadCalendar } from './load'
 import { buildEventInfluences, type EventInfluence, type GoalEvent, type RouteEntry } from '../events/library'
 import { upcomingCooper } from '../events/running'
+import {deriveAdaptiveWeeks,adjustSuggestedSession,plannedEvents,type AdaptiveWeek} from '../phase28/adaptive-planner'
 
 /** Conservative starter scheduling rules, intentionally transparent and changeable. */
 export const PLANNER_VERSION = 'tempo-planner-v1'
@@ -44,6 +45,7 @@ export type TrainingRecord = TempoRecord & {
   expectedKm?: number
   elevationM?: number
   rpe?: number
+  commuteLeg?: 'hin' | 'rueck' | 'beide'
   cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
   strengthLocation?: 'studio' | 'arbeit'
   swimEnvironment?: 'pool' | 'openwater'
@@ -63,13 +65,14 @@ export type CompletedRecord = TempoRecord & {
   elevationM?: number
   rpe?: number
   notes?: string
+  commuteLeg?: 'hin' | 'rueck' | 'beide'
   cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
   strengthLocation?: 'studio' | 'arbeit'
   swimEnvironment?: 'pool' | 'openwater'
   swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
   source?: 'manuell' | 'plan' | 'import'
 }
-export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence; blockIntention?:BlockDayPlan }
+export type PlanDay = { date: string; confirmed: boolean; shift: ShiftKind; session?: TrainingRecord; protected: boolean; recoveryFlag?: 'none' | 'caution' | 'recovery'; recoveryReasons?: string[]; eventInfluence?: EventInfluence; blockIntention?:BlockDayPlan; seasonEvent?: string; seasonEventTentative?:boolean }
 
 const sDate = (key: string) => {
   const [year, month, day] = key.split('-').map(Number)
@@ -142,6 +145,14 @@ export function generatePlan(args: {
   const loadCalendar: LoadCalendar = createLoadCalendar(
     days, completed.filter(x => x.profileId === PROFILE_ID), existing.filter(x => x.profileId === PROFILE_ID), args.readiness
   )
+  // Weeks are read-only coaching decisions derived from the athlete's saved goals.
+  // They never replace the duty/load/saved-session safety rules below.
+  const adaptiveWeeks=deriveAdaptiveWeeks({start:days[0]??today,weeks:Math.ceil(days.length/7)+1,events:args.events??[],
+    blocks:args.blocks??[],completed,planned:existing,shifts,readiness:args.readiness,ftpWatts:profile?.ftpWatts})
+  const coachingWeekFor=(date:string):AdaptiveWeek|undefined=>adaptiveWeeks.find(w=>w.startDate<=date&&w.endDate>=date)
+  // Tentative events still reserve the date against automatically added sessions,
+  // but do NOT create a fake completed activity or a confirmed race.
+  const milestoneByDate=new Map(plannedEvents(args.events??[]).map(e=>[e.date!,e]))
   const lockedDates = new Set<string>()
   for (const item of existing) {
     if (item.profileId !== PROFILE_ID) continue
@@ -151,6 +162,12 @@ export function generatePlan(args: {
   const map = new Map<string, PlanDay>()
   const preassigned = new Set<string>()
   const heavy = new Set<string>()
+  const intensityDates = new Set<string>()
+  const isRecordedQuality=(entry:{sessionType?:string;title?:string;target?:string;rpe?:number})=>
+    entry.sessionType==='quality' ||
+    (entry.sessionType==='manual-cycling' && (
+      /schwelle|sweet.?spot|vo2|vo₂|intervall|sprint|threshold|hit/i.test(`${entry.title??''} ${entry.target??''}`) ||
+      (entry.rpe??0)>=8))
   const fixedTypes = new Map<string, SessionKind[]>()
   const markFixed = (date: string, type: SessionKind) => {
     const list = fixedTypes.get(date) ?? []
@@ -171,17 +188,19 @@ export function generatePlan(args: {
     (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant')) {
     const type = normalize(item.sessionType, item.durationMin, item.expectedKm)
     markFixed(item.date, type)
+    if(isRecordedQuality(item))intensityDates.add(item.date)
     if (['long','quality','strength-a','strength-b','commute'].includes(type)) heavy.add(item.date)
   }
   for (const item of completed) if (item.profileId === PROFILE_ID && days.includes(item.date)) {
     const type = normalize(item.sessionType, item.durationMin, item.distanceKm)
     markFixed(item.date, type)
+    if(isRecordedQuality(item))intensityDates.add(item.date)
     if (['long','quality','strength-a','strength-b','commute'].includes(type) || (item.rpe ?? 0) >= 7) heavy.add(item.date)
   }
   days.forEach(date => {
     const shift = shifts[date]
     const confirmed = isConfirmed(shift)
-    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date],blockIntention:blockDayForDate(date,args.blocks??[])})
+    map.set(date, {date, confirmed, shift: confirmed ? shift.shift! : isWeekend(date) ? 'frei' : 'offen', protected: lockedDates.has(date), recoveryFlag: loadCalendar[date]?.level ?? 'none', recoveryReasons: loadCalendar[date]?.reasons ?? [], eventInfluence:eventInfluences[date],blockIntention:blockDayForDate(date,args.blocks??[]),seasonEvent:milestoneByDate.get(date)?.name,seasonEventTentative:milestoneByDate.get(date)?.status!=='bestaetigt'||milestoneByDate.get(date)?.vacation==='offen'})
   })
   const offsetDate=(date:string,diff:number)=>{const t=new Date(`${date}T12:00:00Z`);t.setUTCDate(t.getUTCDate()+diff);return t.toISOString().slice(0,10)}
   const put = (date: string, item: TrainingRecord) => {
@@ -213,13 +232,20 @@ export function generatePlan(args: {
         target:settled?'Locker, RPE 3–4. Optional 4 × 12 Sekunden Steigerung mit vollständiger Gehpause. Keine Tempovorgabe.':'Lockeres Gesprächstempo, RPE 3–4; Gehpausen erlaubt. Keine harten 800-m-Intervalle.',
         notes:[adjusted.notes,`Langfristiges Ziel: Cooper-Test 3.200 m in 12:00 (3:45 min/km). ${goalDate?`Testdatum: ${goalDate}.`:'Testdatum noch offen.'} Tempo erst nach ausreichender Laufverträglichkeit schrittweise aufbauen.`].filter(Boolean).join(' · ')}
     }
+    const coaching=coachingWeekFor(date)
+    // The user's explicit focus block has priority over the automatically inferred one.
+    if(coaching && !active && !day.eventInfluence && !day.blockIntention &&
+      loadCalendar[date]?.level==='none' && !(date===today&&readinessLevel(args.readiness)==='rot')) {
+      adjusted=adjustSuggestedSession(adjusted,coaching,profile?.ftpWatts) as TrainingRecord
+    }
     day.session = adjusted
     preassigned.add(date)
     if (['long', 'quality', 'strength-a', 'strength-b', 'commute'].includes(adjusted.sessionType)) heavy.add(date)
   }
   const canUse = (date: string) => {
     const day = map.get(date)
-    return !!day && date >= today && day.confirmed && !day.protected && !preassigned.has(date) && day.shift !== 'einsatz' && ! (day.blockIntention && (isTrainingFree(day.blockIntention.kind)||day.blockIntention.kind==='challenge'))
+    const weekAdvice=coachingWeekFor(date)
+    return weekAdvice?.kind!=='RECOVERY' && !!day && date >= today && day.confirmed && !day.protected && !preassigned.has(date) && day.shift !== 'einsatz' && ! (day.blockIntention && (isTrainingFree(day.blockIntention.kind)||day.blockIntention.kind==='challenge'))
   }
   const index = (key: string) => days.indexOf(key)
   const nearType = (date: string, types: SessionKind[], maxDistance: number) => {
@@ -233,6 +259,11 @@ export function generatePlan(args: {
   days.forEach(date => {
     const day = map.get(date)!
     const shift = shifts[date]
+    if(milestoneByDate.has(date)){
+      preassigned.add(date)
+      heavy.add(date)
+      return
+    }
     if (date < today) return
     // Ein bestätigter Höhepunkt ist ein fester Kalendereintrag und wird nicht mit einem
     // zusätzlichen TEMPO-Workout überplant. Als absolvierte Aktivität separat protokollieren.
@@ -291,6 +322,12 @@ export function generatePlan(args: {
   for (let offset = 0; offset < days.length; offset += 7) {
     const week = days.slice(offset, offset + 7)
     const weekNumber = Math.floor(offset / 7)
+    const coaching=coachingWeekFor(week[0])
+    const taper=coaching?.kind==='TAPER'
+    const lowIntensityWeek=Boolean(coaching?.deload)
+    const hasFixedType=(types:SessionKind[])=>week.some(d=>(fixedTypes.get(d)??[]).some(x=>types.includes(x)))
+    const alreadyHard=week.some(d=>intensityDates.has(d))||hasFixedType(['quality'])
+    const existingStrengthDays=week.filter(d=>(fixedTypes.get(d)??[]).some(x=>x==='strength-a'||x==='strength-b')).length
     const nearbyHeavy = (date: string, distance = 1) => {
       const i = index(date)
       return days.some((d,j) => Math.abs(i-j) <= distance && d !== date && heavy.has(d))
@@ -299,17 +336,17 @@ export function generatePlan(args: {
       week.filter(date => canUse(date) && predicate(date)).sort((a,b) => score(b)-score(a) || a.localeCompare(b))[0]
     // Long bike ride prefers a confirmed free day and distance from commute.
     const longDate = select(date => !eventInfluences[date] && map.get(date)!.shift === 'frei' && loadCalendar[date]?.level === 'none' && !nearbyHeavy(date) && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10)
-    if (longDate) put(longDate, candidate(longDate, 'long', profile, undefined, false, weekNumber))
+    if (longDate && !taper && !hasFixedType(['long'])) put(longDate, candidate(longDate, 'long', profile, undefined, false, weekNumber))
     // One controlled quality session, only if there is a suitable slot.
     const qualityDate = select(date => {
       const shift = shifts[date]
       return !eventInfluences[date] && loadCalendar[date]?.level === 'none' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
         !nearbyHeavy(date) && !nearType(date, ['commute','long'], 1) && !(date === today && readinessToday !== 'gruen')
     }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 3)
-    if (qualityDate) put(qualityDate, candidate(qualityDate, 'quality', profile))
+    if (qualityDate && !lowIntensityWeek && !alreadyHard && (coaching?.qualityLimit??1)>0) put(qualityDate, candidate(qualityDate, 'quality', profile))
     // Up to two strength sessions if enough suitable days exist. Chronological
     // assignment and the last documented strength type determine A/B alternation.
-    for (let slot = 0; slot < 2; slot++) {
+    for (let slot = existingStrengthDays; slot < (coaching?.strengthSlots??2); slot++) {
       const strengthDate = week.filter(date => {
         const shift = shifts[date]
         return canUse(date) && !eventInfluences[date] && loadCalendar[date]?.level === 'none' &&
@@ -338,7 +375,7 @@ export function generatePlan(args: {
       return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!(shift.workRun || shift.afterWorkRun))) &&
         !nearType(date, ['long','commute'], 1)
     }, date => shiftRunScore(shifts[date]))
-    if (runDate) {
+    if (runDate && !taper && !hasFixedType(['run'])) {
       const item=candidate(runDate, 'run', profile, undefined, false, weekNumber)
       if(shifts[runDate]?.shift==='tagdienst')item.notes=[item.notes,shifts[runDate]?.workRun?'Laufen auf Arbeit möglich':'Laufen nach Dienst möglich – ohne zusätzliche Intensität'].filter(Boolean).join(' · ')
       put(runDate,item)
@@ -375,33 +412,35 @@ export function generatePlan(args: {
 }
 function shiftRunScore(shift?: ShiftRecord) { return shift?.shift === 'tagdienst' ? 6 : 2 }
 
-/** Only generated, incomplete records are replaceable, and only by explicit user action. */
+/** Phase 28 safe publishing rule: a generated suggestion can only fill an EMPTY date.
+ * No existing planned or completed record is ever deleted, even if it was generated.
+ * Explicit manual editing still uses the separate user-controlled editor.
+ */
 export async function commitGeneratedPlan(days: PlanDay[], existing: TrainingRecord[], completed: CompletedRecord[]): Promise<number> {
   const { openTempoDatabase } = await import('../db/storage')
   const db = await openTempoDatabase()
-  const range = new Set(days.map(x => x.date))
-  const locked = new Set<string>()
-  for (const entry of completed) if (entry.profileId === PROFILE_ID) locked.add(entry.date)
-  for (const item of existing) {
-    if (item.profileId === PROFILE_ID && (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant')) locked.add(item.date)
-  }
+  const occupiedDates = new Set<string>()
+  for (const record of existing) if (record.profileId === PROFILE_ID) occupiedDates.add(record.date)
+  for (const record of completed) if (record.profileId === PROFILE_ID) occupiedDates.add(record.date)
+  const candidates = days.filter(day => day.session && day.confirmed && !day.protected && !occupiedDates.has(day.date)).map(day => day.session!)
   return new Promise((resolve, reject) => {
     const tx = db.transaction('plannedSessions','readwrite')
     const store = tx.objectStore('plannedSessions')
+    let inserted = 0
     try {
-      for (const old of existing) {
-        if (old.profileId !== PROFILE_ID || !range.has(old.date) || locked.has(old.date)) continue
-        if (old.createdBy === PLANNER_VERSION && old.status === 'geplant' && !old.locked) store.delete(old.id)
+      for (const item of candidates) {
+        // A second open tab could have written the same ID; never overwrite it.
+        const request = store.get(item.id)
+        request.onsuccess = () => {
+          if (request.result) return
+          store.add(item)
+          inserted++
+        }
+        request.onerror = () => tx.abort()
       }
-      const now = new Date().toISOString()
-      const toSave = days.filter(day => day.session && day.confirmed && !day.protected && !locked.has(day.date)).map(day => day.session!)
-      for (const item of toSave) {
-        const previous = existing.find(old => old.id === item.id)
-        store.put({...item, createdAt: previous?.createdAt ?? now, updatedAt: now})
-      }
-      tx.oncomplete = () => {db.close(); resolve(toSave.length)}
+      tx.oncomplete = () => {db.close(); resolve(inserted)}
       tx.onerror = () => {db.close(); reject(tx.error ?? new Error('Plan konnte nicht gespeichert werden'))}
       tx.onabort = () => {db.close(); reject(tx.error ?? new Error('Plan-Speicherung abgebrochen'))}
-    } catch (error) { tx.abort(); db.close(); reject(error) }
+    } catch(error) {tx.abort();db.close();reject(error)}
   })
 }

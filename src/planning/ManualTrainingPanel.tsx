@@ -56,7 +56,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
   },[])
   useEffect(()=>{if(days?.length) setSelectedDate(days[0])},[daysKey])
   const scroll=()=>window.setTimeout(()=>editorRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),30)
-  function begin(which:Mode,date=selectedDate) {
+  function begin(which:Mode,date=currentKey()) {
     setEditing(null);setLinked(null);setMode(which);setDraft(defaultForm(date));setSelectedDate(date);setFeedback(which==='planned'?'Neues Training frei planen.':'Absolviertes freies Training protokollieren.');scroll()
   }
   function edit(item:Editable) {
@@ -128,11 +128,11 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
   const completedIds=new Set(completed.map(x=>x.plannedSessionId).filter(Boolean))
   return <section className="panel tempo-manual" id="tempo-own-training">
     <div className="eyebrow">PHASE 6 · DEINE ENTSCHEIDUNG</div>
-    <h2>Eigenes Training & freie Aktivitäten</h2>
+    <h2>Training selbst gestalten</h2>
     <HelpDisclosure id="calendar-manual-intro"><p>Verabrede dich zum Krafttraining, fahre spontan Rad oder verschiebe ein Workout: <strong>Du kannst jeden Tag selbst gestalten.</strong> Mehrere Einheiten pro Tag sind erlaubt. Eigene Einträge bleiben bei neuen Planvorschlägen geschützt.</p></HelpDisclosure>
     <div className="tempo-manual-actions">
-      <button type="button" onClick={()=>begin('planned')}>＋ Training planen</button>
-      <button type="button" className="outline" onClick={()=>begin('completed')}>✓ Freies Training protokollieren</button>
+      <button type="button" onClick={()=>begin('planned',currentKey())}>＋ Training planen</button>
+      <button type="button" className="outline" onClick={()=>begin('completed',currentKey())}>✓ Freies Training protokollieren</button>
     </div>
     <div className="tempo-manual-range">
       {visibleDays.length>0 && <div className="tempo-manual-day-select">{visibleDays.map(date=><button type="button" key={date} onClick={()=>setSelectedDate(date)} className={selectedDate===date?'selected':''}>{friendlyDate(date).replace(' ', ' ')}</button>)}</div>}
@@ -172,6 +172,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
         <div className="tempo-manual-fields">
           <Field>Datum<input type="date" required value={draft.date} onChange={e=>patch('date',e.target.value)}/></Field>
           <Field>Sportart<select value={draft.sport} onChange={e=>patch('sport',e.target.value as ManualSport)}>{sports.map(s=><option value={s.value} key={s.value}>{s.label}</option>)}</select></Field>
+          {draft.sport==='cycling'&&<div className="tempo-28-commute-select"><strong>Pendeln · nur Kennzeichnung der Radfahrt</strong><div role="group" aria-label="Pendeln" className="tempo-28-commute-choices">{([['none','Kein Pendeln'],['hin','Hinfahrt'],['rueck','Rückfahrt'],['beide','Hin & Rück']] as const).map(([key,label])=><button type="button" key={key} aria-pressed={draft.commuteLeg===key} className={draft.commuteLeg===key?'selected':''} onClick={()=>patch('commuteLeg',key)}>{label}</button>)}</div><small>Eine Trainingsfahrt auf dem Rückweg wird einmal gespeichert und nur als Rückweg markiert – keine zweite Belastung.</small></div>}
           {draft.sport==='cycling'&&<Field>Radtraining: Umgebung<select value={draft.cyclingEnvironment} onChange={e=>patch('cyclingEnvironment',e.target.value)}><option value="unknown">Noch unklar</option><option value="outdoor">Outdoor / draußen</option><option value="indoor">Indoor / Zwift / Rolle</option></select></Field>}
           {draft.sport==='swimming'&&<><Field>Schwimmen: Umgebung<select value={draft.swimEnvironment} onChange={e=>patch('swimEnvironment',e.target.value)}><option value="pool">Schwimmbad</option><option value="openwater">Freiwasser</option></select></Field><Field>Schwimmen: Schwerpunkt<select value={draft.swimFocus} onChange={e=>patch('swimFocus',e.target.value)}><option value="locker">Locker</option><option value="technik">Technik</option><option value="ausdauer">Ausdauer</option><option value="intervalle">Intervalle</option></select></Field></>}
           {draft.sport==='strength'&&<Field>Krafttraining: Ort<select value={draft.strengthLocation} onChange={e=>patch('strengthLocation',e.target.value)}><option value="studio">Fitnessstudio</option><option value="arbeit">Auf Arbeit</option></select></Field>}

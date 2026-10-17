@@ -91,7 +91,7 @@ export default function DatabasePanel() {
       const address = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = address
-      a.download = `tempo-backup-${new Date().toISOString().slice(0,10)}.json`
+      a.download = `tempo-backup-${new Date().toISOString().replace(/[:.]/g,'-')}.json`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -106,14 +106,14 @@ export default function DatabasePanel() {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    if (!window.confirm('Achtung: Der Import ersetzt ALLE bisher auf diesem Gerät gespeicherten TEMPO-Daten. Fortfahren?')) return
+    if (!window.confirm('Importiert werden ausschließlich FEHLENDE Datensätze. Vorhandene Einträge bleiben unverändert. Bitte trotzdem vorher ein aktuelles Backup sichern. Fortfahren?')) return
     setBusy(true)
     try {
-      if (file.size > 20 * 1024 * 1024) throw new Error('Datei ist größer als 20 MB.')
+      if (file.size > 150 * 1024 * 1024) throw new Error('Datei ist größer als 150 MB.')
       const json: unknown = JSON.parse(await file.text())
-      await importTempoBackup(json, 'replace')
+      await importTempoBackup(json)
       await refresh()
-      setNotice('Backup erfolgreich importiert.')
+      setNotice('Sicherer Import abgeschlossen: Vorhandene Datensätze blieben unverändert, fehlende wurden ergänzt.')
     } catch (err) {
       setNotice(`Import fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`)
     } finally { setBusy(false) }
@@ -148,7 +148,7 @@ export default function DatabasePanel() {
         <button disabled={busy} onClick={() => void downloadBackup()}>Backup herunterladen (.json)</button>
         <label className={`tempo-db-import ${busy ? 'disabled' : ''}`}>Backup importieren <input type="file" accept=".json,application/json" disabled={busy} onChange={e => void uploadBackup(e)} /></label>
       </div>
-      <p className="tempo-db-warning">Achtung: Import ersetzt vorhandene Daten. Die Backup-Datei kann private Informationen enthalten – niemals ins öffentliche Repository hochladen.</p>
+      <p className="tempo-db-warning">Sicherer Import: Vorhandene IDs werden nicht überschrieben. Ein neueres Training bleibt auch beim Import einer älteren Datei erhalten. Private Daten niemals ins öffentliche Repository laden.</p>
     </section>
   </div>
 }
