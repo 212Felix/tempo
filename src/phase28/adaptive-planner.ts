@@ -153,7 +153,7 @@ export function deriveAdaptiveWeeks(options:AdaptiveOptions):AdaptiveWeek[] {
     const dates=Array.from({length:7},(_,i)=>advance(weekStart,i))
     const unconfirmed=dates.filter(d=>!shifts[d]?.shift||shifts[d]?.shift==='offen').length
     if(unconfirmed)safeguards.push(`${unconfirmed} Diensttage offen: keine verbindlichen Einheiten ohne verfügbares Trainingsfenster.`)
-    if(readiness?.date>=weekStart&&readiness?.date<=weekEnd&&readiness.illness==='ja')safeguards.push('Beschwerden im Tages-Check-in: keine intensive Belastung vorschlagen.')
+    if(readiness && readiness.date >= weekStart && readiness.date <= weekEnd && readiness.illness === 'ja')safeguards.push('Beschwerden im Tages-Check-in: keine intensive Belastung vorschlagen.')
     if(initialBaseline===undefined)safeguards.push('Zu wenige aktuelle Wochen zur Ableitung eines verlässlichen Stundenbudgets; keine automatische Volumensteigerung.')
     if(thisWeek.protectedCount)safeguards.push(`${thisWeek.protectedCount} bestehende eigene/feste Einheiten bleiben unangetastet.`)
     const referenceEvent=kind==='RECOVERY'?prev:preEventEnd??next

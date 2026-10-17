@@ -1,25 +1,19 @@
-TEMPO PHASE 28 – DIREKTER GITHUB-UPLOAD (wie bisher)
-====================================================
+TEMPO PHASE 29 – EINFACHER GITHUB-UPLOAD
+========================================
 
-WICHTIG VORHER: Aktuelles iPhone-Backup unter iCloud Drive/TEMPO/01_Backups speichern
-UND Kopie pruefen. Phase 28 ersetzt keinen bestehenden IndexedDB-Datensatz absichtlich.
+WICHTIG: Die bisherige Phase 27 bleibt auf dem iPhone, bis der Produktions-Build erfolgreich veröffentlicht wird. Vor dem Upload ein FRISCHES Backup direkt vom iPhone exportieren und im iCloud-Ordner TEMPO/01_Backups sicher ablegen. Backup niemals in GitHub hochladen.
 
-1. Dieses ZIP entpacken. Den darin liegenden Ordner "tempo-main" OEFFNEN.
-2. Im Finder Cmd + Shift + Punkt druecken, um .github und .gitignore zu sehen.
-3. Auf github.com/212Felix/tempo --> Code --> Branch "main" auswaehlen.
-4. Add file --> Upload files.
-5. ALLE INHALTE aus "tempo-main" auswaehlen (Cmd + A), NICHT den Ordner selbst.
-   Insbesondere muessen .github/workflows/deploy.yml, verify.yml,
-   scripts/check-release-source.mjs und package.json ersetzt werden.
-6. Hochgeladene Dateien duerfen NICHT in einem neuen Unterordner liegen.
-7. Commit directly to MAIN branch -- wie bei Phase 27.
-8. GitHub --> Actions --> Workflow "TEMPO veroeffentlichen" oeffnen.
-   Der Build fuehrt zuerst die Sicherheits- und Trainingslogiktests aus.
-   Erst nach Erfolg wird die iPhone-Webseite automatisch aktualisiert.
-9. Bei ROT: NICHT manuell Daten aus Backups zurueckschreiben. Screenshot der
-   ersten rot markierten Fehlermeldung an ChatGPT senden.
-10. Bei GRUEN: iPhone-App neu oeffnen, Trainings vergleichen, Backup erneut
-    exportieren und mit der gesicherten Ausgangsdatei vergleichen.
+1. Dieses ZIP herunterladen und auf dem Mac entpacken.
+2. Im Finder den Ordner tempo-main öffnen. Mit Cmd + Shift + . auch .github und .gitignore sichtbar machen.
+3. Github: https://github.com/212Felix/tempo  → Code → Branch main → Add file → Upload files.
+4. ALLE INHALTE INNERHALB von tempo-main (inklusive .github, src, tests, scripts, public, docs sowie package.json, index.html, tsconfig.json und vite.config.ts) auf die Uploadfläche ziehen.
+   NICHT den Ordner tempo-main selbst hineinziehen. Die Pfade auf GitHub müssen direkt src/App.tsx, .github/workflows/deploy.yml usw. lauten.
+5. Vor dem Commit kontrollieren, ob src/App.tsx UND package.json auf der Uploadliste stehen. Falls nicht, Upload abbrechen und noch einmal kontrollieren.
+6. "Commit directly to the main branch" wählen und Commit bestätigen.
+7. Danach GitHub → Code → main → src/App.tsx öffnen: dort muss PHASE 29 stehen.
+8. Unter GitHub → Actions den NEUESTEN Lauf "TEMPO Phase 29 veroeffentlichen" kontrollieren. Erst wenn build und deploy grün sind, TEMPO auf dem Mac kontrollieren.
+9. Zuletzt am iPhone kontrollieren, dass abgeschlossene Trainings, Garmin-Aktivitäten, Ziele und Leistungswerte weiterhin da sind. Keine Website-Daten löschen, die App nicht deinstallieren und kein altes Backup drüber importieren.
 
-Die alte Pull Request #1 (212Felix-patch-1) NICHT mergen.
-Alte/neuere persoenliche Backups niemals in ein oeffentliches GitHub-Repository laden.
+Wenn der Build ROT wird: Nicht ein weiteres altes ZIP hochladen. Öffne den fehlgeschlagenen Step im Workflow, mache einen Screenshot der Fehlermeldung und gib ihn im Chat weiter. Die App bleibt bis dahin auf der vorherigen Veröffentlichung.
+
+OFFENER TEST-BRANCH/PULL REQUEST aus Phase 28: NICHT MERGEN.

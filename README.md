@@ -1,42 +1,32 @@
-# TEMPO – Train smarter · Phase 28 (Release-Kandidat)
+# TEMPO – Train smarter · Phase 29
 
-TEMPO ist eine lokale, responsive Trainings-PWA für Rad, Laufen, Kraft und Regeneration mit Schichtplanung, Garmin-Import und wissenschaftlich orientierter Blockperiodisierung.
+**Release-Paket vom 17.10.2026:** vollständiger Projektstand mit allen Phase-28-Funktionen, korrigierter Readiness-Typprüfung und einem einfachen Veröffentlichungsweg über den GitHub-Branch `main`.
 
-**Status vom 15.10.2026:** 27 automatisierte Logik-/Integrationsprüfungen und Quellcode-Sicherheitsprüfung bestanden. **Produktions-Build und echter iPhone-Test stehen noch aus**; der Build kann automatisch über GitHub Actions ausgeführt werden. Dieses Paket wird **nicht allein durch den Upload** auf GitHub Pages veröffentlicht.
+## Enthalten
 
-## Phase 28 – Funktionen
+- 7-/14-Tage-Kalender im **3/2/2-Kachelraster** mit mehreren Trainingseinheiten pro Tag.
+- Tagestraining mit zusammengeführter eigener Trainingsplanung und Direkteinstieg in geplante Einheiten.
+- Pendel-Hin-/Rückweg als separate Information, keine Doppelzählung derselben Radfahrt.
+- Start/Stopp-Gesamttimer beim Krafttraining und Countdown mit Erledigt-Haken für Halteübungen.
+- Adaptive Blockperiodisierung für 52 Wochen: BASE, STRENGTH, MIT, HIT, VOLUME, MOUNTAIN, RUN, TAPER und RECOVERY. Hinweise zu Dienst, Readiness, Zielen und bestehenden Trainings.
+- Empfehlungen zur Reduzierung der neuen Beinkraftsätze in Radvolumenblöcken. Vorhandene Kraftprotokolle bleiben unangetastet.
+- Ergänzender statt überschreibender Import von TEMPO-Backups.
 
-- 7-/14-Tage-Kalender mit **3 / 2 / 2** Kacheln je Woche und mehreren Aktivitäten pro Tag.
-- Antippen einer Kachel öffnet den Tag mit geplanten Einheiten, Dienst-/Pendelbearbeitung und einer einheitlichen Eingabe für freie/abgeschlossene Trainings.
-- Rückfahrt kann mit einem Radtraining als Pendelweg gekennzeichnet werden; keine doppelte Eintragung der Belastung.
-- Krafttimer (Start/Stopp) und Satz-Countdown bei Halteübungen mit explizitem Erledigt-Haken.
-- Adaptive Saisonübersicht mit 52 Wochen: BASE, STRENGTH, MIT, HIT, VOLUME, MOUNTAIN, RUN, TAPER und RECOVERY.
-- Orientierung an persönlichen Zielen, eingetragenen Diensten, Readiness, bereits absolvierten Trainings und den vorhandenen Garmin-Daten.
-- Dynamische Kraftsatz-Empfehlung: z.B. in VOLUME-Wochen weniger Beinsätze; bestehende Satzprotokolle bleiben erhalten.
-- Nicht destruktiver Backup-Import (fehlende Datensätze ergänzen; vorhandene IDs nicht überschreiben).
+## Schutz bestehender Einträge
 
-## Datenschutz und Datenbeständigkeit
+TEMPO verwendet weiterhin **IndexedDB `tempo-local`, Datenbankversion 1 und alle 20 bisherigen Object Stores**. Weder ein Datenbank-Reset noch ein automatischer Backup-Import ist Teil des Updates. Der Code enthält keine persönlichen Trainingseinträge, FIT-Dateien oder GPS-Tracks. **Lokale Browserdaten können dennoch verloren gehen**, z. B. durch Löschen von Website-Daten oder der installierten PWA. Deshalb vor dem Update auf dem iPhone ein aktuelles Originalbackup in iCloud Drive exportieren und gesondert aufbewahren. Mac und iPhone besitzen weiterhin voneinander getrennte Browser-Datenspeicher.
 
-Der private Datenspeicher befindet sich **auf dem jeweiligen Gerät in IndexedDB** unter `tempo-local`, Datenbankversion `1` mit `20` bestehenden Stores. Ein Quellcode-Update über GitHub Pages ersetzt diese Datenbank nicht. Wenn Safari-Website-Daten oder die PWA-Daten gelöscht werden, können lokale Einträge jedoch verloren gehen. Deshalb sind separate Backups verpflichtend.
+## Build und automatisierte Prüfungen
 
-**Persönliche Backup-JSONs und Garmin-FIT-Dateien niemals in das öffentliche GitHub-Repository stellen.** Der Code enthält keine private Sicherung.
-
-Backup-Import: Bestehende IDs werden nicht überschrieben; die Importtransaktion ist atomar. Das ist kein automatischer Live-Abgleich zwischen Mac und iPhone. Das iPhone ist die führende Eingabequelle für manuelle Daten.
-
-## Entwicklung am Mac
-
-```bash
+```sh
 npm install --no-audit --no-fund
 npm run test:security
 npm run test:logic
 npm run build
-npm run dev
 ```
 
-Die Testskripte werden automatisch vor einer bewussten GitHub-Pages-Veröffentlichung ausgeführt. **Hier im Chat konnte `npm install` aufgrund fehlender DNS-/Netzverbindung nicht abgeschlossen werden.** Den fehlerfreien vollständigen Build muss daher GitHub Actions oder dein Mac bestätigen.
+Ein Commit auf `main` startet `.github/workflows/deploy.yml`. **Nur nach erfolgreich bestandenen Sicherheits-/Logikprüfungen und Produktions-Build** erfolgt GitHub-Pages-Deployment. Bei einem roten Kreuz wird **keine neue Version ausgeliefert**. Andere offene Pull Requests werden dafür nicht zusammengeführt.
 
-## Veröffentlichung
+Im vorliegenden Arbeitscontainer stehen die npm-Pakete nicht vollständig zur Verfügung. Die ausführbare Node-Testreihe und die gezielte statische Typprüfung wurden geprüft, aber **der reale Produktions-Build muss über GitHub Actions bestätigt werden**.
 
-Siehe **`UPLOAD-ANLEITUNG.txt`** und **`docs/PHASE28-RELEASE-CHECKLIST.md`**. In `.github/workflows/verify.yml` läuft die automatische Quellcode-/Build-Prüfung. `.github/workflows/deploy.yml` wird ausschließlich per `workflow_dispatch` manuell gestartet; der Upload allein soll Phase 27 auf dem iPhone nicht ersetzen.
-
-Bestehende manuelle/abgeschlossene Trainings werden von der neuen Planung nicht automatisch geändert. Neue Wochen und Trainingsvorschläge sind Vorschläge; eine Übernahme erfordert eine bewusste Bestätigung.
+Anleitung: `UPLOAD-ANLEITUNG.txt`. Weitere technische Details: `docs/PHASE29-RELEASE.md`.

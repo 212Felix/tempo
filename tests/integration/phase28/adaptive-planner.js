@@ -162,7 +162,7 @@ export function deriveAdaptiveWeeks(options) {
         const unconfirmed = dates.filter(d => !shifts[d]?.shift || shifts[d]?.shift === 'offen').length;
         if (unconfirmed)
             safeguards.push(`${unconfirmed} Diensttage offen: keine verbindlichen Einheiten ohne verfügbares Trainingsfenster.`);
-        if (readiness?.date >= weekStart && readiness?.date <= weekEnd && readiness.illness === 'ja')
+        if (readiness && readiness.date >= weekStart && readiness.date <= weekEnd && readiness.illness === 'ja')
             safeguards.push('Beschwerden im Tages-Check-in: keine intensive Belastung vorschlagen.');
         if (initialBaseline === undefined)
             safeguards.push('Zu wenige aktuelle Wochen zur Ableitung eines verlässlichen Stundenbudgets; keine automatische Volumensteigerung.');
