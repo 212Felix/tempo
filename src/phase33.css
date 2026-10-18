@@ -1,0 +1,24 @@
+/* Phase 33: kurze, auf dem iPhone bedienbare Informationskarten */
+.page-home .page-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.tempo33-home-logo{height:70px;width:70px;object-fit:cover;border:1px solid #607785;border-radius:13px;flex-shrink:0}
+.tempo33-readiness-details{margin-top:13px;display:block}
+.tempo33-readiness-details summary,.tempo33-rest-help summary{list-style:none;cursor:pointer;color:#d8eaf0;border:1px solid #7a9fab;border-radius:30px;display:inline-flex;align-items:center;justify-content:center;min-height:35px;min-width:35px;font-weight:750;background:#17303c}
+.tempo33-readiness-details summary::-webkit-details-marker,.tempo33-rest-help summary::-webkit-details-marker{display:none}
+.tempo33-readiness-details summary span{font-size:12px;font-weight:500;margin-left:5px;margin-right:8px}
+.tempo33-readiness-details p{margin:10px 0 0!important;line-height:1.5}
+.tempo33-rest-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tempo33-rest-title h3{min-width:0}
+.tempo33-rest-help{position:relative;flex-shrink:0}
+.tempo33-rest-help p{line-height:1.5;font-size:13px;margin-top:10px}
+.tempo33-rest-title{flex-wrap:wrap}.tempo33-rest-help[open]{width:100%}
+.tempo33-photo-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tempo33-photo-actions button{border:1px solid #719aaa;background:#284957;color:#ebf7f9;border-radius:11px;padding:13px 8px;min-height:50px;font-weight:650;font-size:14px}
+.tempo33-photo-actions button:disabled{opacity:.55}
+.tempo33-file-input{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
+.dashboard-grid .tempo-ready-home{min-height:0;padding-bottom:16px}
+.dashboard-grid .tempo-ready-home .card-heading{margin-bottom:12px}
+.dashboard-grid .tempo-ready-home .text-action{margin-top:8px;padding-top:7px}
+.tempo-daily-decision{padding:16px 20px}
+.tempo-daily-decision .tempo-daily-header{margin:7px 0}
+.tempo-daily-decision .tempo-daily-actions{margin-top:8px}
+@media(max-width:540px){.tempo33-home-logo{width:63px;height:63px}.tempo33-photo-actions button{font-size:12px}}

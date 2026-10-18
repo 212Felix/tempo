@@ -3,6 +3,7 @@ import { getRecord, saveRecord } from './storage'
 import type { TempoRecord, ProfileRecord } from './types'
 import './readiness.css'
 import MorningFuelingCheck from '../phase32/MorningFuelingCheck'
+import {AVAILABILITY_CHOICES,availabilityFlag} from '../planning/availability'
 
 const PROFILE_ID = 'local-primary-profile'
 const dateKey = () => {
@@ -31,6 +32,10 @@ type ReadyData = {
   illnessKind: IllnessKind | ''
   note: string
   shift: ShiftKind
+  possibleStrength: boolean
+  possibleRun: boolean
+  possibleYoga: boolean
+  possibleStabi: boolean
   workStrength: boolean
   workRun: boolean
   afterWorkStrength: boolean
@@ -41,10 +46,11 @@ type ReadyData = {
 }
 
 type DayEntry = TempoRecord & { date: string; ratings?: Ratings; illness?: 'nein' | 'ja' | ''; illnessKind?: IllnessKind | ''; note?: string }
-type ShiftEntry = TempoRecord & { date: string; shift?: ShiftKind; workStrength?: boolean; workRun?: boolean; afterWorkStrength?: boolean; afterWorkRun?: boolean; afterWorkCycling?: boolean; afterWorkRide?: AfterWorkRide; commute?: CommuteKind }
+type ShiftEntry = TempoRecord & { date: string; shift?: ShiftKind; possibleStrength?:boolean; possibleRun?:boolean; possibleYoga?:boolean; possibleStabi?:boolean; workStrength?: boolean; workRun?: boolean; afterWorkStrength?: boolean; afterWorkRun?: boolean; afterWorkCycling?: boolean; afterWorkRide?: AfterWorkRide; commute?: CommuteKind }
 
 const fresh: ReadyData = {
   ratings: {}, illness: '', illnessKind: '', note: '', shift: 'offen',
+  possibleStrength:false,possibleRun:false,possibleYoga:false,possibleStabi:false,
   workStrength: false, workRun: false, afterWorkStrength:false, afterWorkRun:false, afterWorkCycling: false,
   afterWorkRide: 'egal', commute: 'nein',
 }
@@ -108,7 +114,8 @@ export default function ReadinessPanel() {
         ...fresh,
         ratings: ready?.ratings ?? {}, illness: ready?.illness ?? '',
         illnessKind: ready?.illnessKind ?? '', note: ready?.note ?? '',
-        shift: shift?.shift ?? 'offen', workStrength: !!shift?.workStrength,
+        shift: shift?.shift ?? 'offen', possibleStrength:availabilityFlag(shift,'possibleStrength'), possibleRun:availabilityFlag(shift,'possibleRun'),
+        possibleYoga:availabilityFlag(shift,'possibleYoga'), possibleStabi:availabilityFlag(shift,'possibleStabi'),workStrength: !!shift?.workStrength,
         workRun: !!shift?.workRun, afterWorkStrength:!!shift?.afterWorkStrength, afterWorkRun:!!shift?.afterWorkRun, afterWorkCycling: !!shift?.afterWorkCycling,
         afterWorkRide: shift?.afterWorkRide ?? 'egal', commute: shift?.commute ?? 'nein',
       }
@@ -144,7 +151,8 @@ export default function ReadinessPanel() {
       const shiftEntry: ShiftEntry = {
         ...previousShift, id, date: day, profileId: PROFILE_ID,
         createdAt: previousShift?.createdAt || stamp, updatedAt: stamp,
-        shift: next.shift, workStrength: next.workStrength, workRun: next.workRun,
+        shift: next.shift, possibleStrength:next.possibleStrength,possibleRun:next.possibleRun,possibleYoga:next.possibleYoga,possibleStabi:next.possibleStabi,
+        workStrength: next.workStrength, workRun: next.workRun,
         afterWorkStrength: next.shift==='tagdienst'&&next.afterWorkStrength, afterWorkRun: next.shift==='tagdienst'&&next.afterWorkRun,
         afterWorkCycling: next.afterWorkCycling, afterWorkRide: next.afterWorkRide,
         commute: next.commute,
@@ -182,11 +190,8 @@ export default function ReadinessPanel() {
       {data.shift === 'tagdienst' && <div className="tempo-ready-subpanel">
         <h3>Heute möglich</h3>
         <div className="tempo-ready-choices">
-          <Choice chosen={data.workStrength} onClick={() => change({ workStrength: !data.workStrength })}>Kraft auf Arbeit</Choice>
-          <Choice chosen={data.workRun} onClick={() => change({ workRun: !data.workRun })}>Laufen auf Arbeit</Choice>
-          <Choice chosen={data.afterWorkStrength} onClick={() => change({ afterWorkStrength: !data.afterWorkStrength })}>Kraft nach Dienst</Choice>
-          <Choice chosen={data.afterWorkRun} onClick={() => change({ afterWorkRun: !data.afterWorkRun })}>Laufen nach Dienst</Choice>
-          <Choice chosen={data.afterWorkCycling} onClick={() => change({ afterWorkCycling: !data.afterWorkCycling })}>Rad nach Dienst</Choice>
+          {AVAILABILITY_CHOICES.map(({key,symbol,label})=><Choice key={key} chosen={data[key]} onClick={()=>change({[key]:!data[key]})}>{symbol} {label}</Choice>)}
+          <Choice chosen={data.afterWorkCycling} onClick={() => change({ afterWorkCycling: !data.afterWorkCycling })}>🚴 Rad nach Dienst</Choice>
         </div>
         {data.afterWorkCycling && <div className="tempo-ready-choices tempo-ready-small">
           <Choice chosen={data.afterWorkRide === 'indoor'} onClick={() => change({ afterWorkRide: 'indoor' })}>Indoor / Zwift</Choice>
@@ -256,7 +261,8 @@ export function ReadinessHomeCard({ onOpen }: { onOpen: () => void }) {
   }, [])
   return <section className={`panel status-card tempo-ready-home tempo-ready-home-${state.level}`}>
     <div className="card-heading"><div className="eyebrow">DEINE READINESS</div><span className={`tempo-ready-light tempo-ready-light-${state.level}`}/></div>
-    <h3>{state.title}</h3><p>{state.description}</p>
+    <h3>{state.title}</h3>
     <button type="button" className="text-action" onClick={onOpen}>{state.loading ? 'Bitte warten …' : 'Readiness öffnen'} →</button>
+    <details className="tempo33-readiness-details"><summary aria-label="Readiness-Erklärung anzeigen">? <span>Erklärung</span></summary><p>{state.description}</p></details>
   </section>
 }

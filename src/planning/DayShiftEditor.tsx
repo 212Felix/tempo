@@ -1,34 +1,30 @@
 import { useEffect, useState } from 'react'
 import { getRecord, saveRecord } from '../db/storage'
 import { PROFILE_ID, type ShiftRecord } from './engine'
+import {AVAILABILITY_CHOICES,availabilityFlag,type AvailabilityKey} from './availability'
 
 // The calendar tile opens this day-specific editor. Existing unknown/legacy fields
 // are preserved by spreading the previous record at commit time.
 type Service = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
 type Commute = 'nein' | 'hin' | 'zurueck' | 'beide'
-type Available = 'workStrength' | 'workRun' | 'afterWorkStrength' | 'afterWorkRun' | 'afterWorkCycling'
+type Available = AvailabilityKey
 type Values = {
   shift: Service
   commute: Commute
-  workStrength: boolean
-  workRun: boolean
-  afterWorkStrength: boolean
-  afterWorkRun: boolean
+  possibleStrength: boolean
+  possibleRun: boolean
+  possibleYoga: boolean
+  possibleStabi: boolean
   afterWorkCycling: boolean
   homeIntervals: boolean
 }
-const choices: { id: Available; label: string }[] = [
-  {id:'workStrength',label:'Kraft auf Arbeit'}, {id:'workRun',label:'Laufen auf Arbeit'},
-  {id:'afterWorkStrength',label:'Kraft nach Dienst'}, {id:'afterWorkRun',label:'Laufen nach Dienst'},
-  {id:'afterWorkCycling',label:'Rad nach Dienst'},
-]
-const defaults:Values = {shift:'offen',commute:'nein',workStrength:false,workRun:false,afterWorkStrength:false,afterWorkRun:false,afterWorkCycling:false,homeIntervals:false}
+const defaults:Values = {shift:'offen',commute:'nein',possibleStrength:false,possibleRun:false,possibleYoga:false,possibleStabi:false,afterWorkCycling:false,homeIntervals:false}
 const fromRecord = (record?: ShiftRecord): Values => ({
   ...defaults,
   shift: record?.shift === 'frei' || record?.shift === 'tagdienst' || record?.shift === 'einsatz' ? record.shift : 'offen',
   commute: record?.commute === 'hin' || record?.commute === 'zurueck' || record?.commute === 'beide' ? record.commute : 'nein',
-  workStrength: Boolean(record?.workStrength),workRun:Boolean(record?.workRun),
-  afterWorkStrength:Boolean(record?.afterWorkStrength),afterWorkRun:Boolean(record?.afterWorkRun),
+  possibleStrength: availabilityFlag(record,'possibleStrength'),possibleRun:availabilityFlag(record,'possibleRun'),
+  possibleYoga: availabilityFlag(record,'possibleYoga'),possibleStabi:availabilityFlag(record,'possibleStabi'),
   afterWorkCycling:Boolean(record?.afterWorkCycling),homeIntervals:Boolean(record?.homeIntervals),
 })
 export default function DayShiftEditor({date}:{date:string}) {
@@ -59,10 +55,10 @@ export default function DayShiftEditor({date}:{date:string}) {
         ...latest,id:`${PROFILE_ID}:${date}`,profileId:PROFILE_ID,date,
         createdAt:latest?.createdAt||now,updatedAt:now,shift:values.shift,
         commute:values.shift==='tagdienst'?values.commute:'nein',
-        workStrength:values.shift==='tagdienst'&&values.workStrength,
-        workRun:values.shift==='tagdienst'&&values.workRun,
-        afterWorkStrength:values.shift==='tagdienst'&&values.afterWorkStrength,
-        afterWorkRun:values.shift==='tagdienst'&&values.afterWorkRun,
+        possibleStrength:values.shift==='tagdienst'&&values.possibleStrength,
+        possibleRun:values.shift==='tagdienst'&&values.possibleRun,
+        possibleYoga:values.shift==='tagdienst'&&values.possibleYoga,
+        possibleStabi:values.shift==='tagdienst'&&values.possibleStabi,
         afterWorkCycling:values.shift==='tagdienst'&&values.afterWorkCycling,
         homeIntervals:values.shift==='tagdienst'&&['zurueck','beide'].includes(values.commute)&&values.homeIntervals,
       }
@@ -82,8 +78,9 @@ export default function DayShiftEditor({date}:{date:string}) {
       </div>
       {values.shift==='tagdienst'&&<>
         <h3>Was ist trotz Dienst möglich?</h3>
-        <div className="tempo-28-choice-row">{choices.map(choice=><button type="button" key={choice.id} disabled={!ready||busy} aria-pressed={values[choice.id]} className={values[choice.id]?'selected':''} onClick={()=>patch({[choice.id]:!values[choice.id]})}>{choice.label}</button>)}</div>
-        <h3>Pendeln</h3>
+        <div className="tempo-28-choice-row">{AVAILABILITY_CHOICES.map(choice=><button type="button" key={choice.key} disabled={!ready||busy} aria-pressed={values[choice.key]} className={values[choice.key]?'selected':''} onClick={()=>patch({[choice.key]:!values[choice.key]})}>{choice.symbol} {choice.label}</button>)}</div>
+        <h3>Radfahren & Pendeln</h3>
+        <div className="tempo-28-choice-row"><button type="button" disabled={!ready||busy} aria-pressed={values.afterWorkCycling} className={values.afterWorkCycling?'selected':''} onClick={()=>patch({afterWorkCycling:!values.afterWorkCycling})}>🚴 Rad nach Dienst</button></div>
         <div className="tempo-28-choice-row">{(['nein','hin','zurueck','beide'] as Commute[]).map(kind=><button type="button" key={kind} disabled={!ready||busy} aria-pressed={values.commute===kind} className={values.commute===kind?'selected':''} onClick={()=>patch({commute:kind,homeIntervals:kind==='hin'||kind==='nein'?false:values.homeIntervals})}>{kind==='nein'?'Kein Pendeln':kind==='hin'?'Hinfahrt':kind==='zurueck'?'Rückfahrt':'Hin & Rück'}</button>)}</div>
         {['zurueck','beide'].includes(values.commute)&&<label className="tempo-28-home-intervals"><input type="checkbox" checked={values.homeIntervals} onChange={e=>patch({homeIntervals:e.target.checked})}/> Rückfahrt für Intervalle möglich (nur auf geeigneten sicheren Strecken)</label>}
       </>}

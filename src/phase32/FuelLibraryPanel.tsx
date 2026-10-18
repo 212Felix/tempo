@@ -1,4 +1,4 @@
-import {useEffect,useState,type FormEvent} from 'react'
+import {useEffect,useState,useRef,type FormEvent} from 'react'
 import {deleteRecord} from '../db/storage'
 import {PROFILE_ID} from '../planning/engine'
 import {loadExperiences,loadFuelProducts,saveProductSettings} from './fuel-storage'
@@ -10,6 +10,7 @@ export default function FuelLibraryPanel(){
  const [products,setProducts]=useState<EnrichedProduct[]>([]),[experiences,setExperiences]=useState<FuelExperience[]>([])
  const [section,setSection]=useState<EnrichedProduct['kind']>('powder'),[focused,setFocused]=useState(''),[form,setForm]=useState<EnrichedProduct|null>(null),[mode,setMode]=useState<'manual'|'photo'|null>(null)
  const [ocrRaw,setOcrRaw]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
+ const cameraRef=useRef<HTMLInputElement>(null),libraryRef=useRef<HTMLInputElement>(null)
  async function refresh(){const [p,e]=await Promise.all([loadFuelProducts(),loadExperiences()]);setProducts(p);setExperiences(e)}
  useEffect(()=>{void refresh().catch(e=>setMessage(String(e)));const handler=()=>{void refresh().catch(()=>undefined)};window.addEventListener('tempo:fuel-change',handler);return()=>window.removeEventListener('tempo:fuel-change',handler)},[])
  const change=(x:Partial<EnrichedProduct>)=>setForm(f=>f?{...f,...x}:f)
@@ -42,7 +43,7 @@ export default function FuelLibraryPanel(){
   <p>Eine automatische Sperre nach zwei Unverträglichkeitserfahrungen kann nicht allein durch das Aufheben der manuellen Sperre aufgehoben werden. Eine erneute Freigabe muss bewusst nach Prüfung der dokumentierten Erfahrungen erfolgen.</p>
  </section>}
  {form&&<section className="panel tempo32-card"><div className="tempo32-detail-top"><h2>{form.id?'Produkt bearbeiten':mode==='photo'?'📷 Produkt per Foto':'✏️ Produkt manuell erfassen'}</h2><button type="button" onClick={()=>setForm(null)}>✕</button></div>
- {mode==='photo'&&<div className="tempo32-photo"><label>Foto der Nährwerttabelle aufnehmen oder auswählen<input type="file" accept="image/*" capture="environment" onChange={e=>void scanPhoto(e.target.files?.[0])} disabled={busy}/></label><small>Die Aufnahme wird auf dem Gerät verarbeitet, nicht als Foto in der Datenbank gespeichert. Automatisch erkannte Werte sind nur Vorschläge.</small>{ocrRaw&&<details><summary>Erkannten Text ansehen</summary><pre>{ocrRaw.slice(0,4000)}</pre></details>}</div>}
+ {mode==='photo'&&<div className="tempo32-photo"><p>Nährwerttabelle erfassen</p><div className="tempo33-photo-actions"><button type="button" disabled={busy} onClick={()=>cameraRef.current?.click()}>📷 Foto aufnehmen</button><button type="button" disabled={busy} onClick={()=>libraryRef.current?.click()}>🖼️ Datei auswählen</button></div><input ref={cameraRef} type="file" accept="image/*" capture="environment" className="tempo33-file-input" aria-label="Kamera für Nährwertfoto" onChange={e=>{void scanPhoto(e.target.files?.[0]);e.target.value=''}}/><input ref={libraryRef} type="file" accept="image/*" className="tempo33-file-input" aria-label="Foto oder Screenshot auswählen" onChange={e=>{void scanPhoto(e.target.files?.[0]);e.target.value=''}}/><small>Die erste Schaltfläche öffnet auf unterstützten Mobilgeräten die Kamera; die zweite die Auswahl vorhandener Fotos oder Dateien. Die Erkennung läuft auf deinem Gerät und alle Werte sind vor dem Speichern zu kontrollieren.</small>{ocrRaw&&<details><summary>Erkannten Text ansehen</summary><pre>{ocrRaw.slice(0,4000)}</pre></details>}</div>}
  <form onSubmit={e=>void persist(e)} className="tempo32-form">
  <label>Hersteller<input value={form.brand??''} onChange={e=>change({brand:e.target.value.slice(0,80)})}/></label>
  <label>Produktname *<input required maxLength={80} value={form.name} onChange={e=>change({name:e.target.value})}/></label>

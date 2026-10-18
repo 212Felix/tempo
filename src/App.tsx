@@ -19,6 +19,7 @@ import FuelLibraryPanel from './phase32/FuelLibraryPanel'
 import { isRun, isStrength } from './workouts/sessionStore'
 import type { TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
+import './phase33.css'
 
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
@@ -90,7 +91,6 @@ function Eyebrow({ children }: { children: ReactNode }) {
 
 function Home({ go }: { go: (id: PageId) => void }) {
   return <>
-    <div className="tempo-home-brand"><img src={`${import.meta.env.BASE_URL}tempo-logo.jpg`} alt="TEMPO – Origami-Hirsch"/><div><span className="eyebrow">DEIN TRAINING. DEIN RHYTHMUS.</span><p>Dein Tag. Deine Leistung. Deine Erholung.</p></div></div>
     <div className="dashboard-grid">
       <ReadinessHomeCard onOpen={() => go('readiness')}/>
       <HomeTrainingCard onOpen={() => go('training')}/>
@@ -154,10 +154,10 @@ export default function App() {
         if(activityPages.includes(item.id))return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.32 · Leistung & Fueling</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.33 · Leistung & Fueling</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 32</span></header>
-      <main className={`content page-${page}`}><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1><p>{active.description}</p></div></div>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 33</span></header>
+      <main className={`content page-${page}`}><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1>{page!=='home'&&<p>{active.description}</p>}</div>{page==='home'&&<img className="tempo33-home-logo" src={`${import.meta.env.BASE_URL}tempo-logo.jpg`} alt="TEMPO-Logo"/>}</div>
       <HelpProvider key={page}>
       {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel onOpenDay={openCalendarDay}/> : page === 'training' ? <TrainingDayPanel key={dayFocus} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>

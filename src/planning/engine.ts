@@ -6,6 +6,7 @@ import { buildEventInfluences, type EventInfluence, type GoalEvent, type RouteEn
 import { upcomingCooper } from '../events/running'
 import {deriveAdaptiveWeeks,adjustSuggestedSession,plannedEvents,type AdaptiveWeek} from '../phase28/adaptive-planner'
 import type {RestDayRecord} from '../phase31/rest-days'
+import {availabilityFlag} from './availability'
 
 /** Conservative starter scheduling rules, intentionally transparent and changeable. */
 export const PLANNER_VERSION = 'tempo-planner-v1'
@@ -21,6 +22,10 @@ export type ShiftRecord = TempoRecord & {
   shift?: ShiftKind
   commute?: CommuteKind
   homeIntervals?: boolean
+  possibleStrength?: boolean
+  possibleRun?: boolean
+  possibleYoga?: boolean
+  possibleStabi?: boolean
   workStrength?: boolean
   workRun?: boolean
   afterWorkStrength?: boolean
@@ -356,7 +361,7 @@ export function generatePlan(args: {
       const strengthDate = week.filter(date => {
         const shift = shifts[date]
         return canUse(date) && !eventInfluences[date] && loadCalendar[date]?.level === 'none' &&
-          (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!(shift.workStrength || shift.afterWorkStrength))) &&
+          (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!availabilityFlag(shift,'possibleStrength'))) &&
           !nearType(date, ['long','commute','quality'], 1) && !nearType(date, ['strength-a','strength-b'], 1) &&
           !(date === today && readinessToday === 'gelb')
       }).sort((a,b) => a.localeCompare(b))[0]
@@ -371,19 +376,20 @@ export function generatePlan(args: {
       const type:SessionKind = last?.type === 'strength-a' ? 'strength-b' : 'strength-a'
       const item=candidate(strengthDate,type,profile)
       if(shifts[strengthDate]?.shift==='tagdienst'){
-        item.strengthLocation=shifts[strengthDate]?.workStrength?'arbeit':'studio'
-        item.notes=[item.notes,shifts[strengthDate]?.workStrength?'Kraft auf Arbeit möglich':'Kraft nach Dienst möglich – nur bei tatsächlicher Zeit und Erholung'].filter(Boolean).join(' · ')
+        // Unspecified location stays unspecified; availability is not a location assertion.
+        item.strengthLocation=undefined
+        item.notes=[item.notes,'Kraft trotz Dienst möglich – Trainingsort bei der Einheit wählen'].filter(Boolean).join(' · ')
       }
       put(strengthDate,item)
     }
     const runDate = select(date => {
       const shift = shifts[date]
-      return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!(shift.workRun || shift.afterWorkRun))) &&
+      return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!availabilityFlag(shift,'possibleRun'))) &&
         !nearType(date, ['long','commute'], 1)
     }, date => shiftRunScore(shifts[date]))
     if (runDate && !taper && !hasFixedType(['run'])) {
       const item=candidate(runDate, 'run', profile, undefined, false, weekNumber)
-      if(shifts[runDate]?.shift==='tagdienst')item.notes=[item.notes,shifts[runDate]?.workRun?'Laufen auf Arbeit möglich':'Laufen nach Dienst möglich – ohne zusätzliche Intensität'].filter(Boolean).join(' · ')
+      if(shifts[runDate]?.shift==='tagdienst')item.notes=[item.notes,'Laufen trotz Dienst möglich – Trainingsort bei der Einheit wählen'].filter(Boolean).join(' · ')
       put(runDate,item)
     }
     const easyDate = select(date => {

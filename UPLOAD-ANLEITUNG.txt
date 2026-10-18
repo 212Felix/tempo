@@ -1,16 +1,15 @@
-TEMPO PHASE 32 – KLEINES GITHUB-UPLOAD-PAKET
-=============================================
-1. Auf dem iPhone vorher unbedingt ein aktuelles TEMPO-Backup in iCloud Drive erstellen.
-2. Die ZIP TEMPO_Phase32_EINFACHER_GITHUB_UPLOAD.zip entpacken.
-3. Den Ordner tempo-main öffnen. Versteckte Dateien einblenden (Cmd + Shift + Punkt).
-4. Auf GitHub: 212Felix/tempo, Branch main, Add file > Upload files.
-5. ALLE Inhalte AUS dem Ordner tempo-main hochladen, nicht den Ordner selbst.
-6. Prüfen, dass insbesondere src/App.tsx, src/phase32/FuelLibraryPanel.tsx und package.json aufgelistet sind.
-7. Commit directly to main. Danach in GitHub src/App.tsx PHASE 32 kontrollieren.
-8. Actions-Build und Deploy abwarten. Bei ROT: Fehlermeldung zeigen, nichts löschen.
-9. Bei GRÜN im privaten Safari-Fenster Phase 32 kontrollieren, dann iPhone-App und Trainingseinträge prüfen.
+TEMPO Phase 33 – EINFACHER GITHUB-UPLOAD
 
-Wichtig: Die Bilder von Nährwerttabellen, GPX-Dateien, Garmin-FIT-Dateien und persönlichen Backups
-niemals in das öffentliche GitHub-Repository hochladen.
+WICHTIG: Zuerst ein frisches Backup in der iPhone-TEMPO-App erstellen.
 
-Die Vollversion dient als lokale Quellcode-Sicherung; bitte nicht in einem Upload mit >100 Dateien hochladen.
+1. NUR das ZIP "TEMPO_Phase33_EINFACHER_GITHUB_UPLOAD.zip" herunterladen und entpacken.
+2. Den Ordner tempo-main öffnen. Darin liegende Inhalte auswählen – tempo-main selbst NICHT hochladen.
+3. Versteckte .github-Dateien bei Bedarf im Finder mit cmd+shift+. einblenden.
+4. GitHub: 212Felix/tempo – Branch main – Add file > Upload files.
+5. ALLE Inhalte aus tempo-main hineinziehen, inklusive .github und src-Verzeichnisstruktur.
+6. Vor dem Commit prüfen, ob src/App.tsx und src/planning/availability.ts enthalten sind.
+7. "Commit directly to main". Auf GitHub muss main/src/App.tsx dann PHASE 33 enthalten.
+8. Actions kontrollieren; nur bei grünem Build und Deploy auf der Online-Seite öffnen.
+9. Später erst auf dem iPhone prüfen. App nicht löschen oder Website-Daten zurücksetzen.
+
+Das große vollständige ZIP dient nur als sichere Quellcode-Projektsicherung.

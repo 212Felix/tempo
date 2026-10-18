@@ -12,6 +12,7 @@ import {deriveAdaptiveWeeks} from '../phase28/adaptive-planner'
 import {rollingCalendarWeeks,isRestDay,type RestDayRecord} from '../phase31/rest-days'
 import type {GoalEvent,RouteEntry} from '../events/library'
 import type {TrainingBlock} from '../blocks/library'
+import {AVAILABILITY_CHOICES,availabilityFlag} from '../planning/availability'
 
 const PROFILE_ID = 'local-primary-profile'
 type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
@@ -20,6 +21,10 @@ type AfterWorkRide = 'egal' | 'indoor' | 'outdoor'
 type ShiftEntry = TempoRecord & {
   date: string
   shift?: ShiftKind
+  possibleStrength?:boolean
+  possibleRun?:boolean
+  possibleYoga?:boolean
+  possibleStabi?:boolean
   workStrength?: boolean
   workRun?: boolean
   afterWorkStrength?: boolean
@@ -31,6 +36,10 @@ type ShiftEntry = TempoRecord & {
 }
 type ShiftValues = {
   shift: ShiftKind
+  possibleStrength:boolean
+  possibleRun:boolean
+  possibleYoga:boolean
+  possibleStabi:boolean
   workStrength: boolean
   workRun: boolean
   afterWorkStrength: boolean
@@ -45,6 +54,7 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const shiftName: Record<ShiftKind, string> = { offen: 'Offen', frei: 'Frei', tagdienst: 'Tagdienst', einsatz: 'Einsatz' }
 const emptyValues = (date: string): ShiftValues => ({
   shift: isWeekend(date) ? 'frei' : 'offen',
+  possibleStrength:false,possibleRun:false,possibleYoga:false,possibleStabi:false,
   workStrength: false, workRun: false, afterWorkStrength:false, afterWorkRun:false, afterWorkCycling: false, afterWorkRide: 'egal',
   commute: 'nein', homeIntervals: false,
 })
@@ -67,6 +77,7 @@ function toValues(entry: ShiftEntry | undefined, date: string): ShiftValues {
   return { ...emptyValues(date),
     ...entry,
     shift: entry?.shift && entry.shift !== 'offen' ? entry.shift : (isWeekend(date) ? 'frei' : 'offen'),
+    possibleStrength:availabilityFlag(entry,'possibleStrength'),possibleRun:availabilityFlag(entry,'possibleRun'),possibleYoga:availabilityFlag(entry,'possibleYoga'),possibleStabi:availabilityFlag(entry,'possibleStabi'),
     workStrength: Boolean(entry?.workStrength), workRun: Boolean(entry?.workRun),
     afterWorkStrength: Boolean(entry?.afterWorkStrength), afterWorkRun: Boolean(entry?.afterWorkRun),
     afterWorkCycling: Boolean(entry?.afterWorkCycling), afterWorkRide: entry?.afterWorkRide ?? 'egal',
@@ -83,6 +94,10 @@ function makeEntry(date: string, values: ShiftValues, previous?: ShiftEntry): Sh
     id: `${PROFILE_ID}:${date}`, date, profileId: PROFILE_ID,
     createdAt: previous?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
     shift: values.shift,
+    possibleStrength:values.shift==='tagdienst'&&values.possibleStrength,
+    possibleRun:values.shift==='tagdienst'&&values.possibleRun,
+    possibleYoga:values.shift==='tagdienst'&&values.possibleYoga,
+    possibleStabi:values.shift==='tagdienst'&&values.possibleStabi,
     workStrength: values.shift === 'tagdienst' && values.workStrength,
     workRun: values.shift === 'tagdienst' && values.workRun,
     afterWorkStrength: values.shift === 'tagdienst' && values.afterWorkStrength,
@@ -250,11 +265,8 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
       {draft.shift === 'tagdienst' && <div className="tempo-shift-day-work">
         <h3>Was ist trotz Tagdienst möglich?</h3>
         <div className="tempo-shift-choices">
-          <Choice selected={draft.workStrength} onClick={() => update({workStrength:!draft.workStrength})}>Kraft auf Arbeit</Choice>
-          <Choice selected={draft.workRun} onClick={() => update({workRun:!draft.workRun})}>Laufen auf Arbeit</Choice>
-          <Choice selected={draft.afterWorkStrength} onClick={() => update({afterWorkStrength:!draft.afterWorkStrength})}>Kraft nach Dienst</Choice>
-          <Choice selected={draft.afterWorkRun} onClick={() => update({afterWorkRun:!draft.afterWorkRun})}>Laufen nach Dienst</Choice>
-          <Choice selected={draft.afterWorkCycling} onClick={() => update({afterWorkCycling:!draft.afterWorkCycling})}>Rad nach Dienst</Choice>
+          {AVAILABILITY_CHOICES.map(({key,symbol,label})=><Choice key={key} selected={draft[key]} onClick={()=>update({[key]:!draft[key]})}>{symbol} {label}</Choice>)}
+          <Choice selected={draft.afterWorkCycling} onClick={() => update({afterWorkCycling:!draft.afterWorkCycling})}>🚴 Rad nach Dienst</Choice>
         </div>
         {draft.afterWorkCycling && <><h3>Rad nach Dienst</h3><div className="tempo-shift-choices">
           {(['indoor','outdoor','egal'] as AfterWorkRide[]).map(kind => <Choice selected={draft.afterWorkRide === kind} key={kind} onClick={() => update({afterWorkRide:kind})}>{kind === 'indoor' ? 'Indoor / Zwift' : kind === 'outdoor' ? 'Draußen' : 'Egal'}</Choice>)}
