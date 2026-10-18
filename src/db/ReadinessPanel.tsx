@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { getRecord, saveRecord } from './storage'
 import type { TempoRecord, ProfileRecord } from './types'
 import './readiness.css'
+import MorningFuelingCheck from '../phase32/MorningFuelingCheck'
 
 const PROFILE_ID = 'local-primary-profile'
 const dateKey = () => {
@@ -225,6 +226,7 @@ export default function ReadinessPanel() {
       </label>
     </section>
 
+    <MorningFuelingCheck/>
     <section className={`panel tempo-ready-panel tempo-ready-result tempo-ready-result-${assessment.level}`}>
       <div className="eyebrow">DEINE READINESS</div>
       <h2>{assessment.title}</h2>

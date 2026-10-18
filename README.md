@@ -41,3 +41,6 @@ npm run build
 Der Upload auf GitHub-`main` startet `.github/workflows/deploy.yml`. Nur wenn der Produktions-Build erfolgreich abgeschlossen ist, wird die neue Version veröffentlicht. **Im Arbeitscontainer waren die npm-Pakete nicht verfügbar**; die Node-Logiktests und eine offline durchgeführte syntaktische Typprüfung sind möglich. Ein realer Produktions-Build muss mit GitHub Actions bestätigt werden.
 
 **Upload:** `UPLOAD-ANLEITUNG.txt`. Hintergrund: `docs/PHASE30-RELEASE.md`.
+
+## Phase 32: Fueling-Bibliothek und Rückmeldungen
+Die persönliche Produktbibliothek ist ein eigener Menüpunkt. Produktinformationen werden manuell oder mit auf dem Gerät ausgewerteten Fotos eingegeben. Verträglichkeitsfeedback wird nach einer absolvierten Einheit und optional am Folgemorgen im Readiness-Bogen erfasst. Der Speichervertrag bleibt unverändert. Weitere Details: `docs/PHASE32-RELEASE.md`.

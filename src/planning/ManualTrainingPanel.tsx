@@ -11,6 +11,7 @@ import {
 import './manual.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import {isRestDay} from '../phase31/rest-days'
+import FuelingExperienceForm from '../phase32/FuelingExperienceForm'
 
 type Mode = 'planned' | 'completed'
 const showMinutes = (entry:{durationMin?:number;durationSec?:number}) => entry.durationMin || entry.durationSec ? durationFor(entry) : 'Dauer offen'
@@ -33,6 +34,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
   const [busy,setBusy]=useState(false)
   const [loading,setLoading]=useState(true)
   const [feedback,setFeedback]=useState('Einheiten werden geladen …')
+  const [fuelingReview,setFuelingReview]=useState<{date:string;sessionId?:string;durationMin:number}|null>(null)
   const editorRef=useRef<HTMLDivElement>(null)
   const daysKey=days?.join('|')??''
   useEffect(()=>{
@@ -122,6 +124,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
       }
       await refresh()
       setFeedback(mode==='planned'?'Training geschützt im Kalender gespeichert ✓':'Absolvierte Einheit in der Trainingshistorie gespeichert ✓')
+      if(mode==='completed' && ['cycling','running'].includes(draft.sport))setFuelingReview({date:draft.date,sessionId:linked?.id,durationMin:parseHms(draft.duration,true).minutes})
       setDraft(null);setEditing(null);setLinked(null);setSelectedDate(draft.date)
     } catch(error) {setFeedback(`Nicht gespeichert: ${error instanceof Error?error.message:String(error)}`)}
     finally {setBusy(false)}
@@ -200,6 +203,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
         <div className="tempo-manual-form-actions"><button type="submit" disabled={busy}>{busy?'Speichere …':mode==='planned'?'Training fest speichern':'Aktivität speichern'}</button><button type="button" className="outline" onClick={()=>{setDraft(null);setLinked(null);setEditing(null)}}>Abbrechen</button></div>
       </form>
     </div>}
+    {fuelingReview&&<FuelingExperienceForm key={`${fuelingReview.date}:${fuelingReview.sessionId||'free'}`} date={fuelingReview.date} sessionId={fuelingReview.sessionId} durationMin={fuelingReview.durationMin}/>}
     <p className="tempo-manual-feedback" role="status">{feedback}</p>
     <HelpDisclosure id="manual-load-help"><p>Eine neue Trainingsbelastung wird erst bei der nächsten <strong>ausdrücklich bestätigten</strong> Neuplanung als Vorbelastung berücksichtigt. Gespeicherte Einheiten ändern sich nicht automatisch. Auf Einsatztagen warnt TEMPO vor Zusatzbelastung; du entscheidest.</p></HelpDisclosure>
   </section>

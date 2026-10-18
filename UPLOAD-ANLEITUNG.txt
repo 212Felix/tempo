@@ -1,15 +1,16 @@
-TEMPO PHASE 31 – NUR DIE KLEINE UPLOAD-ZIP IM BROWSER VERWENDEN
+TEMPO PHASE 32 – KLEINES GITHUB-UPLOAD-PAKET
+=============================================
+1. Auf dem iPhone vorher unbedingt ein aktuelles TEMPO-Backup in iCloud Drive erstellen.
+2. Die ZIP TEMPO_Phase32_EINFACHER_GITHUB_UPLOAD.zip entpacken.
+3. Den Ordner tempo-main öffnen. Versteckte Dateien einblenden (Cmd + Shift + Punkt).
+4. Auf GitHub: 212Felix/tempo, Branch main, Add file > Upload files.
+5. ALLE Inhalte AUS dem Ordner tempo-main hochladen, nicht den Ordner selbst.
+6. Prüfen, dass insbesondere src/App.tsx, src/phase32/FuelLibraryPanel.tsx und package.json aufgelistet sind.
+7. Commit directly to main. Danach in GitHub src/App.tsx PHASE 32 kontrollieren.
+8. Actions-Build und Deploy abwarten. Bei ROT: Fehlermeldung zeigen, nichts löschen.
+9. Bei GRÜN im privaten Safari-Fenster Phase 32 kontrollieren, dann iPhone-App und Trainingseinträge prüfen.
 
-1. Auf dem iPhone ein neues Backup erstellen und zusätzlich zur bisherigen Sicherung in iCloud Drive aufheben.
-2. TEMPO_Phase31_EINFACHER_GITHUB_UPLOAD.zip am Mac entpacken.
-3. Den Ordner tempo-main öffnen. Zum Anzeigen von .github mit Cmd+Shift+Punkt versteckte Dateien einblenden.
-4. Auf https://github.com/212Felix/tempo im Branch main -> Add file -> Upload files.
-5. NUR die INHALTE von tempo-main (nicht den Ordner selbst) auf die Uploadfläche ziehen.
-6. Vor dem Commit sicherstellen, dass src/App.tsx und src/phase31/rest-days.ts in der GitHub-Liste stehen.
-7. Commit directly to main bestätigen.
-8. GitHub -> main -> src -> App.tsx öffnen: Dort muss PHASE 31 stehen.
-9. GitHub Actions: Neuester Lauf muss sowohl Build als auch Deploy grün zeigen.
-10. Online-App in privatem Safari-Fenster überprüfen, erst dann installierte iPhone-App kontrollieren.
+Wichtig: Die Bilder von Nährwerttabellen, GPX-Dateien, Garmin-FIT-Dateien und persönlichen Backups
+niemals in das öffentliche GitHub-Repository hochladen.
 
-Nicht die vorhandene App löschen, keine Website-Daten leeren und keine Backup-Datei in GitHub hochladen.
-Die VOLLSTÄNDIGE ZIP dient nur als Sicherung; Browser-Upload über 100 Dateien ist unzuverlässig.
+Die Vollversion dient als lokale Quellcode-Sicherung; bitte nicht in einem Upload mit >100 Dateien hochladen.
