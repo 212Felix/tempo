@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 const read = p => readFileSync(p,'utf8')
 test('Phase 30: sichtbarer Header und Paketversion stimmen überein', () => {
-  assert.match(read('src/App.tsx'),/PHASE 33/)
-  assert.match(read('src/App.tsx'),/V0\.33/)
-  assert.equal(JSON.parse(read('package.json')).version,'0.33.0')
+  assert.match(read('src/App.tsx'),/PHASE 34/)
+  assert.match(read('src/App.tsx'),/V0\.34/)
+  assert.equal(JSON.parse(read('package.json')).version,'0.34.0')
 })
 test('Phase 30: Readiness ohne Eintrag ist explizit geschützt', () => {
   assert.match(read('src/phase28/adaptive-planner.ts'),/if\s*\(readiness\s*&&\s*readiness\.date/)

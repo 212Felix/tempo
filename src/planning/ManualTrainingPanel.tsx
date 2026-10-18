@@ -12,6 +12,7 @@ import './manual.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import {isRestDay} from '../phase31/rest-days'
 import FuelingExperienceForm from '../phase32/FuelingExperienceForm'
+import {paceText} from '../events/running'
 
 type Mode = 'planned' | 'completed'
 const showMinutes = (entry:{durationMin?:number;durationSec?:number}) => entry.durationMin || entry.durationSec ? durationFor(entry) : 'Dauer offen'
@@ -21,7 +22,7 @@ const numInput = (value:string,set:(v:string)=>void,placeholder:string)=>
   <input type="text" inputMode="decimal" value={value} onChange={e=>set(e.target.value)} placeholder={placeholder}/>
 
 /** Gemeinsam auf 14-Tage- und Tagestraining-Seite. Mehrfachbelegung pro Tag erlaubt. */
-export default function ManualTrainingPanel({days}:{days?:string[]}) {
+export default function ManualTrainingPanel({days,autoStartDate}:{days?:string[];autoStartDate?:string}) {
   const [shifts,setShifts]=useState<Record<string,ShiftRecord>>({})
   const [blockedDays,setBlockedDays]=useState<string[]>([])
   const [planned,setPlanned]=useState<TrainingRecord[]>([])
@@ -65,6 +66,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
   },[])
   useEffect(()=>{if(days?.length) setSelectedDate(days[0])},[daysKey])
   const scroll=()=>window.setTimeout(()=>editorRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),30)
+  useEffect(()=>{if(autoStartDate)begin('planned',autoStartDate)},[autoStartDate])
   function begin(which:Mode,date=currentKey()) {
     setEditing(null);setLinked(null);setMode(which);setDraft(defaultForm(date));setSelectedDate(date);setFeedback(which==='planned'?'Neues Training frei planen.':'Absolviertes freies Training protokollieren.');scroll()
   }
@@ -159,9 +161,10 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           const isDone=item.kind==='completed'||(item.kind==='planned'&&r.status==='erledigt')
           const marked=isDone||completedIds.has(r.id)
           const actual=item.kind==='planned'?completed.find(x=>x.plannedSessionId===r.id):undefined
+          const effective=actual||r;const runPace=r.sessionType?.includes('run')&&((effective as CompletedRecord).distanceKm??(effective as TrainingRecord).expectedKm)?paceText((effective as CompletedRecord).distanceKm??(effective as TrainingRecord).expectedKm,(effective.durationSec??Math.round((effective.durationMin??0)*60))):''
           return <div key={`${item.kind}:${r.id}`} className={`tempo-manual-entry ${marked?'is-done':''}`}>
             <div className="tempo-manual-entry-top"><strong>{info.icon} {r.title}</strong><span>{isDone?'✓ Absolviert':item.kind==='planned'&&r.createdBy==='tempo-user'?'Von dir geplant':'TEMPO-Plan'}</span></div>
-            <div className="tempo-manual-meta">{actual?`Ist: ${showMinutes(actual)}${actual.rpe?` · RPE ${actual.rpe}`:''}${actual.distanceKm?` · ${actual.distanceKm} km`:''}`:<>{showMinutes(r)} {item.kind==='planned'? `· ${r.priority}`:r.rpe?`· RPE ${r.rpe}`:''} {item.kind==='planned'?r.expectedKm?`· ${r.expectedKm} km`:null:r.distanceKm?`· ${r.distanceKm} km`:null}</>}</div>
+            <div className="tempo-manual-meta">{actual?`Ist: ${showMinutes(actual)}${actual.rpe?` · RPE ${actual.rpe}`:''}${actual.distanceKm?` · ${actual.distanceKm} km`:''}`:<>{showMinutes(r)} {item.kind==='planned'? `· ${r.priority}`:r.rpe?`· RPE ${r.rpe}`:''} {item.kind==='planned'?r.expectedKm?`· ${r.expectedKm} km`:null:r.distanceKm?`· ${r.distanceKm} km`:null}</>}{runPace&&<strong> · Ø {runPace}</strong>}</div>
             {(actual?.notes||r.notes)&&<p className="tempo-manual-note">{actual?.notes||r.notes}</p>}
             {actual&&<p className="tempo-manual-note">Mit Ist-Aktivität verknüpft · geplante Vorgabe: {durationFor(r)}{actual.externalActivityId?' · Garmin-Messwerte ✓':''}</p>}
             <div className="tempo-manual-entry-actions">
@@ -192,6 +195,7 @@ export default function ManualTrainingPanel({days}:{days?:string[]}) {
           <Field>Trainingsname<input required maxLength={120} value={draft.title} placeholder="z. B. Gravelrunde mit Freunden" onChange={e=>patch('title',e.target.value)}/></Field>
           <TimeFields label="Trainingsdauer" value={draft.duration} onChange={value=>patch('duration',value)} required/>
           <Field>{draft.sport==='swimming'?'Distanz (km, z. B. 0,75 = 750 m)':'Distanz (km, optional)'}{numInput(draft.distance,v=>patch('distance',v),'z. B. 75')}</Field>
+          {draft.sport==='running'&&draft.distance&&Number(draft.distance.replace(',','.'))>0&&<div className="tempo34-running-pace">🏃 Ø-Pace {paceText(Number(draft.distance.replace(',','.')),/^\d{1,3}:[0-5]\d:[0-5]\d$/.test(draft.duration)?parseHms(draft.duration,true).seconds:0)||'–'} · min/km aus tatsächlicher Zeit und Distanz</div>}
           <Field>Höhenmeter (optional){numInput(draft.elevation,v=>patch('elevation',v),'z. B. 800')}</Field>
           {mode==='planned'?<>
             <Field>Priorität<select value={draft.priority} onChange={e=>patch('priority',e.target.value)}><option>MUSS</option><option>SOLL</option><option>KANN</option></select></Field>

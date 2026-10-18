@@ -34,7 +34,7 @@ const askAdd=(date:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-a
 const askEdit=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-edit',{detail:{kind:'planned',id}}))
 const askDone=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-finish',{detail:id}))
 
-export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenWorkout,initialDate}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void;initialDate?:string}){
+export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenWorkout,initialDate,autoAddDate}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void;initialDate?:string;autoAddDate?:string}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
   const [selected,setSelected]=useState(initialDate??currentKey())
   const [reschedule,setReschedule]=useState<TrainingRecord|null>(null)
@@ -89,6 +89,6 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
     {restPreview&&<WeekReplanner restDate={selectedDay} onClose={()=>setRestPreview(false)} onSaved={()=>setSelected(selectedDay)}/>}
     <DayShiftEditor key={selectedDay} date={selectedDay}/>
     {selectedDay===today&&<DailyDecisionPanel onOpenReadiness={onOpenReadiness} onOpenCalendar={onOpenCalendar}/> }
-    <ManualTrainingPanel days={[selectedDay]}/>
+    <ManualTrainingPanel days={[selectedDay]} autoStartDate={autoAddDate}/>
   </div>
 }

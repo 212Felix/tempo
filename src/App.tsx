@@ -20,6 +20,8 @@ import { isRun, isStrength } from './workouts/sessionStore'
 import type { TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
 import './phase33.css'
+import './phase34/calendar-board.css'
+import './phase34/phase34.css'
 
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
@@ -34,7 +36,7 @@ const pages: PageInfo[] = [
   { id: 'readiness', name: 'Readiness', icon: 'heart', description: 'Dein täglicher Check-in.' },
   { id: 'training', name: 'Tagestraining', icon: 'play', description: 'Die nächste geplante Einheit.' },
   { id: 'calendar', name: '14-Tage-Plan', icon: 'calendar', description: 'Training und Dienste gemeinsam planen.' },
-  { id: 'fueling', name: 'Fueling & Trinken', icon: 'drop', description: 'Kohlenhydrate, Flüssigkeit und Verträglichkeit.' },
+  { id: 'fueling', name: 'Fueling', icon: 'drop', description: 'Kohlenhydrate, Flüssigkeit und Verträglichkeit.' },
   { id: 'fuel-library', name: 'Produktbibliothek', icon: 'layers', description: 'Gels, Pulver, Riegel und Lebensmittel mit Nährwerten und Preisen.' },
   { id: 'recovery', name: 'Recovery & Mobility', icon: 'wind', description: 'Routinen, Beweglichkeit und Erholung.' },
   { id: 'cycling', name: 'Radfahren', icon: 'bike', description: 'Watt- und Pulszonen, Indoor und Outdoor.' },
@@ -126,11 +128,13 @@ export default function App() {
   const [activitiesOpen,setActivitiesOpen]=useState(false)
   const [focusWorkout, setFocusWorkout] = useState('')
   const [dayFocus,setDayFocus]=useState('')
+  const [addFocus,setAddFocus]=useState('')
   useEffect(()=>{void ensureCooperGoal().then(()=>window.dispatchEvent(new Event('tempo:events-change'))).catch(error=>console.warn('Cooper-Ziel konnte nicht angelegt werden:',error))},[])
   const active = pages.find(p => p.id === page)!
   const today = new Intl.DateTimeFormat('de-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date())
   function navigate(id: PageId) { if(activityPages.includes(id))setActivitiesOpen(true); setFocusWorkout(''); setPage(id); setMenuOpen(false); window.scrollTo({top:0,behavior:'smooth'}) }
-  function openCalendarDay(date:string) {setDayFocus(date);setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
+  function openCalendarDay(date:string) {setDayFocus(date);setAddFocus('');setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
+  function addCalendarTraining(date:string){setDayFocus(date);setAddFocus(date);setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
   function openWorkout(session: TrainingRecord) {
     if(!isStrength(session) && !isRun(session)) return
     setFocusWorkout(session.id)
@@ -154,12 +158,12 @@ export default function App() {
         if(activityPages.includes(item.id))return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.33 · Leistung & Fueling</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.34 · Leistung & Fueling</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 33</span></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 34</span></header>
       <main className={`content page-${page}`}><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1>{page!=='home'&&<p>{active.description}</p>}</div>{page==='home'&&<img className="tempo33-home-logo" src={`${import.meta.env.BASE_URL}tempo-logo.jpg`} alt="TEMPO-Logo"/>}</div>
       <HelpProvider key={page}>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel onOpenDay={openCalendarDay}/> : page === 'training' ? <TrainingDayPanel key={dayFocus} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
+      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel onOpenDay={openCalendarDay} onAddDay={addCalendarTraining}/> : page === 'training' ? <TrainingDayPanel key={`${dayFocus}:${addFocus}`} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>

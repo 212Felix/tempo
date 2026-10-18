@@ -42,7 +42,7 @@ function trainingLoad(input: {
     return {guardDays: 1, cautionDays: 1, label: 'Anstrengendes Krafttraining'}
   if (rpe >= 9 && duration >= 30)
     return {guardDays: 1, cautionDays: 1, label: 'Sehr hohe subjektive Belastung'}
-  if ((cycling && distance >= 45) || (strength && duration >= 45) || (running && duration >= 50) || rpe >= 7)
+  if ((cycling && distance >= 75) || (strength && duration >= 65 && rpe >= 7) || (running && duration >= 70 && rpe >= 7) || rpe >= 8)
     return {guardDays: 0, cautionDays: 1, label: 'Zusätzliche Trainingsbelastung'}
   return null
 }

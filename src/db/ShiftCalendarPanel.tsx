@@ -6,7 +6,7 @@ import PlanPreview from '../planning/PlanPreview'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import ReconciliationPanel from '../planning/ReconciliationPanel'
 import QuickAdjustmentPanel from './QuickAdjustmentPanel'
-import CompactCalendar from '../phase28/CompactCalendar'
+import CalendarBoard from '../phase34/CalendarBoard'
 import {currentKey,generatePlan,type TrainingRecord,type CompletedRecord,type ReadinessRecord} from '../planning/engine'
 import {deriveAdaptiveWeeks} from '../phase28/adaptive-planner'
 import {rollingCalendarWeeks,isRestDay,type RestDayRecord} from '../phase31/rest-days'
@@ -129,7 +129,7 @@ export function ShiftHomeCard({ onOpen }: {onOpen: () => void}) {
   </section>
 }
 
-export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=>void}) {
+export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date:string)=>void;onAddDay:(date:string)=>void}) {
   const [rangeOffset, setRangeOffset] = useState(0)
   const [horizon, setHorizon] = useState<7 | 14 | 'rolling'>('rolling')
   const [entries, setEntries] = useState<Record<string, ShiftEntry>>({})
@@ -175,7 +175,7 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
     return()=>{live=false;window.removeEventListener('tempo:training-change',reload);window.removeEventListener('tempo:blocks-change',reload)}
   },[])
   const tentativePlan=useMemo(()=>{
-    if(horizon!=='rolling')return [] as TrainingRecord[]
+    // All horizons show future workouts; previously only 'rolling' displayed proposals.
     return generatePlan({days,shifts:entries,profile,readiness,existing:savedPlans,completed:completedTrainings,events:eventGoals,routes,blocks,restDays,provisionalUnconfirmed:true})
       .filter(day=>day.date>=currentKey()&&day.session&&!savedPlans.some(s=>s.date===day.date)&&!completedTrainings.some(s=>s.date===day.date))
       .map(day=>({...day.session!,id:`preview:${day.session!.id}`,title:`Vorschlag · ${day.session!.title}`,status:'geplant' as const}))
@@ -251,7 +251,7 @@ export default function ShiftCalendarPanel({onOpenDay}:{onOpenDay:(date:string)=
 
 
     {horizon==='rolling'&&<div className="tempo31-calendar-info"><strong>Rollierender Ausblick · mindestens 10 Tage ab heute.</strong> Die Kalenderwochen werden vollständig im 3/2/2-Raster gezeigt. Farbige Vorschläge an noch ungeklärten Diensttagen sind vorläufig und noch nicht gespeichert. Unter „Trainingsvorschläge“ kannst du geeignete Termine nach Dienstbestätigung fest übernehmen.</div>}
-    <CompactCalendar shifts={Object.values(entries)} plans={[...savedPlans,...tentativePlan]} done={completedTrainings} onOpenDay={onOpenDay} days={days} restDays={restDays} blockKinds={blockKinds}/>
+    <CalendarBoard shifts={Object.values(entries)} plans={[...savedPlans,...tentativePlan]} done={completedTrainings} onOpenDay={onOpenDay} onAddDay={onAddDay} days={days} restDays={restDays} blockKinds={blockKinds} onConfirm={async record=>{const current=await listRecords<TrainingRecord>('plannedSessions'); if(current.some(x=>x.profileId===PROFILE_ID&&x.date===record.date&&x.status==='geplant'))throw new Error('Für diesen Tag gibt es bereits einen gespeicherten Trainingsplan. Bitte zuerst den Tag öffnen.');const now=new Date().toISOString();await saveRecord('plannedSessions',{...record,id:`user:${PROFILE_ID}:${record.date}:${Date.now()}`,title:record.title.replace(/^Vorschlag · /,''),status:'geplant',createdBy:'tempo-user',locked:true,createdAt:now,updatedAt:now});window.dispatchEvent(new Event('tempo:training-change'))}}/>
 
     {proposedWeekends.length > 0 && <button className="tempo-shift-weekend-button" type="button" onClick={() => void confirmWeekends()} disabled={saving || loading}>Freie Wochenend-Vorschläge bestätigen ({proposedWeekends.length})</button>}
 

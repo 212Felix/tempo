@@ -12,7 +12,7 @@ export interface EnrichedProduct extends FuelProduct {
 }
 export interface FuelExperience {id:string;profileId?:string;date:string;sessionId?:string;createdAt:string;updatedAt:string;
  productIds:string[];productServings?:Record<string,number>;tolerance:TrafficLight;nextMorning?:TrafficLight;
- additionalCarbsGrams:number;actualTotalCarbsGrams?:number;actualCarbsHour?:number;actualFluidHour?:number;notes:string;
+ additionalCarbsGrams:number;noFueling?:boolean;actualTotalCarbsGrams?:number;actualCarbsHour?:number;actualFluidHour?:number;notes:string;
 }
 export const isProduct=(x:{id:string})=>x.id.startsWith('fuel-product:')
 export const isExperience=(x:{id:string})=>x.id.startsWith('fuel-experience:')

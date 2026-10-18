@@ -9,11 +9,11 @@ import type {TrainingBlock} from '../blocks/library'
 import './phase30.css'
 const icon=(s:TrainingRecord)=>/strength/.test(s.sessionType)?'🏋️':/run/.test(s.sessionType)?'🏃':/recovery|mobility|yoga|stabi/.test(`${s.sessionType} ${s.title}`)?'🧘':'🚴'
 const nice=(d:string)=>new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}).format(new Date(`${d}T12:00:00`))
-export default function WeekReplanner({anchor,restDate,onClose,onSaved}:{anchor?:TrainingRecord;restDate?:string;onClose:()=>void;onSaved:()=>void}){
+export default function WeekReplanner({anchor,restDate,onClose,onSaved,initialTarget,initialSwapId}:{anchor?:TrainingRecord;restDate?:string;onClose:()=>void;onSaved:()=>void;initialTarget?:string;initialSwapId?:string}){
  if(!anchor&&!restDate)throw Error('Bitte ein Training oder einen freien Tag auswählen.')
  const [source,setSource]=useState<{sessions:TrainingRecord[];completed:CompletedRecord[];shifts:ShiftRecord[];restDays:RestDayRecord[];events:GoalEvent[];blocks:TrainingBlock[]}|null>(null)
- const [target,setTarget]=useState(anchor?.date??restDate!)
- const [restMode,setRestMode]=useState<RestMode>('free'),[restNote,setRestNote]=useState(''),[exclusions,setExclusions]=useState<Record<string,string[]>>({}),[forced,setForced]=useState<Record<string,string>>({})
+ const [target,setTarget]=useState(initialTarget??anchor?.date??restDate!)
+ const [restMode,setRestMode]=useState<RestMode>('free'),[restNote,setRestNote]=useState(''),[exclusions,setExclusions]=useState<Record<string,string[]>>({}),[forced,setForced]=useState<Record<string,string>>(()=>initialSwapId&&anchor?{[initialSwapId]:anchor.date}:{})
  const [pendingDate,setPendingDate]=useState<string|null>(null)
  const [approved,setApproved]=useState<Record<string,'yes'|'no'>>({}),[dropdown,setDropdown]=useState<string|null>(null)
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('')

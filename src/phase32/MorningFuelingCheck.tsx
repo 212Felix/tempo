@@ -10,7 +10,7 @@ export default function MorningFuelingCheck(){
  const [ratings,setRatings]=useState<Record<string,TrafficLight>>({})
  useEffect(()=>{let live=true;void loadExperiences().then(async items=>{
    // Only show when a completed workout exists, never from a scheduled future workout.
-   const today=dateKey();const yesterday=items.filter(x=>followingDay(x.date)===today&&x.tolerance&&!x.nextMorning)
+   const today=dateKey();const yesterday=items.filter(x=>followingDay(x.date)===today&&x.tolerance&&!x.nextMorning&&!x.noFueling)
    const completed=await listRecords<TempoRecord>('completedSessions')
    const filtered=yesterday.filter(e=>completed.some(done=>done.date===e.date&&(!e.sessionId||done.plannedSessionId===e.sessionId||done.id===e.sessionId)))
    if(live)setPending(filtered)

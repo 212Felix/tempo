@@ -168,7 +168,7 @@ export function generatePlan(args: {
     if (item.profileId !== PROFILE_ID) continue
     if (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant') lockedDates.add(item.date)
   }
-  for (const item of completed) if (item.profileId === PROFILE_ID && item.date) lockedDates.add(item.date)
+  for (const item of completed) if (item.profileId === PROFILE_ID && item.date && item.sessionType !== 'manual-swimming') lockedDates.add(item.date)
   for (const day of args.restDays??[]) if(day.profileId===PROFILE_ID)lockedDates.add(day.date)
   const map = new Map<string, PlanDay>()
   const preassigned = new Set<string>()
@@ -202,7 +202,7 @@ export function generatePlan(args: {
     if(isRecordedQuality(item))intensityDates.add(item.date)
     if (['long','quality','strength-a','strength-b','commute'].includes(type)) heavy.add(item.date)
   }
-  for (const item of completed) if (item.profileId === PROFILE_ID && days.includes(item.date)) {
+  for (const item of completed) if (item.profileId === PROFILE_ID && days.includes(item.date) && item.sessionType !== 'manual-swimming') {
     const type = normalize(item.sessionType, item.durationMin, item.distanceKm)
     markFixed(item.date, type)
     if(isRecordedQuality(item))intensityDates.add(item.date)
