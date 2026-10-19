@@ -10,9 +10,9 @@ export type Exercise = {
   hold?: boolean
   optional?: boolean
 }
-export type StrengthTemplate = {key:'A'|'B';title:string;focus:string;warmup:string;exercises:Exercise[]}
+export type StrengthTemplate = {key:'A'|'B'|'C';title:string;focus:string;warmup:string;exercises:Exercise[]}
 
-export const STRENGTH:Record<'A'|'B',StrengthTemplate> = {
+export const STRENGTH:Record<'A'|'B'|'C',StrengthTemplate> = {
   A: {key:'A',title:'Kraft A · Ganzkörper',focus:'Knie/Hüfte, Zug, Druck, Adduktoren und Schulter',warmup:'8–10 Minuten: lockere Bewegung, Hüftmobilität, Schulterkreisen, 2 leichte Vorbereitungssätze.',exercises:[
     {id:'squat',name:'Kniebeuge / Goblet Squat',sets:3,reps:'5–6',restSec:150,cue:'Kontrolliert absenken, Rumpf fest. Etwa 2–3 Wiederholungen in Reserve.'},
     {id:'rdl',name:'Rumänisches Kreuzheben',sets:3,reps:'6–8',restSec:150,cue:'Hüfte nach hinten, Rücken neutral. Keine erzwungenen Maximalgewichte.'},
@@ -30,6 +30,16 @@ export const STRENGTH:Record<'A'|'B',StrengthTemplate> = {
     {id:'cossack',name:'Cossack Squat',sets:2,reps:'6–8 je Seite',restSec:75,cue:'Breiter Seit-Ausfallschritt, nur so tief wie kontrolliert möglich. Adduktoren langsam aufbauen.',unilateral:true},
     {id:'side-plank-lift',name:'Side Plank mit oberem Beinheben',sets:2,reps:'6–10 je Seite',restSec:65,cue:'Seitstütz stabil halten und oberes Bein langsam heben. Alternative: Seitenlage-Beinheben.',unilateral:true},
     {id:'chest-open',name:'Brust-/vordere Schulteröffnung',sets:2,reps:'25–35 s je Seite',restSec:40,cue:'Türrahmen-Stretch ohne schmerzhaftes Ziehen; Schulter sanft bewegen.',unilateral:true,hold:true},
+  ]},
+  C: {key:'C',title:'Kraft C · Oberkörper',focus:'2 × Brust, 2 × Rücken, Bizeps, Trizeps, 2 × Schultern · ohne direkte Bein-Arbeitssätze',warmup:'8 Minuten Schultermobilität, leichtes Aufwärmen, 2 Vorbereitungssätze vor den großen Übungen.',exercises:[
+    {id:'c-bench',name:'Flachbankdrücken',sets:3,reps:'6–10',restSec:120,cue:'Sauberer Bewegungsumfang, 1–3 Wiederholungen in Reserve.'},
+    {id:'c-incline',name:'Schrägbank-Kurzhanteldrücken',sets:3,reps:'8–12',restSec:100,cue:'Schulterkontrolliert drücken, Brust gezielt belasten.'},
+    {id:'c-pull',name:'Klimmzug / Latzug',sets:3,reps:'6–10',restSec:120,cue:'Volle Rumpfspannung, kontrollierte Schulterblattbewegung.'},
+    {id:'c-row',name:'Brustgestütztes Rudern',sets:3,reps:'8–12',restSec:100,cue:'Brust abgestützt, keine zusätzliche Bein-/Rumpfermüdung durch stehendes Rudern.'},
+    {id:'c-biceps',name:'Bizepscurls',sets:2,reps:'8–12',restSec:75,cue:'Kontrollierte Ellbogenposition, kein Schwung.'},
+    {id:'c-triceps',name:'Trizepsdrücken am Kabel',sets:2,reps:'10–15',restSec:75,cue:'Oberarme stabil, Bewegungsumfang schmerzfrei.'},
+    {id:'c-lateral',name:'Seitheben',sets:3,reps:'12–20',restSec:65,cue:'Langsam, ohne Schwung und ohne Überstreckung.'},
+    {id:'c-reverse',name:'Reverse Flys / Face Pulls',sets:3,reps:'12–20',restSec:65,cue:'Hintere Schulter und Schulterblattkontrolle gezielt belasten.'},
   ]},
 }
 

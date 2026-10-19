@@ -50,7 +50,7 @@ export function rideSummary(activities:RideWithLocation[],overrides:Record<strin
   return totals
 }
 const cyclingKinds=new Set(['long','endurance','quality','commute','manual-cycling'])
-const strengthKinds=new Set(['strength-a','strength-b','manual-strength'])
+const strengthKinds=new Set(['strength-a','strength-b','strength-c','manual-strength'])
 export function unlinkedManualCycling(completed:DoneWithContext[],minDate=''){
   return completed.filter(x=>cyclingKinds.has(x.sessionType??'')&&!x.externalActivityId&&(!minDate||x.date>=minDate))
 }

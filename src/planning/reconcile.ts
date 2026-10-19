@@ -29,7 +29,7 @@ export type ReconcileSport='cycling'|'running'|'strength'|'swimming'|'martial'|'
 export function kindSport(kind?:string):ReconcileSport{
   if(['long','endurance','quality','commute','manual-cycling'].includes(kind??''))return 'cycling'
   if(['run','manual-running'].includes(kind??''))return 'running'
-  if(['strength-a','strength-b','manual-strength'].includes(kind??''))return 'strength'
+  if(['strength-a','strength-b','strength-c','manual-strength'].includes(kind??''))return 'strength'
   if(kind==='manual-swimming')return 'swimming'
   if(kind==='manual-martial')return 'martial'
   if(kind==='manual-mobility'||kind==='manual-yoga'||kind==='manual-stabi'||kind==='recovery')return 'mobility'

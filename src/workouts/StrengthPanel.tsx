@@ -23,7 +23,7 @@ type Data=Awaited<ReturnType<typeof loadWorkoutData>>
 export default function StrengthPanel({focusId}:{focusId?:string}){
   const [data,setData]=useState<Data>({planned:[],completed:[],readiness:[],sets:[]})
   const [date,setDate]=useState(currentKey())
-  const [variant,setVariant]=useState<'A'|'B'>('A')
+  const [variant,setVariant]=useState<'A'|'B'|'C'>('A')
   const [location,setLocation]=useState<StrengthPlace>('studio')
   const [equipment,setEquipment]=useState<Record<StrengthPlace,Record<string,string>>>({studio:{},arbeit:{}})
   const [plannedId,setPlannedId]=useState('')
@@ -56,7 +56,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     const seen=new Set<string>()
     return rows.filter(row=>{const key=`${row.trainingLocation}:${row.exerciseId}:${row.exerciseVariant}`;if(seen.has(key))return false;seen.add(key);return true}).slice(0,9)
   },[data.sets])
-  const history=useMemo(()=>data.completed.filter(x=>x.sessionType==='strength-a'||x.sessionType==='strength-b'||x.sessionType==='manual-strength').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8),[data.completed])
+  const history=useMemo(()=>data.completed.filter(x=>x.sessionType==='strength-a'||x.sessionType==='strength-b'||x.sessionType==='strength-c'||x.sessionType==='manual-strength').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8),[data.completed])
 
   useEffect(()=>{
     let active=true
@@ -70,7 +70,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     const refresh=()=>void loadWorkoutData().then(next=>{
       if(!active)return
       setData(next)
-      setMessage('Kraft A/B bereit. Satzgewichte und Wiederholungen werden lokal gespeichert.')
+      setMessage('Kraft A/B/C bereit. Satzgewichte und Wiederholungen werden lokal gespeichert.')
     }).catch(e=>{if(active)setMessage(`Ladefehler: ${String(e)}`)})
     refresh();window.addEventListener('tempo:training-change',refresh)
     return()=>{active=false;window.removeEventListener('tempo:training-change',refresh)}
@@ -158,7 +158,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const warning=readinessWarning(onDate,data.readiness)
   return <div className="tw-stack">
     <section className="panel tw-panel">
-      <div className="eyebrow">KRAFT · TRAINING STARTKLAR</div><h2>Ganzkörper A / B</h2><StrengthSessionTimer sessionId={sessionKey} onStop={seconds=>{if(seconds>0){setDuration(formatSeconds(seconds));setMessage('Timer gestoppt: Trainingsdauer wurde ins Abschlussformular übernommen. Bitte Training abschließen, um sie dauerhaft zu speichern.')}}}/>
+      <div className="eyebrow">KRAFT · TRAINING STARTKLAR</div><h2>Kraft A / B / C · Oberkörper</h2><StrengthSessionTimer sessionId={sessionKey} onStop={seconds=>{if(seconds>0){setDuration(formatSeconds(seconds));setMessage('Timer gestoppt: Trainingsdauer wurde ins Abschlussformular übernommen. Bitte Training abschließen, um sie dauerhaft zu speichern.')}}}/>
       <HelpDisclosure id="strength-intro"><p>Schwerpunkt Beine und Rumpf mit Oberkörper-Ausgleich, Adduktoren-/Abduktorenübungen ohne Maschinen und schonender Schulterarbeit. <strong>Kleiner Start/Stopp-Timer für das Gesamttraining und Countdown für Halteübungen; keine Töne.</strong> Die Satzpausen stehen bei jeder Übung.</p></HelpDisclosure>
       <div className="tw-form-grid">
         <label>Geplantes Training<select value={plannedId} onChange={e=>{
@@ -166,11 +166,11 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
           const item=planned.find(x=>x.id===id)
           if(item){setDate(item.date);setVariant(workoutKind(item));setDuration(durationFor(item))}else setDuration('00:55:00')
         }}><option value="">Eigene Einheit – unabhängig vom Plan</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
-        {!selected&&<><label>Datum<input type="date" value={date} onChange={e=>setDate(selectDate(e.target.value))}/></label><label>Programm<select value={variant} onChange={e=>setVariant(e.target.value as 'A'|'B')}><option value="A">Kraft A</option><option value="B">Kraft B</option></select></label></>}
+        {!selected&&<><label>Datum<input type="date" value={date} onChange={e=>setDate(selectDate(e.target.value))}/></label><label>Programm<select value={variant} onChange={e=>setVariant(e.target.value as 'A'|'B'|'C')}><option value="A">Kraft A</option><option value="B">Kraft B</option><option value="C">Kraft C · Oberkörper</option></select></label></>}
       </div>
       <div className="tw-location"><strong>Trainingsort</strong><div className="tw-location-choices">{(['studio','arbeit'] as const).map(place=><button type="button" key={place} className={location===place?'selected':''} disabled={done} onClick={()=>setLocation(place)}>{placeName[place]}</button>)}</div><p>Gerätevarianten werden für jeden Ort separat gemerkt und mit den Sätzen protokolliert.</p></div>
       <div className="tw-info"><strong>{template.title} · {friendlyDate(onDate)}</strong><span>{template.focus}</span><span>{template.warmup}</span></div>
-      {coachingWeek&&<div className="tw-info"><strong>Adaptive Kraftdosierung · {coachingWeek.kind}{coachingWeek.deload?' / Entlastung':''}</strong><span>Empfehlung für die Unterkörperübungen: ca. {coachingWeek.legSets} Arbeitssätze über Kraft A und B zusammen pro Woche (regulär {REGULAR_LEG_SETS}). Oberkörper bleibt erhalten.</span><span>Bereits protokollierte Sätze bleiben sichtbar und werden nicht reduziert oder gelöscht. Dienst, Müdigkeit und Schmerzen haben Vorrang.</span></div>}
+      {coachingWeek&&kind!=='C'&&<div className="tw-info"><strong>Adaptive Kraftdosierung · {coachingWeek.kind}{coachingWeek.deload?' / Entlastung':''}</strong><span>Empfehlung für die Unterkörperübungen: ca. {coachingWeek.legSets} Arbeitssätze über Kraft A und B zusammen pro Woche (regulär {REGULAR_LEG_SETS}). Oberkörper bleibt erhalten.</span><span>Bereits protokollierte Sätze bleiben sichtbar und werden nicht reduziert oder gelöscht. Dienst, Müdigkeit und Schmerzen haben Vorrang.</span></div>}
       {warning&&<div className="tw-warning" role="status">{warning} Keine automatische Trainingsfreigabe.</div>}
       {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert gespeichert. Satzprotokoll bleibt lesbar; ein erneuter Abschluss wird verhindert.</div>}
     </section>

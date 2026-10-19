@@ -1,12 +1,12 @@
-TEMPO PHASE 34 – einfaches GitHub-Update
+TEMPO PHASE 35 – einfacher GitHub-Upload
 
-1. Zuerst ein frisches iPhone-Backup exportieren und in iCloud Drive behalten.
-2. NUR die Datei TEMPO_Phase34_EINFACHER_GITHUB_UPLOAD.zip entpacken.
-3. Den Ordner tempo-main öffnen; ggf. Cmd+Shift+. zeigt versteckte Dateien.
-4. GitHub: 212Felix/tempo, Branch main, Add file > Upload files.
-5. ALLE INHALTE innerhalb von tempo-main auf GitHub ziehen, NICHT den äußeren Ordner tempo-main.
-6. Vor Commit prüfen: src/App.tsx + src/phase34/CalendarBoard.tsx müssen aufgeführt sein.
-7. Commit directly to main. Prüfen: src/App.tsx zeigt PHASE 34.
-8. GitHub Actions muss build + deploy grün melden. Erst dann Mac im privaten Safari-Fenster und iPhone kontrollieren.
+1. Zuerst ein aktuelles iPhone-Backup in iCloud Drive speichern.
+2. NUR TEMPO_Phase35_EINFACHER_GITHUB_UPLOAD.zip herunterladen und entpacken.
+3. Den enthaltenen Ordner tempo-main öffnen (Cmd+Shift+. blendet versteckte Dateien ein).
+4. Auf GitHub 212Felix/tempo, Branch main, Add file > Upload files öffnen.
+5. ALLE INHALTE INNERHALB von tempo-main auf GitHub ziehen; nicht den übergeordneten Ordner.
+6. Vor dem Commit prüfen, dass src/App.tsx, src/phase35/weekly-rhythm.ts, src/workouts/StrengthPanel.tsx und package.json enthalten sind.
+7. Commit directly to main. Auf main muss src/App.tsx danach PHASE 35 enthalten.
+8. GitHub Actions build+deploy müssen grün werden. Dann Mac und iPhone prüfen.
 
-WICHTIG: Nicht die App löschen, nicht die Website-Daten zurücksetzen, keine Backups in GitHub hochladen.
+WICHTIG: Nicht die installierte iPhone-App löschen oder Website-Daten zurücksetzen. Niemals Backups/GPS/FIT in GitHub hochladen.

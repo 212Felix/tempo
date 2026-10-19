@@ -18,19 +18,20 @@ const daysBetween = (from: string, to: string): number => {
 }
 
 const isCycling = (type?: string) => ['manual-cycling','long','endurance','quality','commute'].includes(type ?? '')
-const isStrength = (type?: string) => ['manual-strength','strength-a','strength-b'].includes(type ?? '')
+const isStrength = (type?: string) => ['manual-strength','strength-a','strength-b','strength-c'].includes(type ?? '')
 const isRunning = (type?: string) => ['manual-running','run'].includes(type ?? '')
 
 function trainingLoad(input: {
   sessionType?: string; durationMin?: number; distanceKm?: number;
-  elevationM?: number; rpe?: number
+  elevationM?: number; rpe?: number; strengthVariant?:'A'|'B'|'C'
 }): { guardDays: number; cautionDays: number; label: string } | null {
   const duration = input.durationMin ?? 0
   const distance = input.distanceKm ?? 0
   const elevation = input.elevationM ?? 0
   const rpe = input.rpe ?? 0
   const cycling = isCycling(input.sessionType)
-  const strength = isStrength(input.sessionType)
+  const upperBody=input.sessionType==='strength-c'||(input.sessionType==='manual-strength'&&input.strengthVariant==='C')
+  const strength = isStrength(input.sessionType) && !upperBody
   const running = isRunning(input.sessionType)
   if (cycling && (distance >= 160 || duration >= 330 || elevation >= 2600 || (duration >= 180 && rpe >= 8)))
     return {guardDays: 2, cautionDays: 3, label: 'Sehr lange oder intensive Radeinheit'}
@@ -64,14 +65,14 @@ export function createLoadCalendar(
   const inputs = [
     ...completed.map(item => ({
       date:item.date, sessionType:item.sessionType, durationMin:item.durationMin,
-      distanceKm:item.distanceKm,elevationM:item.elevationM,rpe:item.rpe,
+      distanceKm:item.distanceKm,elevationM:item.elevationM,rpe:item.rpe,strengthVariant:item.strengthVariant,
       origin:'absolviert' as const,
     })),
     // Nur selbst fest verplante Einheiten werden berücksichtigt, nicht die ersetzbaren
     // automatisch erstellten Einheiten. Sonst würde der Plan sich selbst blockieren.
     ...planned.filter(item => item.status === 'geplant' && (item.locked || item.createdBy === 'tempo-user') && !completedSessionIds.has(item.id))
       .map(item => ({date:item.date,sessionType:item.sessionType,durationMin:item.durationMin,
-        distanceKm:item.expectedKm,elevationM:item.elevationM,rpe:item.rpe,
+        distanceKm:item.expectedKm,elevationM:item.elevationM,rpe:item.rpe,strengthVariant:item.strengthVariant,
         origin:'fest geplant' as const})),
   ]
   for (const entry of inputs) {

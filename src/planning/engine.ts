@@ -7,6 +7,7 @@ import { upcomingCooper } from '../events/running'
 import {deriveAdaptiveWeeks,adjustSuggestedSession,plannedEvents,type AdaptiveWeek} from '../phase28/adaptive-planner'
 import type {RestDayRecord} from '../phase31/rest-days'
 import {availabilityFlag} from './availability'
+import {rhythmPenalty,rhythmForDate,type WeekRhythm} from '../phase35/weekly-rhythm'
 
 /** Conservative starter scheduling rules, intentionally transparent and changeable. */
 export const PLANNER_VERSION = 'tempo-planner-v1'
@@ -14,7 +15,7 @@ export const PROFILE_ID = 'local-primary-profile'
 export type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
 export type CommuteKind = 'nein' | 'hin' | 'zurueck' | 'beide'
 export type Priority = 'MUSS' | 'SOLL' | 'KANN'
-export type SessionKind = 'long' | 'quality' | 'endurance' | 'commute' | 'strength-a' | 'strength-b' | 'run' | 'recovery'
+export type SessionKind = 'long' | 'quality' | 'endurance' | 'commute' | 'strength-a' | 'strength-b' | 'strength-c' | 'run' | 'recovery'
 export type ManualSessionKind = 'manual-cycling' | 'manual-running' | 'manual-strength' | 'manual-swimming' | 'manual-martial' | 'manual-mobility' | 'manual-yoga' | 'manual-stabi'
 
 export type ShiftRecord = TempoRecord & {
@@ -54,6 +55,7 @@ export type TrainingRecord = TempoRecord & {
   commuteLeg?: 'hin' | 'rueck' | 'beide'
   cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
   strengthLocation?: 'studio' | 'arbeit'
+  strengthVariant?:'A'|'B'|'C'
   swimEnvironment?: 'pool' | 'openwater'
   swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
   sessionOrigin?: 'self'|'extern'
@@ -75,6 +77,7 @@ export type CompletedRecord = TempoRecord & {
   commuteLeg?: 'hin' | 'rueck' | 'beide'
   cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
   strengthLocation?: 'studio' | 'arbeit'
+  strengthVariant?:'A'|'B'|'C'
   swimEnvironment?: 'pool' | 'openwater'
   swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
   sessionOrigin?: 'self'|'extern'
@@ -129,6 +132,7 @@ function candidate(date: string, type: SessionKind, profile?: ProfileRecord, com
     case 'quality': return session(date, type, 'Tempo-Einstieg 2 × 8', 60, 'MUSS', 'Dosierter Qualitätsreiz; keine maximale Belastung.', `15 min Einrollen · 2 × 8 min bei ${wattText(ftp, .80, .88)} · 5 min locker · Ausrollen`, 'Nur bei guter Tagesform; auf der Rolle oder sicheren, zusammenhängenden Abschnitten.')
     case 'strength-a': return session(date, type, 'Kraft A · Ganzkörper', 55, 'SOLL', 'Knie-/hüftdominant, Rücken, Brust, Core und Schulterpflege.', 'Saubere Technik, 2–3 Wiederholungen in Reserve', 'Mit Copenhagen Plank und Lateral Step-Down; kein schweres Überkopfdrücken.')
     case 'strength-b': return session(date, type, 'Kraft B · Ganzkörper', 55, 'SOLL', 'Unilateral/Hüfte, Rücken, Brust, Core und Schulterpflege.', 'Kontrolliert, keine Sätze bis zum Versagen', 'Mit Cossack Squat und Side Plank mit Beinheben; Belastung vor Schlüssel-Radtraining reduzieren.')
+    case 'strength-c': return session(date, type, 'Kraft C · Oberkörper', 70, 'SOLL', 'Brust, Rücken, Bizeps, Trizeps und Schultern, keine direkte Beinbelastung.', '22 Arbeitssätze, gute Technik, 1–3 Wiederholungen in Reserve', 'Kann mit lockerem Rad-/Lauftraining am gleichen Tag kombiniert werden, wenn die Gesamtbelastung passt.')
     case 'run': return session(date, type, 'Easy Run · Wiedereinstieg', weekIndex ? 35 : 30, 'SOLL', 'Ruhiger Lauf, keine Intervalle; Belastungsverträglichkeit aufbauen.', 'Herzfrequenz: locker / kontrolliert · RPE 3–4', 'Bei Unbehagen Gehpausen einbauen. Pace nicht erzwingen.')
     case 'endurance': return session(date, type, 'Lockere Z2-Einheit', 65, 'SOLL', 'Grundlage ohne übermäßige Ermüdung.', wattText(ftp, .56, .73), 'Indoor oder draußen, bei Zeitdruck auf 40–45 min kürzbar.')
     case 'recovery': return session(date, type, 'Recovery oder Pause', 15, 'KANN', 'Leichte Mobility; vollständige Pause ist ebenso sinnvoll.', 'Kein Trainingsdruck', 'Schulter/Brustöffnung, Hüfte, sanfte Bewegungen.')
@@ -147,6 +151,7 @@ export function generatePlan(args: {
   blocks?: TrainingBlock[]
   restDays?: RestDayRecord[]
   provisionalUnconfirmed?: boolean
+  rhythm?:WeekRhythm
 }): PlanDay[] {
   const { days, shifts, profile, existing, completed } = args
   const today = currentKey()
@@ -185,8 +190,8 @@ export function generatePlan(args: {
     list.push(type)
     fixedTypes.set(date, list)
   }
-  const normalize = (type?: TrainingRecord['sessionType'], min?: number, km?: number): SessionKind => {
-    if (type === 'manual-strength') return 'strength-a'
+  const normalize = (type?: TrainingRecord['sessionType'], min?: number, km?: number, variant?:'A'|'B'|'C'): SessionKind => {
+    if (type === 'manual-strength') return variant==='C'?'strength-c':variant==='B'?'strength-b':'strength-a'
     if (type === 'manual-running') return 'run'
     if (type === 'manual-cycling') return (min ?? 0) >= 120 || (km ?? 0) >= 60 ? 'long' : 'endurance'
     if (type === 'manual-mobility' || type === 'manual-yoga' || type === 'manual-stabi') return 'recovery'
@@ -197,16 +202,16 @@ export function generatePlan(args: {
   // Bereits eingetragene und absolvierte Belastungen beeinflussen auch Nachbartage.
   for (const item of existing) if (item.profileId === PROFILE_ID && days.includes(item.date) &&
     (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant')) {
-    const type = normalize(item.sessionType, item.durationMin, item.expectedKm)
+    const type = normalize(item.sessionType, item.durationMin, item.expectedKm,item.strengthVariant)
     markFixed(item.date, type)
     if(isRecordedQuality(item))intensityDates.add(item.date)
     if (['long','quality','strength-a','strength-b','commute'].includes(type)) heavy.add(item.date)
   }
   for (const item of completed) if (item.profileId === PROFILE_ID && days.includes(item.date) && item.sessionType !== 'manual-swimming') {
-    const type = normalize(item.sessionType, item.durationMin, item.distanceKm)
+    const type = normalize(item.sessionType, item.durationMin, item.distanceKm,item.strengthVariant)
     markFixed(item.date, type)
     if(isRecordedQuality(item))intensityDates.add(item.date)
-    if (['long','quality','strength-a','strength-b','commute'].includes(type) || (item.rpe ?? 0) >= 7) heavy.add(item.date)
+    if (['long','quality','strength-a','strength-b','commute'].includes(type) || ((item.rpe??0)>=7&&type!=='strength-c'&&!(item.sessionType==='manual-strength'&&item.strengthVariant==='C'))) heavy.add(item.date)
   }
   days.forEach(date => {
     const shift = shifts[date]
@@ -343,17 +348,17 @@ export function generatePlan(args: {
       const i = index(date)
       return days.some((d,j) => Math.abs(i-j) <= distance && d !== date && heavy.has(d))
     }
-    const select = (predicate: (date:string)=>boolean, score: (date:string)=>number): string | undefined =>
-      week.filter(date => canUse(date) && predicate(date)).sort((a,b) => score(b)-score(a) || a.localeCompare(b))[0]
+    const select = (predicate: (date:string)=>boolean, score: (date:string)=>number,type?:SessionKind): string | undefined =>
+      week.filter(date => canUse(date) && predicate(date)).sort((a,b) => score(b)-score(a) + rhythmPenalty({sessionType:type??'endurance',title:''},a,args.rhythm)-rhythmPenalty({sessionType:type??'endurance',title:''},b,args.rhythm) || a.localeCompare(b))[0]
     // Long bike ride prefers a confirmed free day and distance from commute.
-    const longDate = select(date => !eventInfluences[date] && map.get(date)!.shift === 'frei' && loadCalendar[date]?.level === 'none' && !nearbyHeavy(date) && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10)
+    const longDate = select(date => !eventInfluences[date] && map.get(date)!.shift === 'frei' && loadCalendar[date]?.level === 'none' && !nearbyHeavy(date) && !nearType(date, ['commute'], 1), date => (isWeekend(date) ? 10 : 0) + index(date)/10,'long')
     if (longDate && !taper && !hasFixedType(['long'])) put(longDate, candidate(longDate, 'long', profile, undefined, false, weekNumber))
     // One controlled quality session, only if there is a suitable slot.
     const qualityDate = select(date => {
       const shift = shifts[date]
       return !eventInfluences[date] && loadCalendar[date]?.level === 'none' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
         !nearbyHeavy(date) && !nearType(date, ['commute','long'], 1) && !(date === today && readinessToday !== 'gruen')
-    }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 3)
+    }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 3,'quality')
     if (qualityDate && !lowIntensityWeek && !alreadyHard && (coaching?.qualityLimit??1)>0) put(qualityDate, candidate(qualityDate, 'quality', profile))
     // Up to two strength sessions if enough suitable days exist. Chronological
     // assignment and the last documented strength type determine A/B alternation.
@@ -364,13 +369,13 @@ export function generatePlan(args: {
           (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!availabilityFlag(shift,'possibleStrength'))) &&
           !nearType(date, ['long','commute','quality'], 1) && !nearType(date, ['strength-a','strength-b'], 1) &&
           !(date === today && readinessToday === 'gelb')
-      }).sort((a,b) => a.localeCompare(b))[0]
+      }).sort((a,b)=>rhythmPenalty({sessionType:'strength-a',title:''},a,args.rhythm)-rhythmPenalty({sessionType:'strength-a',title:''},b,args.rhythm)||a.localeCompare(b))[0]
       if (!strengthDate) break
       const last = [
-        ...completed.filter(x => x.profileId === PROFILE_ID && x.date < strengthDate && normalize(x.sessionType, x.durationMin, x.distanceKm).startsWith('strength')).map(x => ({date:x.date,type:normalize(x.sessionType, x.durationMin, x.distanceKm)})),
+        ...completed.filter(x => x.profileId === PROFILE_ID && x.date < strengthDate && normalize(x.sessionType, x.durationMin, x.distanceKm,x.strengthVariant).startsWith('strength')).map(x => ({date:x.date,type:normalize(x.sessionType, x.durationMin, x.distanceKm,x.strengthVariant)})),
         ...existing.filter(x => x.profileId === PROFILE_ID && x.date < strengthDate &&
           (x.createdBy !== PLANNER_VERSION || x.locked || x.status !== 'geplant') &&
-          normalize(x.sessionType, x.durationMin, x.expectedKm).startsWith('strength')).map(x => ({date:x.date,type:normalize(x.sessionType, x.durationMin, x.expectedKm)})),
+          normalize(x.sessionType, x.durationMin, x.expectedKm,x.strengthVariant).startsWith('strength')).map(x => ({date:x.date,type:normalize(x.sessionType, x.durationMin, x.expectedKm,x.strengthVariant)})),
         ...[...map.values()].filter(x => x.date < strengthDate && x.session && x.session.sessionType.startsWith('strength')).map(x => ({date:x.date,type:x.session!.sessionType})),
       ].sort((a,b) => a.date.localeCompare(b.date)).at(-1)
       const type:SessionKind = last?.type === 'strength-a' ? 'strength-b' : 'strength-a'
@@ -386,7 +391,7 @@ export function generatePlan(args: {
       const shift = shifts[date]
       return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!availabilityFlag(shift,'possibleRun'))) &&
         !nearType(date, ['long','commute'], 1)
-    }, date => shiftRunScore(shifts[date]))
+    }, date => shiftRunScore(shifts[date]),'run')
     if (runDate && !taper && !hasFixedType(['run'])) {
       const item=candidate(runDate, 'run', profile, undefined, false, weekNumber)
       if(shifts[runDate]?.shift==='tagdienst')item.notes=[item.notes,'Laufen trotz Dienst möglich – Trainingsort bei der Einheit wählen'].filter(Boolean).join(' · ')
@@ -396,7 +401,7 @@ export function generatePlan(args: {
       const shift = shifts[date]
       return loadCalendar[date]?.level !== 'recovery' && (map.get(date)!.shift === 'frei' || (shift?.shift === 'tagdienst' && !!shift.afterWorkCycling)) &&
         !nearType(date, ['long','commute'], 1)
-    }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 1)
+    }, date => shifts[date]?.shift === 'tagdienst' ? 4 : 1,'endurance')
     if (easyDate) put(easyDate, candidate(easyDate, 'endurance', profile))
     // Additional free time is optional. Only regular riders get ONE extra easy ride;
     // never force intensity or crowd a key day/event. No extra workout during recovery.

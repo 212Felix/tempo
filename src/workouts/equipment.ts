@@ -19,6 +19,14 @@ const equipment:Record<string,Record<StrengthPlace,string[]>>={
  pushup:{studio:['Liegestütze','Neutrales Kurzhanteldrücken','Brustpresse (neutral)'],arbeit:['Liegestütze','Kurzhantel-Floor-Press','Erhöhte Liegestütze']},
  cossack:{studio:['Cossack Squat','Seitlicher Ausfallschritt'],arbeit:['Cossack Squat','Seitlicher Ausfallschritt']},
  'side-plank-lift':{studio:['Side Plank mit Beinheben','Seitliches Beinheben'],arbeit:['Side Plank mit Beinheben','Seitliches Beinheben']},
+ 'c-bench':{studio:['Langhantelbankdrücken','Kurzhantelbankdrücken','Brustpresse'],arbeit:['Kurzhantel-Floor-Press','Liegestütze','Kurzhantelbankdrücken']},
+ 'c-incline':{studio:['Schrägbank-Kurzhanteldrücken','Schrägbank-Multipresse'],arbeit:['Schrägbank-Kurzhanteldrücken','Erhöhte Liegestütze']},
+ 'c-pull':{studio:['Klimmzüge','Latzug','Assistierte Klimmzüge'],arbeit:['Klimmzüge','Rudern am Band']},
+ 'c-row':{studio:['Brustgestütztes Rudern','Rudermaschine'],arbeit:['Einarmiges Rudern mit Brustauflage','Bandrudern']},
+ 'c-biceps':{studio:['Kurzhantelcurls','Kabelcurls','Scott-Curls'],arbeit:['Kurzhantelcurls','Bandcurls']},
+ 'c-triceps':{studio:['Trizepsdrücken am Kabel','Überkopf-Trizepsstrecken'],arbeit:['Trizepsstrecken mit Kurzhantel','Trizepsdrücken am Band']},
+ 'c-lateral':{studio:['Seitheben mit Kurzhanteln','Kabel-Seitheben'],arbeit:['Kurzhantel-Seitheben','Band-Seitheben']},
+ 'c-reverse':{studio:['Reverse Flys','Face Pulls'],arbeit:['Reverse Flys mit Kurzhanteln','Face Pulls mit Band']},
  'chest-open':{studio:['Türrahmen-Brustdehnung','Brustöffnung an Wand'],arbeit:['Türrahmen-Brustdehnung','Brustöffnung an Wand']},
 }
 export function exerciseOptions(id:string,place:StrengthPlace,fallback:string):string[]{return equipment[id]?.[place]??[fallback]}

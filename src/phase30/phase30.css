@@ -23,3 +23,11 @@
 /* Block colors: low-load green, strength blue, medium amber, demanding red. */
 .tempo31-block-base{background:#31594b;border-color:#609984}.tempo31-block-strength{background:#36536c;border-color:#769ab8}.tempo31-block-mit{background:#66502f;border-color:#c9a46c}.tempo31-block-hit{background:#793c3f;border-color:#c77a80}.tempo31-block-volume{background:#53612d;border-color:#a5b865}.tempo31-block-mountain{background:#744a33;border-color:#bf9477}.tempo31-block-run{background:#365c6a;border-color:#67a4ad}.tempo31-block-taper{background:#34574e;border-color:#88b0a0}.tempo31-block-recovery{background:#345f52;border-color:#80b59c}
 .tempo31-cross-note{font-size:10px!important;color:#f8d39f!important;display:block;font-style:normal;line-height:1.4}
+
+/* Phase 35: compact decisions before the unified 3/3/2 training calendar */
+.tempo35-plan-summary{display:grid;gap:8px;background:#1c3844;border:1px solid #57828a;border-radius:13px;padding:12px;font-size:13px}
+.tempo35-plan-summary>span{color:#b2cfd4}
+.tempo35-plan-summary>div{display:flex;flex-wrap:wrap;gap:8px}
+.tempo35-plan-summary button{background:#254754;border:1px solid #668c99;color:#dff2f5;border-radius:9px;padding:8px 11px;font:inherit;font-size:12px}
+.tempo35-week-balance{border:1px dashed #507580;border-radius:11px;background:#172b36;padding:12px;display:flex;flex-direction:column;gap:9px;color:#bfd2dc;font-size:12px}
+.tempo30-week-row.cols-2 .tempo35-week-balance{min-width:0}

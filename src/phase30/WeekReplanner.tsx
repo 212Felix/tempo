@@ -1,29 +1,45 @@
 import {useEffect,useMemo,useState} from 'react'
-import {listRecords} from '../db/storage'
-import {currentKey,type TrainingRecord,type CompletedRecord,type ShiftRecord} from '../planning/engine'
+import {listRecords,getRecord} from '../db/storage'
+import {currentKey,generatePlan,PROFILE_ID,type TrainingRecord,type CompletedRecord,type ShiftRecord,type ReadinessRecord} from '../planning/engine'
 import {proposeWeek,proposeRestDay,applyWeekProposal,replanDates,type ReplanResult} from './weekly-replanner'
 import {isRestDay,type RestMode,type RestDayRecord} from '../phase31/rest-days'
 import {deriveAdaptiveWeeks} from '../phase28/adaptive-planner'
 import type {GoalEvent} from '../events/library'
 import type {TrainingBlock} from '../blocks/library'
+import type {ProfileRecord} from '../db/types'
+import type {RouteEntry} from '../events/library'
+import {RHYTHM_ID,type WeekRhythm} from '../phase35/weekly-rhythm'
 import './phase30.css'
 const icon=(s:TrainingRecord)=>/strength/.test(s.sessionType)?'🏋️':/run/.test(s.sessionType)?'🏃':/recovery|mobility|yoga|stabi/.test(`${s.sessionType} ${s.title}`)?'🧘':'🚴'
 const nice=(d:string)=>new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}).format(new Date(`${d}T12:00:00`))
 export default function WeekReplanner({anchor,restDate,onClose,onSaved,initialTarget,initialSwapId}:{anchor?:TrainingRecord;restDate?:string;onClose:()=>void;onSaved:()=>void;initialTarget?:string;initialSwapId?:string}){
  if(!anchor&&!restDate)throw Error('Bitte ein Training oder einen freien Tag auswählen.')
- const [source,setSource]=useState<{sessions:TrainingRecord[];completed:CompletedRecord[];shifts:ShiftRecord[];restDays:RestDayRecord[];events:GoalEvent[];blocks:TrainingBlock[]}|null>(null)
+ const [source,setSource]=useState<{sessions:TrainingRecord[];completed:CompletedRecord[];shifts:ShiftRecord[];restDays:RestDayRecord[];events:GoalEvent[];blocks:TrainingBlock[];routes:RouteEntry[];rhythm?:WeekRhythm;profile?:ProfileRecord;readiness?:ReadinessRecord}|null>(null)
  const [target,setTarget]=useState(initialTarget??anchor?.date??restDate!)
  const [restMode,setRestMode]=useState<RestMode>('free'),[restNote,setRestNote]=useState(''),[exclusions,setExclusions]=useState<Record<string,string[]>>({}),[forced,setForced]=useState<Record<string,string>>(()=>initialSwapId&&anchor?{[initialSwapId]:anchor.date}:{})
  const [pendingDate,setPendingDate]=useState<string|null>(null)
  const [approved,setApproved]=useState<Record<string,'yes'|'no'>>({}),[dropdown,setDropdown]=useState<string|null>(null)
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('')
- useEffect(()=>{let live=true;void Promise.all([listRecords<TrainingRecord>('plannedSessions'),listRecords<CompletedRecord>('completedSessions'),listRecords<ShiftRecord>('shifts'),listRecords('settings'),listRecords<GoalEvent>('events'),listRecords<TrainingBlock>('trainingBlocks')]).then(([sessions,completed,shifts,settings,events,blocks])=>{if(live)setSource({sessions,completed,shifts,restDays:settings.filter(isRestDay),events,blocks})}).catch(error=>setMessage(String(error)));return()=>{live=false}},[anchor?.id,restDate])
+ const [showFuture,setShowFuture]=useState(false)
+ useEffect(()=>{let live=true;void Promise.all([listRecords<TrainingRecord>('plannedSessions'),listRecords<CompletedRecord>('completedSessions'),listRecords<ShiftRecord>('shifts'),listRecords('settings'),listRecords<GoalEvent>('events'),listRecords<TrainingBlock>('trainingBlocks'),listRecords<RouteEntry>('routes'),getRecord<ProfileRecord>('profiles',PROFILE_ID),getRecord<WeekRhythm>('settings',RHYTHM_ID),getRecord<ReadinessRecord>('readinessEntries',`${PROFILE_ID}:${currentKey()}`)]).then(([sessions,completed,shifts,settings,events,blocks,routes,profile,rhythm,readiness])=>{if(live)setSource({sessions,completed,shifts,restDays:settings.filter(isRestDay),events,blocks,routes,profile,rhythm,readiness})}).catch(error=>setMessage(String(error)));return()=>{live=false}},[anchor?.id,restDate])
+ // Recalculate all tentative workouts for the three-week preview, not only saved sessions.
+ const suggestions=useMemo(()=>{
+  if(!source)return []
+  const dates=replanDates(anchor?.date??restDate!)
+  const fixedDates=new Set(source.sessions.filter(x=>x.status==='geplant').map(x=>x.date))
+  const doneDates=new Set(source.completed.map(x=>x.date))
+  return generatePlan({days:dates,shifts:Object.fromEntries(source.shifts.map(x=>[x.date,x])),profile:source.profile,
+   readiness:source.readiness,existing:source.sessions,completed:source.completed,events:source.events,routes:source.routes,
+   blocks:source.blocks,restDays:source.restDays,provisionalUnconfirmed:true,rhythm:source.rhythm})
+   .filter(d=>d.date>=currentKey()&&d.session&&!fixedDates.has(d.date)&&!doneDates.has(d.date))
+   .map(d=>({...d.session!,id:`preview:${d.session!.id}`,title:`Vorschlag · ${d.session!.title}`}))
+ },[source,anchor?.date,restDate])
  const proposal=useMemo<ReplanResult|undefined>(()=>{
   if(!source)return
   try{
-   return restDate?proposeRestDay({...source,restDate,mode:restMode,note:restNote,excluded:exclusions,forced}):proposeWeek({...source,anchorId:anchor!.id,targetDate:target,excluded:exclusions,forced})
+   return restDate?proposeRestDay({...source,restDate,mode:restMode,note:restNote,excluded:exclusions,forced,suggestions}):proposeWeek({...source,anchorId:anchor!.id,targetDate:target,excluded:exclusions,forced,suggestions})
   }catch(error){return undefined}
- },[source,anchor?.id,restDate,target,restMode,restNote,exclusions,forced])
+ },[source,anchor?.id,restDate,target,restMode,restNote,exclusions,forced,suggestions])
  useEffect(()=>{if(!dropdown)return;const close=(event:PointerEvent)=>{
   const target=event.target as HTMLElement
   if(!target.closest('.tempo30-alternatives')&&!target.closest('.tempo30-day-actions'))setDropdown(null)
@@ -35,7 +51,11 @@ export default function WeekReplanner({anchor,restDate,onClose,onSaved,initialTa
  const differences=proposal?.changed.filter(s=>s.id!==anchor?.id)||[]
  const rejected=differences.filter(s=>approved[s.id]==='no')
  const canApply=Boolean(proposal&&!proposal.conflicts.length&&!rejected.length&&(restDate||target!==anchor?.date))
- const reroll=()=>{if(!proposal)return;const next={...exclusions};for(const item of rejected){next[item.id]=[...new Set([...(next[item.id]||[]),proposal.assigned[item.id]])]}setExclusions(next);setApproved({});setDropdown(null);setMessage(rejected.length?'Alternative Tage werden mit deinen Ablehnungen gesucht.':'Neue Verteilung geprüft.')}
+ const reroll=()=>{if(!proposal)return
+  const next={...exclusions};const alternatives=rejected.length?rejected:proposal.all.filter(s=>s.id!==anchor?.id&&s.date>=currentKey()&&(s.id.startsWith('preview:')||!s.locked&&s.createdBy!=='tempo-user'))
+  for(const item of alternatives){next[item.id]=[...new Set([...(next[item.id]||[]),proposal.assigned[item.id]])]}
+  setExclusions(next);setApproved({});setDropdown(null);setMessage('TEMPO berechnet eine neue Verteilung auf Basis deiner Standardwoche und Fixtermine.')
+ }
  const selectAlternative=(item:TrainingRecord,date:string)=>{setForced(old=>({...old,[item.id]:date}));setApproved(old=>({...old,[item.id]:'yes'}));setDropdown(null);setMessage('Alternative ausgewählt. Die übrigen Einheiten wurden neu auf Konflikte geprüft.')}
  const chooseTarget=(date:string)=>{if(!anchor)return;if(date<currentKey()||source?.restDays.some(x=>x.date===date)){setMessage('Dieser Tag ist gesperrt oder liegt in der Vergangenheit.');return}setPendingDate(date)}
  const confirmTarget=()=>{if(!pendingDate)return;setTarget(pendingDate);setApproved({});setExclusions({});setForced({});setPendingDate(null);setMessage('TEMPO hat den Wochenplan mit dem ausgewählten Fixtermin neu berechnet.')}
@@ -44,18 +64,20 @@ export default function WeekReplanner({anchor,restDate,onClose,onSaved,initialTa
  <header className="tempo30-modal-head"><div><div className="eyebrow">DEIN ALLTAG · TEMPOS TRAININGSLOGIK</div><h2>{restDate?'Freien Tag festlegen & Plan neu berechnen':'Wochenplan neu ordnen'}</h2></div><button type="button" aria-label="Schließen" onClick={onClose}>×</button></header>
  {anchor?<><p><strong>{icon(anchor)} {anchor.title}</strong> am {nice(anchor.date)} · Priorität {anchor.priority}. Wähle einen neuen Tag, auch in einer Folgewoche. TEMPO versucht wichtige Trainings zu erhalten.</p>
  <p className="tempo32-replan-prompt">Tippe direkt auf eine Tageskachel, um die Einheit auf diesen Tag zu legen. Danach bestätigst du die Wahl mit Ja oder Nein.</p></>:<><p>🔒 <strong>{nice(restDate!)}</strong> bewusst trainingsfrei halten. TEMPO versucht, die bisherigen Rad-, Lauf- und Krafttrainings innerhalb des Planungsfensters neu anzuordnen. Fest zugesagte Termine werden nicht eigenmächtig verschoben.</p><label>Art des Entlastungstages<select value={restMode} onChange={e=>setRestMode(e.target.value as RestMode)}><option value="free">Komplett trainingsfrei · z. B. Sauna oder Familie</option><option value="recovery">Recoverytag · nur freiwillige Erholung / Mobility</option></select></label><label>Notiz (optional)<input value={restNote} onChange={e=>setRestNote(e.target.value)} maxLength={250} placeholder="z. B. Sauna mit Freunden"/></label></>}
- <p className="tempo30-note">Die Vorschau umfasst die ausgewählte Woche und zwei Folgewochen. Bereits gespeicherte Trainingseinheiten werden neu verteilt. Noch nicht bestätigte zukünftige Trainingsvorschläge erscheinen danach im rollierenden Kalender neu berechnet. Nichts wird ohne Bestätigung geändert.</p>
+ <p className="tempo30-note">Die Vorschau umfasst die ausgewählte Woche und zwei Folgewochen. Bereits gespeicherte Trainingseinheiten werden neu verteilt. Vorläufige Trainingsvorschläge sind bereits in dieser Vorschau berücksichtigt und werden bei der Verteilung mitgedacht. Nichts wird ohne Bestätigung geändert.</p>
  <div className="tempo30-legend"><span className="tempo30-old">Rot: bisherige Einheiten</span><span className="tempo30-new">Grün: neuer Vorschlag</span></div>
- {proposal?<div className="tempo30-week-grid">{Array.from({length:week.length/7},(_,w)=><div key={week[w*7]} className="tempo31-replan-week"><div className="tempo31-week-label">{nice(week[w*7])} – {nice(week[w*7+6])} · {focusAt(week[w*7])}{w>0&&focusAt(week[w*7])!==focusAt(week[(w-1)*7])&&' · 🔀 Blockwechsel'}</div>{[[0,1,2],[3,4],[5,6]].map((row,i)=><div key={i} className={`tempo30-week-row cols-${row.length}`}>{row.map(index=>{
+ {proposal&&<div className="tempo35-plan-summary"><strong>{proposal.all.length} Trainingseinheiten neu berücksichtigt · {proposal.changed.length} Änderungen</strong><span>{proposal.conflicts.length?`${proposal.conflicts.length} echter Konflikt: Bitte Alternativen berechnen.`:'TEMPO hat die Trainingsverteilung sofort neu berechnet.'}</span><div><button type="button" onClick={()=>setShowFuture(x=>!x)}>{showFuture?'Folgewochen einklappen':'Weitere Wochen anzeigen'}</button><button type="button" onClick={()=>document.getElementById('tempo35-replan-actions')?.scrollIntoView({behavior:'smooth',block:'center'})}>Zur Bestätigung ↓</button></div></div>}
+ {proposal?<div className="tempo30-week-grid">{Array.from({length:week.length/7},(_,w)=>w).filter(w=>w===0||showFuture||week.slice(w*7,w*7+7).includes(target)).map(w=><div key={week[w*7]} className="tempo31-replan-week"><div className="tempo31-week-label">{nice(week[w*7])} – {nice(week[w*7+6])} · {focusAt(week[w*7])}{w>0&&focusAt(week[w*7])!==focusAt(week[(w-1)*7])&&' · 🔀 Blockwechsel'}</div>{[[0,1,2],[3,4,5],[6,7]].map((row,i)=><div key={i} className={`tempo30-week-row cols-${row.length}`}>{row.map(index=>{
+ if(index===7)return <div className="tempo35-week-balance" key="balance"><strong>Woche</strong><small>{proposal.all.filter(s=>week.slice(w*7,w*7+7).includes(proposal.assigned[s.id])).length} Trainingseinheiten</small><small>{proposal.changed.filter(s=>week.slice(w*7,w*7+7).includes(proposal.assigned[s.id])).length} umgeplant</small></div>
  const day=week[w*7+index],old=proposal.all.filter(s=>s.date===day),newItems=proposal.all.filter(s=>proposal.assigned[s.id]===day),changes=[...new Set([...old,...newItems].filter(s=>s.date!==proposal.assigned[s.id]))],affected=changes.filter(s=>s.id!==anchor?.id),choice=affected.length?approved[affected[0].id]:undefined
  return <div className={`tempo30-week-tile ${restDate===day?'tempo31-rest-day':''} ${anchor&&target===day?'tempo32-target-day':''} ${anchor&&day>=currentKey()?'tempo32-tappable':''}`} key={day} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-label={anchor?`${nice(day)} als neuen Trainingstag auswählen`:undefined} onClick={anchor?()=>chooseTarget(day):undefined} onKeyDown={anchor?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();chooseTarget(day)}}:undefined}><strong>{nice(day)} {anchor&&target===day&&'📌'}</strong>{(restDate===day||source?.restDays.some(x=>x.date===day))&&<span className="tempo31-rest-marker">🌿 Trainingsfrei 🔒</span>}{old.filter(s=>s.date!==proposal.assigned[s.id]).map(s=><span key={s.id} className="tempo30-old">{icon(s)} {s.title}</span>)}{newItems.map(s=><span key={s.id} className="tempo30-new">{icon(s)} {s.title}{s.id===anchor?.id&&' 📌'}{crossed(s)&&<small className="tempo31-cross-note">🔀 Blockwechsel {focusAt(s.date)} → {focusAt(proposal.assigned[s.id])}</small>}</span>)}{newItems.length===0&&!restDate&&<small>Frei / Erholung</small>}{newItems.length===0&&restDate!==day&&<small>Kein Training geplant</small>}
  {affected.length>0&&<div className="tempo30-day-actions" onClick={e=>e.stopPropagation()}><button type="button" className={choice==='yes'?'picked':''} onClick={()=>setApproved(prev=>({...prev,...Object.fromEntries(affected.map(s=>[s.id,'yes']))}))} aria-label="Vorschlag für diesen Tag bestätigen">✓</button><button type="button" className={choice==='no'?'rejected':''} onClick={()=>setApproved(prev=>({...prev,...Object.fromEntries(affected.map(s=>[s.id,'no']))}))} aria-label="Vorschlag für diesen Tag ablehnen">×</button><button type="button" aria-label="Alternativen für den Tag" aria-expanded={dropdown===day} onClick={()=>setDropdown(x=>x===day?null:day)}>⌄</button></div>}
  {dropdown===day&&affected.length>0&&<div className="tempo30-alternatives" onClick={e=>e.stopPropagation()}><small>Passenden Termin wählen:</small>{affected.map(s=><label key={s.id}>{icon(s)} {s.title}<select value={proposal.assigned[s.id]} onChange={e=>selectAlternative(s,e.target.value)}>{week.filter(d=>d>=currentKey()&&d!==restDate&&!source?.restDays.some(x=>x.date===d)).map(d=><option value={d} key={d}>{nice(d)}</option>)}</select></label>)}</div>}
  </div>})}</div>)}</div>)}</div>:<p>Trainingswoche wird geladen …</p>}
  {pendingDate&&<div className="tempo32-confirm-backdrop" onClick={()=>setPendingDate(null)}><div className="tempo32-confirm" role="dialog" aria-modal="true" aria-label="Trainingsplatzierung bestätigen" onClick={e=>e.stopPropagation()}><h3>Training hier platzieren?</h3><p>{anchor&&`${icon(anchor)} ${anchor.title}`} → {nice(pendingDate)}</p><div><button type="button" onClick={confirmTarget}>✓ JA</button><button type="button" onClick={()=>setPendingDate(null)}>× NEIN</button></div><small>Die vollständige Neuplanung musst du anschließend noch bestätigen.</small></div></div>}
- {proposal&&<><div className="tempo30-week-summary">{proposal.all.length} geplante Einheiten berücksichtigt · {proposal.changed.length} umgeplant · {proposal.all.filter(s=>s.sessionType.includes('run')).length} Laufeinheiten · {proposal.all.filter(s=>s.sessionType.includes('strength')).length} Krafttermine</div>{proposal.conflicts.map(err=><p className="tempo30-warning" key={err}>⚠ {err}</p>)}</>}
+ {proposal&&<><div className="tempo30-week-summary">{proposal.all.length} geplante Einheiten berücksichtigt · {proposal.changed.length} umgeplant · {proposal.all.filter(s=>s.sessionType.includes('run')).length} Laufeinheiten · {proposal.all.filter(s=>s.sessionType.includes('strength')).length} Krafttermine</div>{proposal.conflicts.map(err=><p className="tempo30-warning" key={err}>⚠ {err}</p>)}{proposal.notices.map(err=><p className="tempo30-note" key={err}>ℹ {err}</p>)}</>}
  {message&&<p role="status" className="tempo30-message">{message}</p>}
- <div className="tempo30-modal-actions"><button type="button" disabled={busy||!canApply} onClick={()=>void commit()}>{busy?'Übernahme läuft …':restDate?'Entlastungstag & Wochenplan übernehmen':'Gesamten Wochenplan bestätigen'}</button><button type="button" className="outline" disabled={!rejected.length||busy} onClick={reroll}>Alternative Zuordnung berechnen</button><button type="button" className="outline" onClick={onClose}>Ohne Änderungen schließen</button></div>
+ <div className="tempo30-modal-actions" id="tempo35-replan-actions"><button type="button" disabled={busy||!canApply} onClick={()=>void commit()}>{busy?'Übernahme läuft …':restDate?'Entlastungstag & Wochenplan übernehmen':'Gesamten Wochenplan bestätigen'}</button><button type="button" className="outline" disabled={busy||!proposal} onClick={reroll}>Alternative Zuordnung berechnen</button><button type="button" className="outline" onClick={onClose}>Ohne Änderungen schließen</button></div>
  <p className="tempo30-note">Nichts wird gespeichert, bevor du unten bestätigst. Bereits absolvierte Trainingseinheiten bleiben unangetastet. Wenn TEMPO einen Konflikt meldet, werden keine Änderungen gespeichert.</p>
  </section></div>
 }

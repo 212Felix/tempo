@@ -8,10 +8,10 @@ export type StrengthSet = TempoRecord & {
   reps?:number; weightKg?:number; holdSeconds?:number; completed?:boolean; rir?:number; note?:string; exerciseVariant?:string; trainingLocation?:StrengthPlace
 }
 export type StrengthInput = {exerciseId:string;setIndex:number;reps:string;weightKg:string;holdSeconds:string;rir:string}
-export const strengthSessionKey=(date:string,kind:'A'|'B',plannedId?:string)=>plannedId??`free-strength:${date}:${kind}`
-export function isStrength(session:TrainingRecord){return ['strength-a','strength-b','manual-strength'].includes(session.sessionType)}
+export const strengthSessionKey=(date:string,kind:'A'|'B'|'C',plannedId?:string)=>plannedId??`free-strength:${date}:${kind}`
+export function isStrength(session:TrainingRecord){return ['strength-a','strength-b','strength-c','manual-strength'].includes(session.sessionType)}
 export function isRun(session:TrainingRecord){return ['run','manual-running'].includes(session.sessionType)}
-export const workoutKind=(session:TrainingRecord)=>session.sessionType==='strength-b'||(/\bB\b/i).test(session.title)?'B':'A'
+export const workoutKind=(session:TrainingRecord)=>session.sessionType==='strength-c'||/\bC\b/i.test(session.title)?'C':session.sessionType==='strength-b'||(/\bB\b/i).test(session.title)?'B':'A'
 export function numberField(text:string,label:string,max:number,required=false):number|undefined {
   const v=text.trim().replace(',','.')
   if(!v){if(required)throw Error(`${label} fehlt.`);return undefined}
@@ -40,7 +40,7 @@ export function alreadyDone(planned:TrainingRecord|undefined,completed:Completed
 type FinalizeInput={
   date:string;title:string;durationMin:number;durationSec?:number;rpe:number;notes:string
   sessionType:'manual-strength'|'manual-running'; planned?:TrainingRecord
-  distanceKm?:number;avgHrBpm?:number;strengthVariant?:'A'|'B';strengthLocation?:StrengthPlace; sets?:StrengthSet[];freeKey:string
+  distanceKm?:number;avgHrBpm?:number;strengthVariant?:'A'|'B'|'C';strengthLocation?:StrengthPlace; sets?:StrengthSet[];freeKey:string
 }
 /** Completed session, planned status and strength sets are written atomically. */
 export async function finalizeWorkout(input:FinalizeInput):Promise<void>{
@@ -53,7 +53,7 @@ export async function finalizeWorkout(input:FinalizeInput):Promise<void>{
   const db=await openTempoDatabase()
   const now=new Date().toISOString()
   const completedId=planned?`workout:${planned.id}`:`workout:${freeKey}`
-  const completed:CompletedRecord & {avgHrBpm?:number;strengthVariant?:'A'|'B';strengthLocation?:StrengthPlace}={
+  const completed:CompletedRecord & {avgHrBpm?:number;strengthVariant?:'A'|'B'|'C';strengthLocation?:StrengthPlace}={
     id:completedId,profileId:PROFILE_ID,date,title:input.title.trim(),durationMin:input.durationMin,durationSec:input.durationSec,
     sessionType:planned?.sessionType??input.sessionType,distanceKm:input.distanceKm,rpe:input.rpe,
     notes:input.notes.trim().slice(0,1500),source:planned?'plan':'manuell',

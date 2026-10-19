@@ -23,8 +23,8 @@ if(stores.length!==20)violations.push(`Erwartet: 20 Stores; gefunden: ${stores.l
 // Phase 30: refuse to publish accidentally mixed Phase-27/28 source packages.
 const appSource=readFileSync(join(root,'src/App.tsx'),'utf8')
 const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'))
-if(!appSource.includes('PHASE 34') || !appSource.includes('V0.34')) violations.push('Phase-34-Versionsanzeige fehlt')
-if(pkg.version!=='0.34.0') violations.push('Paketversion stimmt nicht mit Phase 34 überein')
+if(!appSource.includes('PHASE 35') || !appSource.includes('V0.35')) violations.push('Phase-35-Versionsanzeige fehlt')
+if(pkg.version!=='0.35.0') violations.push('Paketversion stimmt nicht mit Phase 35 überein')
 const planner=readFileSync(join(root,'src/phase28/adaptive-planner.ts'),'utf8')
 if(!/if\s*\(readiness\s*&&\s*readiness\.date/.test(planner)) violations.push('Readiness-Absicherung in der adaptiven Planung fehlt')
 const deploy=readFileSync(join(root,'.github/workflows/deploy.yml'),'utf8')

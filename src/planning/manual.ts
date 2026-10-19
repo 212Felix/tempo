@@ -28,15 +28,16 @@ export type ManualForm = {
   commuteLeg: 'none' | 'hin' | 'rueck' | 'beide'
   cyclingEnvironment: 'outdoor'|'indoor'|'unknown'
   strengthLocation: 'studio'|'arbeit'
+  strengthVariant:'A'|'B'|'C'
   swimEnvironment: 'pool'|'openwater'
   swimFocus: 'technik'|'ausdauer'|'intervalle'|'locker'
 }
-export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:'',sessionOrigin:'self',commuteLeg:'none',cyclingEnvironment:'unknown',strengthLocation:'studio',swimEnvironment:'pool',swimFocus:'locker'})
+export const defaultForm = (date: string): ManualForm => ({date, sport:'cycling',title:'',duration:'01:00:00',distance:'',elevation:'',rpe:'',priority:'SOLL',target:'',notes:'',sessionOrigin:'self',commuteLeg:'none',cyclingEnvironment:'unknown',strengthLocation:'studio',strengthVariant:'A',swimEnvironment:'pool',swimFocus:'locker'})
 export type Editable = {kind:'planned'; record:TrainingRecord} | {kind:'completed'; record:CompletedRecord}
 export const sportFor = (kind: TrainingRecord['sessionType'] | undefined): ManualSport => {
   if (kind==='commute'||kind==='long'||kind==='quality'||kind==='endurance'||kind==='manual-cycling') return 'cycling'
   if (kind==='run'||kind==='manual-running') return 'running'
-  if (kind==='strength-a'||kind==='strength-b'||kind==='manual-strength') return 'strength'
+  if (kind==='strength-a'||kind==='strength-b'||kind==='strength-c'||kind==='manual-strength') return 'strength'
   if (kind==='manual-swimming') return 'swimming'
   if (kind==='manual-martial') return 'martial'
   if (kind==='manual-yoga') return 'yoga'
@@ -58,7 +59,7 @@ export const toForm = (entry:Editable):ManualForm => {
     target:entry.kind==='planned'?entry.record.target:'', notes:r.notes??'',
     commuteLeg:r.commuteLeg==='hin'||r.commuteLeg==='rueck'||r.commuteLeg==='beide'?r.commuteLeg:'none',
     cyclingEnvironment:r.cyclingEnvironment==='outdoor'||r.cyclingEnvironment==='indoor'?r.cyclingEnvironment:'unknown',
-    strengthLocation:r.strengthLocation==='arbeit'?'arbeit':'studio',
+    strengthLocation:r.strengthLocation==='arbeit'?'arbeit':'studio',strengthVariant:r.sessionType==='strength-c'||r.strengthVariant==='C'?'C':r.sessionType==='strength-b'||r.strengthVariant==='B'?'B':'A',
     swimEnvironment:r.swimEnvironment==='openwater'?'openwater':'pool',
     swimFocus:r.swimFocus==='technik'||r.swimFocus==='ausdauer'||r.swimFocus==='intervalle'?r.swimFocus:'locker',
   }
@@ -99,11 +100,11 @@ export async function saveManualPlanned(form:ManualForm, previous?:TrainingRecor
   const wasGenerated = previous?.createdBy === PLANNER_VERSION
   const record:TrainingRecord={
     ...(previous??{}), id:wasGenerated?newId():previous?.id??newId(),profileId:PROFILE_ID,
-    date:form.date,sessionType:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
+    date:form.date,sessionType:form.sport==='strength'?`strength-${form.strengthVariant}` as TrainingRecord['sessionType']:kindFor(form.sport),title:form.title.trim(),durationMin:duration,durationSec,
     priority:form.priority,description:'Manuell geplant · nicht automatisch überschreiben',
     target:form.target.trim()||'Nach Tagesform und persönlichem Ziel',
     notes:form.notes.trim(),sessionOrigin:form.sessionOrigin,expectedKm:distance,elevationM:elevation,rpe,commuteLeg:form.sport==='cycling'&&form.commuteLeg!=='none'?form.commuteLeg:undefined,cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
-    strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,
+    strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,strengthVariant:form.sport==='strength'?form.strengthVariant:undefined,
     swimEnvironment:form.sport==='swimming'?form.swimEnvironment:undefined, swimFocus:form.sport==='swimming'?form.swimFocus:undefined,
     status:'geplant',createdBy:'tempo-user',locked:true,
     createdAt:previous?.createdAt??now,updatedAt:now,
@@ -134,7 +135,7 @@ export async function saveManualCompleted(form:ManualForm, previous?:CompletedRe
     distanceKm:distance,elevationM:elevation,rpe,notes:form.notes.trim(),sessionOrigin:form.sessionOrigin,
     commuteLeg:form.sport==='cycling'&&form.commuteLeg!=='none'?form.commuteLeg:undefined,
     cyclingEnvironment:form.sport==='cycling'?form.cyclingEnvironment:undefined,
-    strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,
+    strengthLocation:form.sport==='strength'?form.strengthLocation:undefined,strengthVariant:form.sport==='strength'?form.strengthVariant:undefined,
     swimEnvironment:form.sport==='swimming'?form.swimEnvironment:undefined, swimFocus:form.sport==='swimming'?form.swimFocus:undefined,
     source:planned?'plan':previous?.source??'manuell',
     plannedSessionId:planned?.id??previous?.plannedSessionId,

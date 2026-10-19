@@ -13,6 +13,8 @@ import {rollingCalendarWeeks,isRestDay,type RestDayRecord} from '../phase31/rest
 import type {GoalEvent,RouteEntry} from '../events/library'
 import type {TrainingBlock} from '../blocks/library'
 import {AVAILABILITY_CHOICES,availabilityFlag} from '../planning/availability'
+import {RHYTHM_ID,RHYTHM_DAYS,RHYTHM_CHOICES,EMPTY_RHYTHM,makeRhythm,validRhythm,type DayFocus,type WeekRhythm} from '../phase35/weekly-rhythm'
+import '../phase35/weekly-rhythm.css'
 
 const PROFILE_ID = 'local-primary-profile'
 type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
@@ -146,11 +148,22 @@ export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date
   const [savedPlans,setSavedPlans]=useState<TrainingRecord[]>([])
   const [completedTrainings,setCompletedTrainings]=useState<CompletedRecord[]>([])
   const [feedback, setFeedback] = useState('Dienste werden geladen …')
+  const [rhythm,setRhythm]=useState<WeekRhythm|undefined>()
+  const [rhythmDraft,setRhythmDraft]=useState<DayFocus[]>([...EMPTY_RHYTHM])
+  const [rhythmMessage,setRhythmMessage]=useState('')
   const start = useMemo(() => { const now = new Date(); const mondayOffset=(now.getDay()+6)%7; return addDays(now,-mondayOffset+rangeOffset) }, [rangeOffset])
   const days = useMemo(() => Array.from({length:horizon==='rolling'?rollingCalendarWeeks(currentKey())*7:horizon}, (_, i) => formatKey(addDays(start, i))), [start, horizon])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShiftValues | null>(null)
 
+  useEffect(()=>{let active=true
+    void getRecord<WeekRhythm>('settings',RHYTHM_ID).then(saved=>{if(active&&saved&&validRhythm(saved.days)){setRhythm(saved);setRhythmDraft([...saved.days])}}).catch(()=>undefined)
+    return()=>{active=false}
+  },[])
+  async function saveRhythm(){
+    try{const value=makeRhythm(rhythmDraft,rhythm);await saveRecord('settings',value);setRhythm(value);setRhythmMessage('Standardwoche gespeichert. Folgevorschläge werden an deinen Rhythmus angepasst.');window.dispatchEvent(new Event('tempo:training-change'))}
+    catch(error){setRhythmMessage(`Konnte Standardwoche nicht speichern: ${String(error)}`)}
+  }
   useEffect(() => {
     let active = true
     setLoading(true)
@@ -176,10 +189,10 @@ export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date
   },[])
   const tentativePlan=useMemo(()=>{
     // All horizons show future workouts; previously only 'rolling' displayed proposals.
-    return generatePlan({days,shifts:entries,profile,readiness,existing:savedPlans,completed:completedTrainings,events:eventGoals,routes,blocks,restDays,provisionalUnconfirmed:true})
+    return generatePlan({days,shifts:entries,profile,readiness,existing:savedPlans,completed:completedTrainings,events:eventGoals,routes,blocks,restDays,provisionalUnconfirmed:true,rhythm})
       .filter(day=>day.date>=currentKey()&&day.session&&!savedPlans.some(s=>s.date===day.date)&&!completedTrainings.some(s=>s.date===day.date))
       .map(day=>({...day.session!,id:`preview:${day.session!.id}`,title:`Vorschlag · ${day.session!.title}`,status:'geplant' as const}))
-  },[horizon,days,entries,profile,readiness,savedPlans,completedTrainings,eventGoals,routes,blocks,restDays])
+  },[horizon,days,entries,profile,readiness,savedPlans,completedTrainings,eventGoals,routes,blocks,restDays,rhythm])
   const weeklyKinds=useMemo(()=>deriveAdaptiveWeeks({start:days[0],weeks:Math.ceil(days.length/7),events:eventGoals,blocks,planned:savedPlans,completed:completedTrainings,shifts:entries,readiness,ftpWatts:profile?.ftpWatts}),[days,eventGoals,blocks,savedPlans,completedTrainings,entries,readiness,profile])
   const blockKinds=Object.fromEntries(weeklyKinds.flatMap(w=>days.filter(d=>d>=w.startDate&&d<=w.endDate).map(d=>[d,w.kind] as const)))
   const confirmed = days.filter(date => isConfirmed(entries[date])).length
@@ -249,6 +262,15 @@ export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date
     </section>
 
 
+
+    <details className="tempo35-rhythm">
+      <summary>🔁 Meine Standardwoche · wiederkehrende Trainingsschwerpunkte</summary>
+      <p>Lege grob fest, wann Ausdauer, Kraft, Zusatztraining oder Recovery bevorzugt sind. Diese Präferenzen gelten auch in Folgewochen. Bei Dienst, Krankheit oder fixierten Trainingsterminen darf TEMPO abweichen; danach wird dein Wochenrhythmus wieder bevorzugt. Keine Einheit wird dadurch ungefragt gespeichert.</p>
+      <div className="tempo35-rhythm-grid">{RHYTHM_DAYS.map((label,i)=><label key={label}>{label}<select value={rhythmDraft[i]} onChange={e=>setRhythmDraft(old=>old.map((x,j)=>j===i?e.target.value as DayFocus:x))}>{Object.entries(RHYTHM_CHOICES).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>)}</div>
+      <button type="button" onClick={()=>void saveRhythm()}>Standardwoche speichern</button>
+      {rhythmMessage&&<p role="status">{rhythmMessage}</p>}
+      <small>Nur eine Planungspräferenz. Dein Dienstplan wird nicht verändert. Fixierte Recoverytage und absolvierte Trainings haben Vorrang.</small>
+    </details>
 
     {horizon==='rolling'&&<div className="tempo31-calendar-info"><strong>Rollierender Ausblick · mindestens 10 Tage ab heute.</strong> Die Kalenderwochen werden vollständig im 3/2/2-Raster gezeigt. Farbige Vorschläge an noch ungeklärten Diensttagen sind vorläufig und noch nicht gespeichert. Unter „Trainingsvorschläge“ kannst du geeignete Termine nach Dienstbestätigung fest übernehmen.</div>}
     <CalendarBoard shifts={Object.values(entries)} plans={[...savedPlans,...tentativePlan]} done={completedTrainings} onOpenDay={onOpenDay} onAddDay={onAddDay} days={days} restDays={restDays} blockKinds={blockKinds} onConfirm={async record=>{const current=await listRecords<TrainingRecord>('plannedSessions'); if(current.some(x=>x.profileId===PROFILE_ID&&x.date===record.date&&x.status==='geplant'))throw new Error('Für diesen Tag gibt es bereits einen gespeicherten Trainingsplan. Bitte zuerst den Tag öffnen.');const now=new Date().toISOString();await saveRecord('plannedSessions',{...record,id:`user:${PROFILE_ID}:${record.date}:${Date.now()}`,title:record.title.replace(/^Vorschlag · /,''),status:'geplant',createdBy:'tempo-user',locked:true,createdAt:now,updatedAt:now});window.dispatchEvent(new Event('tempo:training-change'))}}/>

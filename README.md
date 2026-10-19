@@ -15,3 +15,18 @@ Mehr Informationen: `docs/PHASE33-RELEASE.md`.
 Prüfen: `npm run test:security && npm run test:logic && npm run build`.
 
 GitHub Pages wird ausschließlich nach erfolgreichem Build auf `main` veröffentlicht.
+
+
+## Phase 35: Standardwoche und intelligente Umplanung
+
+Im 14-Tage-Plan unter „Meine Standardwoche“ kann der Sportler für Mo–So einen bevorzugten Schwerpunkt
+(Ausdauer, Kraft, Zusatz, Recovery oder flexibel) hinterlegen. Diese Vorgabe ist eine **weiche Präferenz**,
+kein fest gebuchtes Workout und verändert keine Dienste. Nach einzelnen Ausnahmen orientieren sich neue
+Vorschläge automatisch wieder an dieser wiederkehrenden Struktur.
+
+Training per langem Drücken verschieben: TEMPO berechnet nach der Zielbestätigung einen Dreiwochenvorschlag
+einschließlich bislang nur virtuell geplanter Trainings. Erst die ausdrückliche Gesamtbestätigung speichert
+verschobene Einheiten. Nie werden Dienst-/Schichtdaten angefasst.
+
+Kraft C: Oberkörper, 2 Brust-, 2 Rücken-, 2 Schulter-, 1 Bizeps-, 1 Trizepsübung, 22 Arbeitssätze.
+Diese Einheit hat keine direkte Beintrainingsbelastung.
