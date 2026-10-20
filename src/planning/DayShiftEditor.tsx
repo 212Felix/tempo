@@ -70,7 +70,14 @@ export default function DayShiftEditor({date,openOnMount=false}:{date:string;ope
     }catch(error){setNotice(`Speichern fehlgeschlagen: ${String(error)}`)}
     finally{setBusy(false)}
   }
-  return <details className="panel tempo-28-day-shift" defaultOpen={openOnMount}>
+  return <details className="panel tempo-28-day-shift" ref={element => {
+    // <details> has no React defaultOpen prop. Set the initial state once,
+    // then let the user expand or collapse the native element freely.
+    if (element && !element.dataset.tempoInitialOpen) {
+      element.open = openOnMount
+      element.dataset.tempoInitialOpen = '1'
+    }
+  }}>
     <summary><strong>Dienst, Pendeln & Zeitfenster</strong><span>{saved?.shift==='tagdienst'?' · Tagdienst':saved?.shift==='frei'?' · Frei':saved?.shift==='einsatz'?' · Einsatz':' · Offen'} · bearbeiten</span></summary>
     <div className="tempo-28-shift-body">
       <p>Nur diesen Tag bearbeiten. Bestehende Trainingseinheiten werden nicht verändert.</p>
