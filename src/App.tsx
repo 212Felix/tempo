@@ -17,7 +17,10 @@ import RecoveryPanel from './recovery/RecoveryPanel'
 import FuelingPanel from './phase30/FuelingPanel'
 import FuelLibraryPanel from './phase32/FuelLibraryPanel'
 import { isRun, isStrength } from './workouts/sessionStore'
-import type { TrainingRecord } from './planning/engine'
+import WorkoutDetail from './phase36/WorkoutDetail'
+import ManualTrainingPanel from './planning/ManualTrainingPanel'
+import './phase36/phase36.css'
+import {currentKey, type TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
 import './phase33.css'
 import './phase34/calendar-board.css'
@@ -26,22 +29,26 @@ import './phase34/phase34.css'
 type PageId =
   | 'home' | 'readiness' | 'training' | 'calendar' | 'progress'
   | 'fueling' | 'fuel-library' | 'recovery' | 'strength' | 'metrics' | 'blocks'
-  | 'events' | 'routes' | 'profile' | 'garmin' | 'running' | 'cycling' | 'swimming'
+  | 'events' | 'routes' | 'profile' | 'garmin' | 'running' | 'cycling' | 'swimming' | 'sportspiel' | 'golf' | 'workout-detail'
 
 type PageInfo = { id: PageId; name: string; icon: IconName; description: string }
-type IconName = 'home' | 'heart' | 'play' | 'calendar' | 'trend' | 'drop' | 'wind' | 'dumbbell' | 'gauge' | 'layers' | 'flag' | 'map' | 'user' | 'menu' | 'chevron' | 'arrow' | 'check' | 'clock' | 'close' | 'bike' | 'swim'
+type IconName = 'home' | 'heart' | 'play' | 'calendar' | 'trend' | 'drop' | 'wind' | 'dumbbell' | 'gauge' | 'layers' | 'flag' | 'map' | 'user' | 'menu' | 'chevron' | 'arrow' | 'check' | 'clock' | 'close' | 'bike' | 'swim' | 'football' | 'golf'
 
+// PHASE 36: version is intentionally displayed only in the navigation menu, never in the top header.
 const pages: PageInfo[] = [
+  { id: 'workout-detail', name: 'Trainingseinheit', icon: 'play', description: 'Dein Workout direkt öffnen.' },
   { id: 'home', name: 'Startseite', icon: 'home', description: 'Alles Wichtige für deinen Tag.' },
   { id: 'readiness', name: 'Readiness', icon: 'heart', description: 'Dein täglicher Check-in.' },
   { id: 'training', name: 'Tagestraining', icon: 'play', description: 'Die nächste geplante Einheit.' },
-  { id: 'calendar', name: '14-Tage-Plan', icon: 'calendar', description: 'Training und Dienste gemeinsam planen.' },
+  { id: 'calendar', name: 'Kalender', icon: 'calendar', description: 'Training und Dienste gemeinsam planen.' },
   { id: 'fueling', name: 'Fueling', icon: 'drop', description: 'Kohlenhydrate, Flüssigkeit und Verträglichkeit.' },
   { id: 'fuel-library', name: 'Produktbibliothek', icon: 'layers', description: 'Gels, Pulver, Riegel und Lebensmittel mit Nährwerten und Preisen.' },
   { id: 'recovery', name: 'Recovery & Mobility', icon: 'wind', description: 'Routinen, Beweglichkeit und Erholung.' },
   { id: 'cycling', name: 'Radfahren', icon: 'bike', description: 'Watt- und Pulszonen, Indoor und Outdoor.' },
   { id: 'strength', name: 'Krafttraining', icon: 'dumbbell', description: 'Ganzkörper A/B und Satzprotokoll.' },
   { id: 'running', name: 'Laufen', icon: 'play', description: 'Locker laufen, dokumentieren und entwickeln.' },
+  { id: 'sportspiel', name: 'Sportspiel', icon: 'football', description: 'Spontane Sportspiele ohne Einfluss auf die Trainingssteuerung.' },
+  { id: 'golf', name: 'Golf', icon: 'golf', description: 'Golfrunden dokumentieren, ohne andere Trainingstage zu beeinflussen.' },
   { id: 'swimming', name: 'Schwimmen', icon: 'swim', description: 'Freies Schwimmen protokollieren, ohne feste Termine.' },
   { id: 'progress', name: 'Fortschritt', icon: 'trend', description: 'Deine langfristige Entwicklung.' },
   { id: 'metrics', name: 'Leistungswerte', icon: 'gauge', description: 'Rad, Lauf und Kraft in einer Bibliothek.' },
@@ -52,12 +59,14 @@ const pages: PageInfo[] = [
   { id: 'profile', name: 'Profil & Daten', icon: 'user', description: 'Persönliche Werte lokal speichern und sichern.' },
 ]
 
-const primary: PageId[] = ['readiness', 'training', 'calendar', 'progress']
-const activityPages: PageId[] = ['cycling', 'running', 'strength', 'swimming', 'recovery']
+const primary: PageId[] = ['home', 'readiness', 'training', 'calendar']
+const activityPages: PageId[] = ['cycling', 'running', 'strength', 'swimming', 'sportspiel', 'golf', 'recovery']
 
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const }
   const drawings: Record<IconName, ReactNode> = {
+    football: <><circle cx="12" cy="12" r="9"/><path d="m12 7 4 3-2 5h-5l-2-5zM5 8l3 2m12-2-4 2M9 15l-2 5m8-5 2 5"/></>,
+    golf: <><path d="M7 22V3m0 1 11 2-5 5H7"/><path d="M4 22h14"/><circle cx="17" cy="17" r="2"/></>,
     swim: <><circle cx="7" cy="5" r="2"/><path d="m8 11 5-3 6 3M3 16c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 3-2M3 20c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 3-2M13 8l-3 6"/></>,
     bike: <><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="m5 17 5-9 4 9h-9m9 0 5-6h-8m-2-3h5m-6-2H9"/></>,
     home: <><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></>,
@@ -91,19 +100,14 @@ function Eyebrow({ children }: { children: ReactNode }) {
   return <div className="eyebrow">{children}</div>
 }
 
-function Home({ go }: { go: (id: PageId) => void }) {
-  return <>
-    <div className="dashboard-grid">
-      <ReadinessHomeCard onOpen={() => go('readiness')}/>
-      <HomeTrainingCard onOpen={() => go('training')}/>
-      <EventsHomeCard onOpen={() => go('events')}/>
-      <ShiftHomeCard onOpen={() => go('calendar')}/>
-    </div>
-    <div className="section-head"><h3>Schnellzugriff</h3><span>DEINE WERKZEUGE</span></div>
-    <div className="shortcut-grid">{(['cycling', 'strength', 'running', 'recovery', 'fueling'] as PageId[]).map(id => { const page = pages.find(p => p.id === id)!; return <button className="shortcut" key={id} onClick={() => go(id)}><span className="shortcut-icon"><Icon name={page.icon} size={20}/></span><span>{page.name}</span><Icon name="arrow" size={16}/></button> })}</div>
-  </>
+function Home({ go, openWorkout, openDuty }: { go: (id: PageId) => void; openWorkout: (session: TrainingRecord) => void; openDuty: () => void }) {
+  return <div className="tempo36-home">
+    <ReadinessHomeCard onOpen={() => go('readiness')}/>
+    <HomeTrainingCard onOpen={() => go('training')} onOpenWorkout={openWorkout}/>
+    <ShiftHomeCard onOpen={openDuty}/>
+    <EventsHomeCard onOpen={() => go('events')}/>
+  </div>
 }
-
 
 function Placeholder({ id, go }: { id: PageId; go: (id: PageId) => void }) {
   const page = pages.find(p => p.id === id)!
@@ -127,20 +131,24 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activitiesOpen,setActivitiesOpen]=useState(false)
   const [focusWorkout, setFocusWorkout] = useState('')
+  const [detailWorkout, setDetailWorkout] = useState<TrainingRecord|null>(null)
+  const [autoOpenShift,setAutoOpenShift]=useState(false)
   const [dayFocus,setDayFocus]=useState('')
   const [addFocus,setAddFocus]=useState('')
   useEffect(()=>{void ensureCooperGoal().then(()=>window.dispatchEvent(new Event('tempo:events-change'))).catch(error=>console.warn('Cooper-Ziel konnte nicht angelegt werden:',error))},[])
   const active = pages.find(p => p.id === page)!
-  const today = new Intl.DateTimeFormat('de-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date())
-  function navigate(id: PageId) { if(activityPages.includes(id))setActivitiesOpen(true); setFocusWorkout(''); setPage(id); setMenuOpen(false); window.scrollTo({top:0,behavior:'smooth'}) }
-  function openCalendarDay(date:string) {setDayFocus(date);setAddFocus('');setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
-  function addCalendarTraining(date:string){setDayFocus(date);setAddFocus(date);setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
+  function navigate(id: PageId) { if(activityPages.includes(id))setActivitiesOpen(true); if(id==='training'){setDayFocus('');setAddFocus('')} setFocusWorkout(''); setDetailWorkout(null);setAutoOpenShift(false); setPage(id); setMenuOpen(false); window.scrollTo({top:0,behavior:'smooth'}) }
+  function openCalendarDay(date:string) {setAutoOpenShift(false);setDayFocus(date);setAddFocus('');setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
+  function addCalendarTraining(date:string){setAutoOpenShift(false);setDayFocus(date);setAddFocus(date);setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
   function openWorkout(session: TrainingRecord) {
-    if(!isStrength(session) && !isRun(session)) return
     setFocusWorkout(session.id)
-    setPage(isStrength(session)?'strength':'running')
+    setDayFocus(session.date)
+    if(!isStrength(session) && !isRun(session))setDetailWorkout(session)
+    else setDetailWorkout(null)
+    setPage(isStrength(session)?'strength':isRun(session)?'running':'workout-detail')
     window.scrollTo({top:0,behavior:'smooth'})
   }
+  function openDuty(){setDayFocus(currentKey());setAutoOpenShift(true);setAddFocus('');setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
   return <div className="app">
     <div className={`mobile-shade ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
@@ -155,18 +163,18 @@ export default function App() {
             {activityPages.map(id=>{const sport=pages.find(p=>p.id===id)!;return <button type="button" key={id} className={`nav-item tempo-activity-child ${page===id?'active':''}`} onClick={()=>navigate(id)} aria-current={page===id?'page':undefined}><Icon name={sport.icon} size={18}/><span>{sport.name}</span>{page===id&&<span className="active-marker"/>}</button>})}
           </div>}
         </div>
-        if(activityPages.includes(item.id))return null
+        if(activityPages.includes(item.id)||item.id==='workout-detail')return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.35 · Leistung & Fueling</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.36 · TEMPO</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand">TEMPO<span className="topbar-sep">/</span><span>{active.name}</span></div><span className="topbar-tag"><span className="mini-dot silver"/> PHASE 35</span></header>
-      <main className={`content page-${page}`}><div className="page-heading"><div><div className="eyebrow">{today.toUpperCase()}</div><h1>{active.name}</h1>{page!=='home'&&<p>{active.description}</p>}</div>{page==='home'&&<img className="tempo33-home-logo" src={`${import.meta.env.BASE_URL}tempo-logo.jpg`} alt="TEMPO-Logo"/>}</div>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div><img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/></header>
+      <main className={`content page-${page}`}>
       <HelpProvider key={page}>
-      {page === 'home' ? <Home go={navigate}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel onOpenDay={openCalendarDay} onAddDay={addCalendarTraining}/> : page === 'training' ? <TrainingDayPanel key={`${dayFocus}:${addFocus}`} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
+      {page === 'home' ? <Home go={navigate} openWorkout={openWorkout} openDuty={openDuty}/> : page === 'readiness' ? <ReadinessPanel/> : page === 'calendar' ? <ShiftCalendarPanel onOpenDay={openCalendarDay} onAddDay={addCalendarTraining}/> : page === 'training' ? <TrainingDayPanel key={`${dayFocus}:${addFocus}:${autoOpenShift}`} autoOpenShift={autoOpenShift} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'workout-detail' ? <WorkoutDetail session={detailWorkout} onBack={()=>openCalendarDay(detailWorkout?.date??currentKey())}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'golf' || page === 'sportspiel' ? <ManualTrainingPanel autoStartDate={currentKey()} initialSport={page} autoStartMode="completed"/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>
       <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
-      <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{id==='calendar'?'14 Tage':item.name}</span></button>})}</nav>
+      <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={page===id?'active':''} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{item.name}</span></button>})}</nav>
     </div>
   </div>
 }

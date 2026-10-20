@@ -25,6 +25,7 @@ function trainingLoad(input: {
   sessionType?: string; durationMin?: number; distanceKm?: number;
   elevationM?: number; rpe?: number; strengthVariant?:'A'|'B'|'C'
 }): { guardDays: number; cautionDays: number; label: string } | null {
+  if (input.sessionType==='manual-sportspiel'||input.sessionType==='manual-golf'||input.sessionType==='manual-swimming') return null
   const duration = input.durationMin ?? 0
   const distance = input.distanceKm ?? 0
   const elevation = input.elevationM ?? 0

@@ -112,23 +112,15 @@ function makeEntry(date: string, values: ShiftValues, previous?: ShiftEntry): Sh
 }
 
 export function ShiftHomeCard({ onOpen }: {onOpen: () => void}) {
-  const [state, setState] = useState<{confirmed: number; loading: boolean; error: boolean}>({confirmed: 0, loading:true, error:false})
-  useEffect(() => {
-    let live = true
-    const now = new Date(); now.setHours(12, 0, 0, 0)
-    const keys = new Set(Array.from({length: 14}, (_, i) => formatKey(addDays(now, i))))
-    void listRecords<ShiftEntry>('shifts').then(entries => {
-      if (!live) return
-      setState({ confirmed: entries.filter(e => keys.has(e.date) && e.profileId === PROFILE_ID && isConfirmed(e)).length, loading:false, error:false })
-    }).catch(() => { if (live) setState({confirmed:0, loading:false, error:true}) })
-    return () => { live = false }
-  }, [])
-  return <section className={`panel status-card ${state.confirmed === 14 ? 'tempo-shift-home-complete' : 'amber-card'}`}>
-    <div className="card-heading"><div className="eyebrow">DIENSTPLANUNG</div><span className={`mini-dot ${state.confirmed === 14 ? 'good-dot' : 'amber'}`}/></div>
-    <h3>{state.loading ? 'Wird geladen …' : state.error ? 'Nicht verfügbar' : state.confirmed === 14 ? '14 Tage vorbereitet' : `${state.confirmed} von 14 Tagen geplant`}</h3>
-    <p>{state.error ? 'Dienstplanung konnte nicht gelesen werden.' : 'Wochenenden sind zunächst als Frei vorgeschlagen, bis du sie bestätigst. Nutze die 14-Tage-Ansicht, um anschließend einen Trainingsvorschlag zu erstellen.'}</p>
-    <button type="button" className="text-action" onClick={onOpen}>Dienste eintragen →</button>
-  </section>
+  const [todayShift,setTodayShift]=useState('Offen')
+  useEffect(()=>{let live=true
+    const refresh=()=>void getRecord<ShiftEntry>('shifts',`${PROFILE_ID}:${currentKey()}`).then(entry=>{
+      if(live)setTodayShift(entry?.shift==='tagdienst'?'Tagdienst':entry?.shift==='einsatz'?'Einsatz':entry?.shift==='frei'?'Frei':'Noch offen')
+    }).catch(()=>{if(live)setTodayShift('Nicht verfügbar')})
+    refresh();window.addEventListener('tempo:shift-change',refresh)
+    return()=>{live=false;window.removeEventListener('tempo:shift-change',refresh)}
+  },[])
+  return <section className="panel tempo36-home-shift"><div className="eyebrow">DIENSTPLANUNG</div><button className="tempo36-home-shift-action" type="button" onClick={onOpen}><span className="tempo36-shift-icon">▣</span><span><strong>{todayShift}</strong><small>Bearbeiten →</small></span><span className="tempo36-chevron">›</span></button></section>
 }
 
 export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date:string)=>void;onAddDay:(date:string)=>void}) {

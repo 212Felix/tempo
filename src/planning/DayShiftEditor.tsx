@@ -27,12 +27,13 @@ const fromRecord = (record?: ShiftRecord): Values => ({
   possibleYoga: availabilityFlag(record,'possibleYoga'),possibleStabi:availabilityFlag(record,'possibleStabi'),
   afterWorkCycling:Boolean(record?.afterWorkCycling),homeIntervals:Boolean(record?.homeIntervals),
 })
-export default function DayShiftEditor({date}:{date:string}) {
+export default function DayShiftEditor({date,openOnMount=false}:{date:string;openOnMount?:boolean}) {
   const [values,setValues] = useState<Values>(defaults)
   const [saved,setSaved] = useState<ShiftRecord | undefined>()
   const [busy,setBusy] = useState(false)
   const [notice,setNotice] = useState('Dienst wird geladen …')
   const [ready,setReady] = useState(false)
+  useEffect(()=>{if(!openOnMount)return;const id=window.setTimeout(()=>document.querySelector('.tempo-28-day-shift')?.scrollIntoView({behavior:'smooth',block:'center'}),80);return()=>window.clearTimeout(id)},[openOnMount])
   useEffect(()=>{
     let active=true
     setReady(false)
@@ -69,7 +70,7 @@ export default function DayShiftEditor({date}:{date:string}) {
     }catch(error){setNotice(`Speichern fehlgeschlagen: ${String(error)}`)}
     finally{setBusy(false)}
   }
-  return <details className="panel tempo-28-day-shift">
+  return <details className="panel tempo-28-day-shift" defaultOpen={openOnMount}>
     <summary><strong>Dienst, Pendeln & Zeitfenster</strong><span>{saved?.shift==='tagdienst'?' · Tagdienst':saved?.shift==='frei'?' · Frei':saved?.shift==='einsatz'?' · Einsatz':' · Offen'} · bearbeiten</span></summary>
     <div className="tempo-28-shift-body">
       <p>Nur diesen Tag bearbeiten. Bestehende Trainingseinheiten werden nicht verändert.</p>

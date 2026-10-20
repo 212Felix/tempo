@@ -16,7 +16,7 @@ export type ShiftKind = 'offen' | 'frei' | 'tagdienst' | 'einsatz'
 export type CommuteKind = 'nein' | 'hin' | 'zurueck' | 'beide'
 export type Priority = 'MUSS' | 'SOLL' | 'KANN'
 export type SessionKind = 'long' | 'quality' | 'endurance' | 'commute' | 'strength-a' | 'strength-b' | 'strength-c' | 'run' | 'recovery'
-export type ManualSessionKind = 'manual-cycling' | 'manual-running' | 'manual-strength' | 'manual-swimming' | 'manual-martial' | 'manual-mobility' | 'manual-yoga' | 'manual-stabi'
+export type ManualSessionKind = 'manual-cycling' | 'manual-running' | 'manual-strength' | 'manual-swimming' | 'manual-martial' | 'manual-mobility' | 'manual-yoga' | 'manual-stabi' | 'manual-sportspiel' | 'manual-golf'
 
 export type ShiftRecord = TempoRecord & {
   date: string
@@ -171,9 +171,9 @@ export function generatePlan(args: {
   const lockedDates = new Set<string>()
   for (const item of existing) {
     if (item.profileId !== PROFILE_ID) continue
-    if (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant') lockedDates.add(item.date)
+    if (!['manual-sportspiel','manual-golf'].includes(item.sessionType) && (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant')) lockedDates.add(item.date)
   }
-  for (const item of completed) if (item.profileId === PROFILE_ID && item.date && item.sessionType !== 'manual-swimming') lockedDates.add(item.date)
+  for (const item of completed) if (item.profileId === PROFILE_ID && item.date && !['manual-swimming','manual-sportspiel','manual-golf'].includes(item.sessionType??'')) lockedDates.add(item.date)
   for (const day of args.restDays??[]) if(day.profileId===PROFILE_ID)lockedDates.add(day.date)
   const map = new Map<string, PlanDay>()
   const preassigned = new Set<string>()
@@ -201,13 +201,14 @@ export function generatePlan(args: {
   }
   // Bereits eingetragene und absolvierte Belastungen beeinflussen auch Nachbartage.
   for (const item of existing) if (item.profileId === PROFILE_ID && days.includes(item.date) &&
+    !['manual-sportspiel','manual-golf'].includes(item.sessionType) &&
     (item.createdBy !== PLANNER_VERSION || item.locked || item.status !== 'geplant')) {
     const type = normalize(item.sessionType, item.durationMin, item.expectedKm,item.strengthVariant)
     markFixed(item.date, type)
     if(isRecordedQuality(item))intensityDates.add(item.date)
     if (['long','quality','strength-a','strength-b','commute'].includes(type)) heavy.add(item.date)
   }
-  for (const item of completed) if (item.profileId === PROFILE_ID && days.includes(item.date) && item.sessionType !== 'manual-swimming') {
+  for (const item of completed) if (item.profileId === PROFILE_ID && days.includes(item.date) && !['manual-swimming','manual-sportspiel','manual-golf'].includes(item.sessionType??'')) {
     const type = normalize(item.sessionType, item.durationMin, item.distanceKm,item.strengthVariant)
     markFixed(item.date, type)
     if(isRecordedQuality(item))intensityDates.add(item.date)

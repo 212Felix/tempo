@@ -2,7 +2,7 @@ import {durationFor,parseHms,formatSeconds} from '../time/duration'
 import { deleteRecord, listRecords, openTempoDatabase, saveRecord } from '../db/storage'
 import { PLANNER_VERSION, PROFILE_ID, type CompletedRecord, type ManualSessionKind, type Priority, type TrainingRecord } from './engine'
 
-export type ManualSport = 'cycling' | 'running' | 'strength' | 'swimming' | 'martial' | 'mobility' | 'yoga' | 'stabi'
+export type ManualSport = 'cycling' | 'running' | 'strength' | 'swimming' | 'martial' | 'mobility' | 'yoga' | 'stabi' | 'sportspiel' | 'golf'
 export const sports: {value:ManualSport; label:string; icon:string}[] = [
   {value:'cycling',label:'Radfahren',icon:'🚲'},
   {value:'running',label:'Laufen',icon:'🏃'},
@@ -12,6 +12,8 @@ export const sports: {value:ManualSport; label:string; icon:string}[] = [
   {value:'mobility',label:'Recovery / Mobility',icon:'🧘'},
   {value:'yoga',label:'Yoga (auch fremd angeleitet)',icon:'🧘'},
   {value:'stabi',label:'Stabi Training (auch fremd angeleitet)',icon:'🤸'},
+  {value:'sportspiel',label:'Sportspiel',icon:'⚽'},
+  {value:'golf',label:'Golf',icon:'⛳'},
 ]
 export type ManualForm = {
   date: string
@@ -42,6 +44,8 @@ export const sportFor = (kind: TrainingRecord['sessionType'] | undefined): Manua
   if (kind==='manual-martial') return 'martial'
   if (kind==='manual-yoga') return 'yoga'
   if (kind==='manual-stabi') return 'stabi'
+  if (kind==='manual-sportspiel') return 'sportspiel'
+  if (kind==='manual-golf') return 'golf'
   return 'mobility'
 }
 export const labelFor = (kind:TrainingRecord['sessionType'] | undefined) => sports.find(x=>x.value===sportFor(kind))!

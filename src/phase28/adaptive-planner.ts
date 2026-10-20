@@ -67,19 +67,20 @@ function customKind(block:TrainingBlock):BlockKind {
   if(block.capacity==='more'||block.capacity==='much')return 'VOLUME'
   return 'BASE'
 }
+const NO_ADAPTIVE_LOAD = new Set(['manual-swimming','manual-sportspiel','manual-golf'])
 function weekMinutesFromSessions(
   start:string,end:string,completed:CompletedRecord[],planned:TrainingRecord[],
 ):{done:number,scheduled:number,protectedCount:number}{
-  const doneInRange=completed.filter(x=>x.date>=start&&x.date<=end&&x.profileId==='local-primary-profile')
+  const doneInRange=completed.filter(x=>x.date>=start&&x.date<=end&&x.profileId==='local-primary-profile'&&!NO_ADAPTIVE_LOAD.has(x.sessionType??''))
   const completedLinked=new Set(doneInRange.map(x=>x.plannedSessionId).filter(Boolean))
-  const plannedInRange=planned.filter(x=>x.profileId==='local-primary-profile'&&x.date>=start&&x.date<=end&&x.status==='geplant'&&!completedLinked.has(x.id))
+  const plannedInRange=planned.filter(x=>x.profileId==='local-primary-profile'&&x.date>=start&&x.date<=end&&x.status==='geplant'&&!NO_ADAPTIVE_LOAD.has(x.sessionType)&&!completedLinked.has(x.id))
   const safeMin=(x:{durationMin?:number})=>Number.isFinite(x.durationMin)&&x.durationMin!>0?Math.min(1440,x.durationMin!):0
   return {done:Math.round(doneInRange.reduce((s,x)=>s+safeMin(x),0)),
     scheduled:Math.round(plannedInRange.reduce((s,x)=>s+safeMin(x),0)),
     protectedCount:plannedInRange.filter(x=>x.locked||x.createdBy!=='tempo-planner-v1').length}
 }
 function historyBaseline(start:string, completed:CompletedRecord[]):number|undefined {
-  const recent=completed.filter(x=>x.profileId==='local-primary-profile'&&x.date<start&&x.date>=advance(start,-42)&&
+  const recent=completed.filter(x=>x.profileId==='local-primary-profile'&&x.date<start&&x.date>=advance(start,-42)&&!NO_ADAPTIVE_LOAD.has(x.sessionType??'')&&
      x.durationMin&&x.durationMin>0)
   const weekSums=new Map<string,number>()
   for(const entry of recent){const k=mondayUTC(entry.date);weekSums.set(k,(weekSums.get(k)??0)+Math.min(entry.durationMin!,1440))}

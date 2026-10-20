@@ -30,13 +30,13 @@ function schedule(input:{sessions:TrainingRecord[];completed:CompletedRecord[];s
  const today=currentKey()
  const excludedDays=new Set(input.restDays.map(x=>x.date))
  if(restDate)excludedDays.add(restDate)
- const stored=input.sessions.filter(x=>x.profileId===PROFILE_ID&&days.includes(x.date)&&x.status==='geplant')
+ const stored=input.sessions.filter(x=>x.profileId===PROFILE_ID&&days.includes(x.date)&&x.status==='geplant'&&!['manual-sportspiel','manual-golf'].includes(x.sessionType))
  const savedDates=new Set(stored.map(x=>x.date))
  // Read-only, calculated training suggestions are included in the preview.
  // They enter the database ONLY if the athlete confirms a date change.
  const suggestions=(input.suggestions??[]).filter(x=>x.profileId===PROFILE_ID&&days.includes(x.date)&&x.status==='geplant'&&!savedDates.has(x.date))
  const all=[...stored,...suggestions]
- const taken=input.completed.filter(x=>x.profileId===PROFILE_ID&&days.includes(x.date))
+ const taken=input.completed.filter(x=>x.profileId===PROFILE_ID&&days.includes(x.date)&&!['manual-swimming','manual-sportspiel','manual-golf'].includes(x.sessionType??''))
  const assigned:Record<string,string>={}
  if(anchor&&targetDate)assigned[anchor.id]=targetDate
  const byId=new Map(all.map(x=>[x.id,x]))

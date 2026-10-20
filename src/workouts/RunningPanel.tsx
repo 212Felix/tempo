@@ -1,4 +1,5 @@
 import TimeFields from '../time/TimeFields'
+import {FuelingQuick} from '../phase30/FuelingPanel'
 import {parseHms,durationFor} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,type TrainingRecord} from '../planning/engine'
@@ -61,9 +62,9 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
     }catch(err){setMessage(`Nicht gespeichert: ${err instanceof Error?err.message:String(err)}`)}finally{setBusy(false)}
   }
   return <div className="tw-stack">
-    {cooper&&<section className="panel tw-panel tempo-running-goal"><div className="eyebrow">LAUFZIEL · COOPER-TEST</div><h2>3.200 Meter in 12:00</h2><p>Zieltempo: <strong>{paceText(3.2,720)}</strong> · {cooper.date?`Testtermin: ${dateLabel(cooper.date)}`:'Testtermin noch offen'}</p><p>Wir bauen zuerst lockere Laufkilometer und Laufverträglichkeit auf. Das Zieltempo ist noch keine Vorgabe für die nächste Einheit.</p>{onOpenEvents&&<button type="button" className="outline" onClick={onOpenEvents}>{cooper.date?'Laufziel bearbeiten':'Testdatum festlegen'} ↗</button>}</section>}
+    {!focusId&&cooper&&<section className="panel tw-panel tempo-running-goal"><div className="eyebrow">LAUFZIEL · COOPER-TEST</div><h2>3.200 Meter in 12:00</h2><p>Zieltempo: <strong>{paceText(3.2,720)}</strong> · {cooper.date?`Testtermin: ${dateLabel(cooper.date)}`:'Testtermin noch offen'}</p><p>Wir bauen zuerst lockere Laufkilometer und Laufverträglichkeit auf. Das Zieltempo ist noch keine Vorgabe für die nächste Einheit.</p>{onOpenEvents&&<button type="button" className="outline" onClick={onOpenEvents}>{cooper.date?'Laufziel bearbeiten':'Testdatum festlegen'} ↗</button>}</section>}
 
-    <section className="panel tw-panel"><div className="eyebrow">LAUFEN · KONSERVATIVER AUFBAU</div><h2>Locker laufen, konstant aufbauen</h2>
+    {!focusId&&<section className="panel tw-panel"><div className="eyebrow">LAUFEN · KONSERVATIVER AUFBAU</div><h2>Locker laufen, konstant aufbauen</h2>
       <HelpDisclosure id="running-intro"><p>Der Laufteil startet bewusst behutsam: erst Umfang und Sehnenverträglichkeit, später gezielte Geschwindigkeit. Aktuell keine harten 800-m- oder 1.000-m-Intervalle.</p></HelpDisclosure>
       <div className="tw-form-grid"><label>Geplante Laufeinheit<select value={plannedId} onChange={e=>{
         setPlannedId(e.target.value);const item=planned.find(x=>x.id===e.target.value);if(item){setDate(item.date);setDuration(durationFor(item))}else setDuration('00:30:00')
@@ -73,12 +74,14 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
       <div className="tw-info"><strong>{session?.title??runInstructions.title} · {friendlyDate(actualDate)}</strong><span>RPE 3–4 · lockere Atmung · Gehpausen erlaubt</span><span>{runInstructions.note}</span></div>
       {warning&&<div className="tw-warning">{warning} Bei Unsicherheit Einheit auslassen oder verschieben.</div>}
       {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert dokumentiert.</div>}
-    </section>
-    <section className="panel tw-panel"><div className="eyebrow">LAUFABLAUF · KEIN TEMPOZWANG</div><h3>Deine Einheit</h3>
+    </section>}
+    <section className="panel tw-panel"><div className="eyebrow">LAUFABLAUF</div><h3>{session?.title??"Deine Einheit"}</h3>
+      {session&&<div className="tw-info"><strong>{friendlyDate(session.date)} · {durationFor(session)} · {session.priority}</strong><span>{session.target}</span>{session.notes&&<span>{session.notes}</span>}</div>}
       <HelpDisclosure id="running-run-notes"><p>Wähle die Gesamtdauer je nach geplanter Einheit und Tagesform. Steigt die muskuläre Belastung oder treten Schmerzen auf, beende den Lauf.</p></HelpDisclosure>
       {runInstructions.steps.map((step,i)=><div className="tw-run-step" key={step.name}><span className="tw-number">{i+1}</span><div><strong>{step.name}</strong><p>{step.detail}</p></div></div>)}
 
     </section>
+    {focusId&&session&&<FuelingQuick session={session}/>}
     <section className="panel tw-panel"><div className="eyebrow">LAUFFEEDBACK · ABSOLVIERT</div><h3>Ist-Werte eintragen</h3>
       <form onSubmit={e=>void submit(e)}><div className="tw-form-grid">
         <TimeFields label="Laufdauer" value={duration} onChange={setDuration} disabled={Boolean(done)} required/>

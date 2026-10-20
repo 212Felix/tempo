@@ -25,13 +25,13 @@ test('Phase 33: alle Diensteditoren bieten dieselben vier Auswahlfelder an',()=>
  }
 })
 test('Phase 33: Startseite kompakt mit vorhandenem Hirschlogo',()=>{
- assert.match(src('src/App.tsx'),/tempo33-home-logo/)
+ assert.match(src('src/App.tsx'),/tempo36-nav-logo/)
  assert.doesNotMatch(src('src/App.tsx'),/Dein Tag\. Deine Leistung\. Deine Erholung\./)
- assert.match(src('src/db/ReadinessPanel.tsx'),/tempo33-readiness-details/)
+ assert.match(src('src/db/ReadinessPanel.tsx'),/tempo36-readiness-action/)
  assert.match(src('src/planning/DailyDecisionPanel.tsx'),/tempo33-readiness-details/)
 })
 test('Phase 33: Recovery-Erklärung optional und nie automatisch speichern',()=>{
- assert.match(src('src/planning/TrainingDayPanel.tsx'),/tempo33-rest-help/)
+ assert.match(src('src/planning/TrainingDayPanel.tsx'),/tempo36-rest-trigger/)
  assert.match(src('src/planning/TrainingDayPanel.tsx'),/setRestPreview\(true\)/)
 })
 test('Phase 33: Fotoaufnahme und Fotomediathek getrennt, weiterhin lokale OCR',()=>{
@@ -42,8 +42,8 @@ test('Phase 33: Fotoaufnahme und Fotomediathek getrennt, weiterhin lokale OCR',(
  assert.match(lib,/await worker\.recognize\(file\)/)
 })
 test('Phase 33: Release und 20 Stores, unveränderte Schemaversion',()=>{
- assert.match(src('src/App.tsx'),/PHASE 35/)
- assert.equal(JSON.parse(src('package.json')).version,'0.35.0')
+ assert.match(src('src/App.tsx'),/PHASE 36/)
+ assert.equal(JSON.parse(src('package.json')).version,'0.36.0')
  const db=src('src/db/types.ts')
  assert.match(db,/DATABASE_VERSION = 1/)
  assert.match(db,/BACKUP_SCHEMA_VERSION = 1/)

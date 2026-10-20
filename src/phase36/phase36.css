@@ -1,0 +1,68 @@
+/* Phase 36 · compact global shell, consistent labels, native responsive layout */
+.topbar-brand{display:flex;align-items:center;min-width:0;gap:0;letter-spacing:normal!important}
+.topbar-brand .tempo36-brand-name{color:#90a5b7!important;font-weight:450!important;letter-spacing:2px}
+.topbar-brand .tempo36-current-page{color:#f2f7fb;font-size:clamp(13px,2.7vw,17px);font-weight:760;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tempo36-nav-logo{width:37px;height:37px;object-fit:contain;border-radius:8px;opacity:.82;flex-shrink:0}
+.page-heading{display:none!important}
+.content{padding-top:16px!important}
+.tempo36-home{display:flex;flex-direction:column;gap:11px;max-width:650px;margin-inline:auto}
+.tempo36-home>.panel{margin:0;padding:12px 14px;min-height:0}
+.tempo36-home .eyebrow{margin-bottom:7px;font-size:10px;letter-spacing:2px}
+.tempo36-home .tempo36-readiness{background:#123b31;border-color:#348d67}
+.tempo36-home .tempo-ready-home-gelb{background:#39331b;border-color:#9b7e36}
+.tempo36-home .tempo-ready-home-rot{background:#442526;border-color:#a34e50}
+.tempo36-home .tempo-ready-home-offen{background:#1d303a;border-color:#537181}
+.tempo36-readiness-action{width:100%;border:none;background:transparent;color:inherit;padding:0;display:flex;align-items:center;gap:9px;text-align:left;min-height:30px}
+.tempo36-ready-dot{width:12px;height:12px;background:#62d4a2;flex-shrink:0;border-radius:50%}
+.tempo-ready-home-gelb .tempo36-ready-dot{background:#e0bd59}
+.tempo-ready-home-rot .tempo36-ready-dot{background:#e87c7c}
+.tempo-ready-home-offen .tempo36-ready-dot{background:#a1b2c1}
+.tempo36-readiness-action strong{font-size:19px;letter-spacing:-.3px}
+.tempo36-ready-note{font-size:12px;min-width:0;flex:1}
+.tempo36-ready-open{font-size:11px;font-weight:650;white-space:nowrap;color:#d4eaf4}
+.tempo36-home-sessions{display:grid;gap:7px}
+.tempo36-home-session{border:1px solid #3a5060;background:#172936;color:#f2f8f9;border-radius:12px;padding:9px;display:flex;align-items:center;gap:10px;width:100%;min-width:0;text-align:left;cursor:pointer}
+.tempo36-session-icon,.tempo36-goal-icon,.tempo36-shift-icon{flex-shrink:0;width:41px;height:41px;display:grid;place-items:center;font-size:24px;background:#213541;border:1px solid #435b68;border-radius:11px}
+.tempo36-session-main,.tempo36-event-action>span:nth-child(2),.tempo36-home-shift-action>span:nth-child(2){min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.tempo36-home-session strong,.tempo36-home-shift-action strong,.tempo36-event-action strong{font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+.tempo36-home-session small,.tempo36-home-shift-action small,.tempo36-event-action small{font-size:11px;color:#a6becd}
+.tempo36-chevron{margin-left:auto;font-size:24px;color:#aec3d2;flex-shrink:0}
+.tempo36-home-shift{border-color:#6b5c2f;background:linear-gradient(90deg,#342e1f,#17222c)}
+.tempo36-home-shift-action,.tempo36-event-action{border:0;background:transparent;color:#f0f6fa;width:100%;display:flex;align-items:center;text-align:left;gap:11px;padding:0}
+.tempo36-shift-icon{background:#36301d;border-color:#827142;color:#e9c96c}
+.tempo36-home-event{background:#162534}
+.tempo36-goal-icon{font-size:24px}
+.tempo36-home-train>.text-action{margin:0;padding:0}
+.tempo36-day{max-width:680px;margin:auto}
+.tempo36-daily-main{padding:15px!important}
+.tempo36-date-nav{margin:0 0 11px;display:flex!important;align-items:center;justify-content:space-between;gap:12px}
+.tempo36-date-nav strong{font-size:20px;white-space:nowrap}
+.tempo36-date-nav button{width:40px;height:40px;min-width:40px;display:grid;place-items:center;font-size:25px}
+.tempo36-day-jump{margin-bottom:10px}
+.tempo36-day-jump summary{color:#adc2ce;cursor:pointer;font-size:11px}
+.tempo36-day-jump input{margin-top:8px}
+.tempo36-daily-workout{display:flex;align-items:flex-start;gap:11px;width:100%;border:1px solid #405d6b;border-radius:13px;background:#1d2c39;color:#ecf5f7;text-align:left;padding:13px 11px;margin:9px 0;cursor:pointer}
+.tempo36-daily-workout-icon{font-size:27px;line-height:1.2;flex-shrink:0}
+.tempo36-daily-workout-content{display:flex;flex-direction:column;flex:1;min-width:0;gap:5px}
+.tempo36-daily-workout-content strong{font-size:16px}
+.tempo36-daily-workout-content small{font-size:12px;color:#a8c0ce}
+.tempo36-daily-workout-content>span{font-size:12px;line-height:1.45;color:#a3b9c9;overflow-wrap:anywhere}
+.tempo36-add-training{margin-top:9px;width:100%;font-weight:650}
+.tempo36-rest{border:1px solid #4b9b78;background:linear-gradient(110deg,#143f31,#19302b);border-radius:15px;padding:8px 12px;margin:11px 0}
+.tempo36-rest-trigger{border:0;color:#e2f4e9;background:transparent;width:100%;display:flex;gap:10px;align-items:center;text-align:left;padding:9px 0}
+.tempo36-rest-trigger span:first-child{font-size:24px}.tempo36-rest-trigger strong{flex:1;font-size:15px}.tempo36-rest-trigger span:last-child{font-size:22px}
+.tempo36-manual-host{margin-top:12px}.tempo36-manual-host .tempo-manual-list,.tempo36-manual-host .tempo-manual-range,.tempo36-manual-host .tempo-manual-summary,.tempo36-manual-host>.tempo-manual>h2,.tempo36-manual-host>.tempo-manual>.eyebrow{display:none}
+.tempo36-manual-host .tempo-manual-actions{margin-top:7px}
+.tempo36-manual-host>.tempo-manual{padding:13px}
+.tempo36-workout-detail{max-width:740px;margin:auto;padding:18px}
+.tempo36-workout-detail h2{font-size:23px;margin:7px 0}
+.tempo36-workout-prescription{margin:15px 0;padding:14px;background:#1a2e3a;border:1px solid #425e6b;border-radius:12px}
+.tempo36-workout-prescription p,.tempo36-workout-prescription li{line-height:1.6}
+.tempo36-workout-prescription ol{padding-left:24px}
+.tempo36-environment{border:1px solid #466b79;border-radius:12px;padding:12px;margin:12px 0}
+.tempo36-environment legend{padding:0 6px}.tempo36-environment>div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tempo36-environment button{border:1px solid #678596;background:#18303e;color:#d9eaf0;padding:11px;border-radius:10px}
+.tempo36-environment button.active{background:#4a7587;border-color:#9cc8d4;color:white}
+.tempo36-hint{font-size:12px;color:#a0bac9}
+.tempo36-back{width:100%}
+@media(max-width:680px){.topbar{padding-inline:14px}.topbar-brand .tempo36-brand-name{font-size:11px}.tempo36-nav-logo{height:30px;width:30px}.topbar-sep{margin:0 7px}.content{padding:11px 12px calc(95px + env(safe-area-inset-bottom))!important}.tempo36-home{gap:9px}.tempo36-home>.panel{padding:11px 12px}.tempo36-home-session{padding:8px}.tempo36-session-icon{width:37px;height:37px;font-size:21px}.tempo36-ready-note{display:none}.tempo36-home .eyebrow{margin-bottom:6px}}

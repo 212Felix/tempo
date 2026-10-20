@@ -8,7 +8,7 @@ import './calendar-board.css'
 
 type Props={days:string[];shifts:ShiftLike[];plans:TrainingRecord[];done:ActivityLike[];restDays:RestDayRecord[];blockKinds:Record<string,string>;onOpenDay:(date:string)=>void;onAddDay:(date:string)=>void;onConfirm:(entry:TrainingRecord)=>Promise<void>}
 const weekday=(date:string)=>new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00'))
-const iconFor=(kind:string)=>/strength/.test(kind)?'🏋️':/run/.test(kind)?'🏃':/swim/.test(kind)?'🏊':/stabi/.test(kind)?'🤸':/yoga|mobility/.test(kind)?'🧘':/recovery/.test(kind)?'🌿':'🚴'
+const iconFor=(kind:string)=>/strength/.test(kind)?'🏋️':/run/.test(kind)?'🏃':/swim/.test(kind)?'🏊':/sportspiel/.test(kind)?'⚽':/golf/.test(kind)?'⛳':/stabi/.test(kind)?'🤸':/yoga|mobility/.test(kind)?'🧘':/recovery/.test(kind)?'🌿':'🚴'
 const weekPattern=[[0,1,2],[3,4,5],[6,7]]
 const movingAllowed=(r:TrainingRecord)=>r.status==='geplant'&&!r.id.startsWith('preview:')&&r.date>=todayLocal()
 

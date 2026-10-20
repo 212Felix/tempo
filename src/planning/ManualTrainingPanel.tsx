@@ -22,7 +22,7 @@ const numInput = (value:string,set:(v:string)=>void,placeholder:string)=>
   <input type="text" inputMode="decimal" value={value} onChange={e=>set(e.target.value)} placeholder={placeholder}/>
 
 /** Gemeinsam auf 14-Tage- und Tagestraining-Seite. Mehrfachbelegung pro Tag erlaubt. */
-export default function ManualTrainingPanel({days,autoStartDate}:{days?:string[];autoStartDate?:string}) {
+export default function ManualTrainingPanel({days,autoStartDate,initialSport,autoStartMode='planned'}:{days?:string[];autoStartDate?:string;initialSport?:ManualSport;autoStartMode?:Mode}) {
   const [shifts,setShifts]=useState<Record<string,ShiftRecord>>({})
   const [blockedDays,setBlockedDays]=useState<string[]>([])
   const [planned,setPlanned]=useState<TrainingRecord[]>([])
@@ -66,9 +66,9 @@ export default function ManualTrainingPanel({days,autoStartDate}:{days?:string[]
   },[])
   useEffect(()=>{if(days?.length) setSelectedDate(days[0])},[daysKey])
   const scroll=()=>window.setTimeout(()=>editorRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),30)
-  useEffect(()=>{if(autoStartDate)begin('planned',autoStartDate)},[autoStartDate])
+  useEffect(()=>{if(autoStartDate)begin(autoStartMode,autoStartDate)},[autoStartDate,autoStartMode,initialSport])
   function begin(which:Mode,date=currentKey()) {
-    setEditing(null);setLinked(null);setMode(which);setDraft(defaultForm(date));setSelectedDate(date);setFeedback(which==='planned'?'Neues Training frei planen.':'Absolviertes freies Training protokollieren.');scroll()
+    setEditing(null);setLinked(null);setMode(which);setDraft({...defaultForm(date),...(initialSport?{sport:initialSport,title:initialSport==='golf'?'Golf':initialSport==='sportspiel'?'Sportspiel':''}:{})});setSelectedDate(date);setFeedback(which==='planned'?'Neues Training frei planen.':'Absolviertes freies Training protokollieren.');scroll()
   }
   function edit(item:Editable) {
     if(item.kind==='planned' && item.record.status==='erledigt') {setFeedback('Bereits abgeschlossene Trainingseinträge bleiben geschützt.');return}

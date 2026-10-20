@@ -1,12 +1,16 @@
-TEMPO PHASE 35 – einfacher GitHub-Upload
+TEMPO Phase 36 — Einfacher GitHub-Upload
+========================================
 
-1. Zuerst ein aktuelles iPhone-Backup in iCloud Drive speichern.
-2. NUR TEMPO_Phase35_EINFACHER_GITHUB_UPLOAD.zip herunterladen und entpacken.
-3. Den enthaltenen Ordner tempo-main öffnen (Cmd+Shift+. blendet versteckte Dateien ein).
-4. Auf GitHub 212Felix/tempo, Branch main, Add file > Upload files öffnen.
-5. ALLE INHALTE INNERHALB von tempo-main auf GitHub ziehen; nicht den übergeordneten Ordner.
-6. Vor dem Commit prüfen, dass src/App.tsx, src/phase35/weekly-rhythm.ts, src/workouts/StrengthPanel.tsx und package.json enthalten sind.
-7. Commit directly to main. Auf main muss src/App.tsx danach PHASE 35 enthalten.
-8. GitHub Actions build+deploy müssen grün werden. Dann Mac und iPhone prüfen.
+1. ZUERST aktuelles Backup in der installierten TEMPO-App auf dem iPhone nach iCloud Drive sichern.
+2. Das kleine ZIP „TEMPO_Phase36_EINFACHER_GITHUB_UPLOAD.zip“ auf deinem Mac entpacken.
+3. Den enthaltenen Ordner „tempo-main“ öffnen (nicht den ZIP-Ordner selbst hochladen).
+4. In GitHub 212Felix/tempo den Branch „main“ auswählen: Add file → Upload files.
+5. Sämtliche INHALTE aus „tempo-main“ hochladen; bisherige Dateien aktualisieren lassen.
+6. Kontrollieren, dass src/App.tsx, src/planning/TrainingDayPanel.tsx und src/phase36/WorkoutDetail.tsx dabei sind.
+7. Commit directly to main bestätigen.
+8. Auf GitHub Actions „TEMPO veröffentlichen“ prüfen: Build und Deploy grün.
+9. Vorhandene App in Safari und auf dem iPhone öffnen. Menü unten: V0.36.
+10. Stichprobe: Readiness, geplante Trainings, Dienst, chronologische Ziele und Trainings-/Garmin-Ansichten testen.
 
-WICHTIG: Nicht die installierte iPhone-App löschen oder Website-Daten zurücksetzen. Niemals Backups/GPS/FIT in GitHub hochladen.
+HINWEIS: Installierte iPhone-PWA nicht löschen, Website-Daten nicht zurücksetzen.
+Das vollständige Phase-36-ZIP dient der Quellcode-Sicherung und ist NICHT als zusätzlicher Upload gedacht.

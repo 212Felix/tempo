@@ -259,10 +259,8 @@ export function ReadinessHomeCard({ onOpen }: { onOpen: () => void }) {
     window.addEventListener('tempo:readiness-change',load)
     return () => { active = false; window.removeEventListener('tempo:readiness-change',load) }
   }, [])
-  return <section className={`panel status-card tempo-ready-home tempo-ready-home-${state.level}`}>
-    <div className="card-heading"><div className="eyebrow">DEINE READINESS</div><span className={`tempo-ready-light tempo-ready-light-${state.level}`}/></div>
-    <h3>{state.title}</h3>
-    <button type="button" className="text-action" onClick={onOpen}>{state.loading ? 'Bitte warten …' : 'Readiness öffnen'} →</button>
-    <details className="tempo33-readiness-details"><summary aria-label="Readiness-Erklärung anzeigen">? <span>Erklärung</span></summary><p>{state.description}</p></details>
+  return <section className={`panel tempo36-readiness tempo-ready-home-${state.level}`}>
+    <div className="eyebrow">DEINE READINESS</div>
+    <button className="tempo36-readiness-action" type="button" onClick={onOpen}><span className="tempo36-ready-dot"/><strong>{state.loading?'Wird geladen …':state.level==='gruen'?'GRÜN':state.level==='gelb'?'GELB':state.level==='rot'?'ROT':'OFFEN'}</strong><span className="tempo36-ready-note">{state.level==='gruen'?'Gute Ausgangslage':state.level==='gelb'?'Belastung prüfen':state.level==='rot'?'Erholung prüfen':'Check-in ausfüllen'}</span><span className="tempo36-ready-open">Readiness öffnen ›</span></button>
   </section>
 }

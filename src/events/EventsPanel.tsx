@@ -18,22 +18,14 @@ function toForm(e:GoalEvent):FormData { return {name:e.name,sport:e.sport??'cycl
 
 export function EventsHomeCard({onOpen}:{onOpen:()=>void}) {
   const [events,setEvents] = useState<GoalEvent[]>([])
-  const [expanded,setExpanded] = useState(false)
-  useEffect(()=>{
-    let live=true
+  useEffect(()=>{let live=true
     const refresh=()=>{void listRecords<GoalEvent>('events').then(rows=>{if(live)setEvents(upcomingEvents(rows,today()))}).catch(()=>{})}
     refresh();window.addEventListener('tempo:events-change',refresh)
     return ()=>{live=false;window.removeEventListener('tempo:events-change',refresh)}
   },[])
-  const first=events[0]
+  const first=events.find(e=>effectiveDate(e))??events[0]
   const days=first && effectiveDate(first) ? dayDelta(today(),effectiveDate(first)!) : undefined
-  return <section className="panel status-card tempo-next-event">
-    <div className="card-heading"><div className="eyebrow">NÄCHSTES ZIEL</div><button type="button" className="tempo-event-arrow" aria-label="Ziele anzeigen" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}>{expanded?'⌃':'⌄'}</button></div>
-    <h3>{first ? first.name : 'Noch kein Ziel hinterlegt'}</h3>
-    <p>{first ? (days !== undefined ? `Noch ${days} Tage · ${first.status==='bestaetigt'?'bestätigt':first.status==='offen'?'Startplatz offen':'Termin flexibel'}` : 'Termin noch offen') : 'Deine Ziele erscheinen hier nach dem Eintragen.'}</p>
-    {first?.trainingPhase && <p>Trainingsabschnitt: {first.trainingPhase}</p>}
-    {expanded && <div className="tempo-event-expanded">{events.length===0 ? <p>Noch keine geplanten Events</p> : events.map(e => {const date=effectiveDate(e);return <p key={e.id}>{e.name} — {date ? `${dayDelta(today(),date)} Tage` : 'Termin offen'}</p>})}<button className="text-action" type="button" onClick={onOpen}>Ziele verwalten →</button></div>}
-  </section>
+  return <section className="panel tempo36-home-event"><div className="eyebrow">NÄCHSTES ZIEL</div><button className="tempo36-event-action" type="button" onClick={onOpen}><span className="tempo36-goal-icon">{first?.runningKind==='cooper'?'🏃':'⛰️'}</span><span><strong>{first?.name??'Ziel eintragen'}</strong><small>{days!==undefined?`Noch ${days} Tage · ${dateLabel(effectiveDate(first))}`:'Termin noch offen'}</small></span><span className="tempo36-chevron">›</span></button></section>
 }
 
 export default function EventsPanel() {

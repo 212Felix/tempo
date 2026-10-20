@@ -5,15 +5,11 @@ import {isRestDay,type RestDayRecord} from '../phase31/rest-days'
 import {currentKey, friendlyDate, PROFILE_ID, type TrainingRecord} from './engine'
 import ManualTrainingPanel from './ManualTrainingPanel'
 import DayShiftEditor from './DayShiftEditor'
-import DailyDecisionPanel from './DailyDecisionPanel'
-import { isStrength, isRun } from '../workouts/sessionStore'
 import './plan.css'
-import HelpDisclosure from '../ui/HelpDisclosure'
-import {FuelingQuick} from '../phase30/FuelingPanel'
 import WeekReplanner from '../phase30/WeekReplanner'
 import {addDays} from '../phase28/calendar-model'
 
-function HomeTrainingCard({onOpen}:{onOpen:()=>void}) {
+function HomeTrainingCard({onOpen,onOpenWorkout}:{onOpen:()=>void;onOpenWorkout?:(session:TrainingRecord)=>void}) {
   const [today,setToday]=useState<TrainingRecord[]>([])
   useEffect(()=>{let live=true
     const load=()=>void listRecords<TrainingRecord>('plannedSessions').then(entries=>{
@@ -22,22 +18,20 @@ function HomeTrainingCard({onOpen}:{onOpen:()=>void}) {
     load();window.addEventListener('tempo:training-change',load)
     return()=>{live=false;window.removeEventListener('tempo:training-change',load)}
   },[])
-  const pending=today.filter(x=>x.status==='geplant')
-  return <section className="panel status-card"><div className="card-heading"><div className="eyebrow">HEUTIGES TRAINING</div><span className="mini-dot silver"/></div>
-    <h3>{pending[0]?.title??(today.length?'Geplantes Training erledigt':'Noch nicht geplant')}</h3>
-    <p>{pending.length?`${pending[0].durationMin?durationFor(pending[0]):'Dauer offen'} · ${pending[0].priority}${pending.length>1?` · +${pending.length-1} weitere`:''}`:today.length?'Heute bisher dokumentierte Einheiten abgeschlossen.':'Dienste unter „14 Tage“ bestätigen oder selbst eine Trainingseinheit anlegen.'}</p>
-    <button className="text-action" onClick={onOpen}>Tagestraining öffnen →</button></section>
+  return <section className="panel tempo36-home-train"><div className="eyebrow">HEUTIGES TRAINING</div>
+    {today.length===0?<p>Heute noch kein Training gespeichert.</p>:<div className="tempo36-home-sessions">{today.map(session=><button className="tempo36-home-session" type="button" key={session.id} onClick={()=>onOpenWorkout?onOpenWorkout(session):onOpen()}><span className="tempo36-session-icon">{iconForSession(session)}</span><span className="tempo36-session-main"><strong>{session.title}</strong><small>{session.status==='erledigt'?'✓ Absolviert':durationFor(session)+' · '+session.priority}</small></span><span className="tempo36-chevron">›</span></button>)}</div>}
+    {today.length===0&&<button className="text-action" onClick={onOpen}>Training planen →</button>}
+  </section>
 }
 export {HomeTrainingCard}
 
-const askAdd=(date:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-add',{detail:date}))
-const askEdit=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-edit',{detail:{kind:'planned',id}}))
-const askDone=(id:string)=>window.dispatchEvent(new CustomEvent('tempo:manual-finish',{detail:id}))
+export const iconForSession=(session:TrainingRecord):string=>/strength/.test(session.sessionType)?'🏋️':/run/.test(session.sessionType)?'🏃':/swimming/.test(session.sessionType)?'🏊':/sportspiel/.test(session.sessionType)?'⚽':/golf/.test(session.sessionType)?'⛳':/yoga|mobility/.test(session.sessionType)?'🧘':/stabi/.test(session.sessionType)?'🤸':/recovery/.test(session.sessionType)?'🌿':'🚴'
 
-export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenWorkout,initialDate,autoAddDate}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void;initialDate?:string;autoAddDate?:string}){
+
+export default function TrainingDayPanel({onOpenWorkout,initialDate,autoAddDate,autoOpenShift=false}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void;initialDate?:string;autoAddDate?:string;autoOpenShift?:boolean}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
   const [selected,setSelected]=useState(initialDate??currentKey())
-  const [reschedule,setReschedule]=useState<TrainingRecord|null>(null)
+  const [manualOpen,setManualOpen]=useState(Boolean(autoAddDate))
   const [restPreview,setRestPreview]=useState(false),[fixedRest,setFixedRest]=useState<RestDayRecord[]>([])
   const [loading,setLoading]=useState(true)
   const [notice,setNotice]=useState('Gespeicherte Einheiten werden geladen …')
@@ -57,7 +51,6 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
     load();window.addEventListener('tempo:training-change',load)
     return()=>{active=false;window.removeEventListener('tempo:training-change',load)}
   },[])
-  const dates=[...new Set(entries.map(x=>x.date))].sort()
   const selectedDay=selected||today
   const atDate=entries.filter(x=>x.date===selectedDay)
   const savedRest=fixedRest.find(x=>x.date===selectedDay)
@@ -68,27 +61,18 @@ export default function TrainingDayPanel({onOpenReadiness,onOpenCalendar,onOpenW
   }
   const previousDate=addDays(selectedDay,-1)
   const nextDate=addDays(selectedDay,1)
-  return <div className="tempo-workout tempo-28-daily">
-    <section className="panel tempo-workout-head">
-      <div className="eyebrow">DEIN TAG · {friendlyDate(selectedDay)}</div>
-      <h2>Geplante Einheiten</h2>
-      <div className="tempo-workout-nav"><button type="button" onClick={()=>setSelected(previousDate)} aria-label="Vorheriger Kalendertag">‹</button><strong>{friendlyDate(selectedDay)}</strong><button type="button" onClick={()=>setSelected(nextDate)} aria-label="Nächster Kalendertag">›</button></div>
-      <label className="tempo-28-day-picker">Anderen Tag öffnen <input type="date" value={selectedDay} onChange={e=>setSelected(e.target.value||today)}/></label>
+  return <div className="tempo-workout tempo-28-daily tempo36-day">
+    <section className="panel tempo-workout-head tempo36-daily-main">
+      <div className="tempo-workout-nav tempo36-date-nav"><button type="button" onClick={()=>setSelected(previousDate)} aria-label="Vorheriger Kalendertag">‹</button><strong>{friendlyDate(selectedDay)}</strong><button type="button" onClick={()=>setSelected(nextDate)} aria-label="Nächster Kalendertag">›</button></div>
+      <details className="tempo36-day-jump"><summary>Datum wählen</summary><input aria-label="Datum auswählen" type="date" value={selectedDay} onChange={e=>setSelected(e.target.value||today)}/></details>
       {loading&&<p>{notice}</p>}
-      {!loading&&atDate.length===0&&<p>Für diesen Tag ist noch keine Einheit geplant. Unter „🌿 Trainingsfreien Tag festlegen“ kannst du den Tag für Erholung reservieren.</p>}
-      {!loading&&atDate.map(x=><details key={x.id} className="tempo-28-session-card" open={atDate.length===1}>
-        <summary><span>{x.sessionType.includes('strength')?'🏋️':x.sessionType.includes('run')?'🏃':x.sessionType.includes('recovery')?'🧘':'🚴'} <strong>{x.title}</strong></span><small>{x.status==='erledigt'?'✓ Absolviert':x.priority} · {x.durationMin?durationFor(x):'Dauer offen'}</small></summary>
-        <div className="tempo-28-session-content"><p>{x.description}</p><p><strong>Ziel:</strong> {x.target}</p>{x.notes&&<p>{x.notes}</p>}{x.commuteLeg&&<p>🚲 Pendeln {x.commuteLeg==='rueck'?'Rückweg':x.commuteLeg==='hin'?'Hinweg':'Hin & Rück'} · diese Fahrt nur einmal zählen</p>}
-        <FuelingQuick session={x}/><div className="tempo-manual-entry-actions">{(isStrength(x)||isRun(x))&&<button type="button" onClick={()=>onOpenWorkout(x)}>{isStrength(x)?'Kraftprogramm & Sätze öffnen →':'Laufprogramm öffnen →'}</button>}{x.status!=='erledigt'&&<><button type="button" onClick={()=>setReschedule(x)}>🗓️ Training verschieben</button><button type="button" onClick={()=>askEdit(x.id)}>Bearbeiten</button><button type="button" onClick={()=>askDone(x.id)}>Training abschließen</button></>}</div></div>
-      </details>)}
+      {!loading&&atDate.length===0&&<p>Heute keine fest gespeicherte Einheit. Über „Training hinzufügen“ kannst du selbst planen.</p>}
+      {!loading&&atDate.map(x=><button key={x.id} type="button" className="tempo36-daily-workout" onClick={()=>onOpenWorkout(x)} aria-label={`${x.title} öffnen`}><span className="tempo36-daily-workout-icon">{iconForSession(x)}</span><span className="tempo36-daily-workout-content"><strong>{x.title}</strong><small>{x.status==='erledigt'?'✓ Absolviert':x.priority} · {x.durationMin?durationFor(x):'Dauer offen'}{x.expectedKm?` · ${x.expectedKm} km`:''}</small>{x.sessionType==='strength-c'&&<span>Brust · Rücken · Schultern · Arme</span>}{/run/.test(x.sessionType)&&<span>{x.target}</span>}{/quality|endurance|long|commute|cycling/.test(x.sessionType)&&<span>{x.target}</span>}</span><span className="tempo36-chevron">›</span></button>)}
+      <button className="tempo36-add-training" type="button" onClick={()=>setManualOpen(true)}>＋ Training hinzufügen</button>
     </section>
-    <section className="tempo31-rest-section"><div className="eyebrow">DEINE ENTSCHEIDUNG · ERHOLUNG PLANEN</div><div className="tempo33-rest-title"><h3>🌿 Trainingsfreien Tag festlegen</h3><details className="tempo33-rest-help"><summary aria-label="Erholung planen: Erklärung anzeigen">?</summary><p>Reserviere den Tag für Erholung, Sauna, Familie oder leichte Mobility. TEMPO berechnet passende Trainingstermine neu. Erst nach deiner Bestätigung wird die Änderung gespeichert.</p></details></div>
-      {savedRest?<><p><strong>🔒 {savedRest.mode==='free'?'Vollständig trainingsfrei':'Recoverytag'}</strong> · {savedRest.note||'Dieser Tag ist für neue Trainings gesperrt.'}</p><button className="outline" type="button" onClick={()=>void releaseDay()}>Freigabe für diesen Tag aufheben</button></>:<><button type="button" onClick={()=>setRestPreview(true)} disabled={selectedDay<today}>🌿 Ruhetag / Recovery festlegen & Plan anpassen</button></>}
-    </section>
-    {reschedule&&<WeekReplanner anchor={reschedule} onClose={()=>setReschedule(null)} onSaved={()=>setSelected(selectedDay)}/>}
+    <section className="tempo36-rest"><button className="tempo36-rest-trigger" type="button" onClick={()=>setRestPreview(true)} disabled={selectedDay<today&&!savedRest}><span>🌿</span><strong>{savedRest?'🔒 '+(savedRest.mode==='free'?'Trainingsfrei':'Recoverytag'):'Ruhetag / Recovery festlegen'}</strong><span>›</span></button>{savedRest&&<button type="button" className="outline" onClick={()=>void releaseDay()}>Ruhetag wieder freigeben</button>}</section>
     {restPreview&&<WeekReplanner restDate={selectedDay} onClose={()=>setRestPreview(false)} onSaved={()=>setSelected(selectedDay)}/>}
-    <DayShiftEditor key={selectedDay} date={selectedDay}/>
-    {selectedDay===today&&<DailyDecisionPanel onOpenReadiness={onOpenReadiness} onOpenCalendar={onOpenCalendar}/> }
-    <ManualTrainingPanel days={[selectedDay]} autoStartDate={autoAddDate}/>
+    <DayShiftEditor key={selectedDay} date={selectedDay} openOnMount={autoOpenShift}/>
+    {manualOpen&&<div className="tempo36-manual-host"><button type="button" className="outline" onClick={()=>setManualOpen(false)}>Eingabe schließen ×</button><ManualTrainingPanel days={[selectedDay]} autoStartDate={selectedDay}/></div>}
   </div>
 }
