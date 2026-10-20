@@ -9,11 +9,11 @@ import QuickAdjustmentPanel from './QuickAdjustmentPanel'
 import CalendarBoard from '../phase34/CalendarBoard'
 import {currentKey,generatePlan,type TrainingRecord,type CompletedRecord,type ReadinessRecord} from '../planning/engine'
 import {deriveAdaptiveWeeks} from '../phase28/adaptive-planner'
-import {rollingCalendarWeeks,isRestDay,type RestDayRecord} from '../phase31/rest-days'
+import {isRestDay,type RestDayRecord} from '../phase31/rest-days'
 import type {GoalEvent,RouteEntry} from '../events/library'
 import type {TrainingBlock} from '../blocks/library'
 import {AVAILABILITY_CHOICES,availabilityFlag} from '../planning/availability'
-import {RHYTHM_ID,RHYTHM_DAYS,RHYTHM_CHOICES,EMPTY_RHYTHM,makeRhythm,validRhythm,type DayFocus,type WeekRhythm} from '../phase35/weekly-rhythm'
+import {RHYTHM_ID,RHYTHM_DAYS,makeActivityRhythm,getRhythmActivities,ACTIVITY_CHOICES,validRhythm,EMPTY_ACTIVITY_DAYS,type WeekActivity,type WeekRhythm} from '../phase35/weekly-rhythm'
 import '../phase35/weekly-rhythm.css'
 
 const PROFILE_ID = 'local-primary-profile'
@@ -123,7 +123,7 @@ export function ShiftHomeCard({ onOpen }: {onOpen: () => void}) {
   return <section className="panel tempo36-home-shift"><div className="eyebrow">DIENSTPLANUNG</div><button className="tempo36-home-shift-action" type="button" onClick={onOpen}><span className="tempo36-shift-icon">▣</span><span><strong>{todayShift}</strong><small>Bearbeiten →</small></span><span className="tempo36-chevron">›</span></button></section>
 }
 
-export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date:string)=>void;onAddDay:(date:string)=>void}) {
+export default function ShiftCalendarPanel({onOpenDay,onAddDay,onStartWorkout}:{onOpenDay:(date:string)=>void;onAddDay:(date:string)=>void;onStartWorkout:(session:TrainingRecord)=>void}) {
   const [rangeOffset, setRangeOffset] = useState(0)
   const [horizon, setHorizon] = useState<7 | 14 | 'rolling'>('rolling')
   const [entries, setEntries] = useState<Record<string, ShiftEntry>>({})
@@ -141,19 +141,19 @@ export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date
   const [completedTrainings,setCompletedTrainings]=useState<CompletedRecord[]>([])
   const [feedback, setFeedback] = useState('Dienste werden geladen …')
   const [rhythm,setRhythm]=useState<WeekRhythm|undefined>()
-  const [rhythmDraft,setRhythmDraft]=useState<DayFocus[]>([...EMPTY_RHYTHM])
+  const [rhythmDraft,setRhythmDraft]=useState<WeekActivity[][]>(()=>EMPTY_ACTIVITY_DAYS.map(day=>[...day]))
   const [rhythmMessage,setRhythmMessage]=useState('')
-  const start = useMemo(() => { const now = new Date(); const mondayOffset=(now.getDay()+6)%7; return addDays(now,-mondayOffset+rangeOffset) }, [rangeOffset])
-  const days = useMemo(() => Array.from({length:horizon==='rolling'?rollingCalendarWeeks(currentKey())*7:horizon}, (_, i) => formatKey(addDays(start, i))), [start, horizon])
+  const start = useMemo(() => { const now = new Date(); const mondayOffset=(now.getDay()+6)%7; return addDays(now,(horizon==='rolling'?0:-mondayOffset)+rangeOffset) }, [rangeOffset,horizon])
+  const days = useMemo(() => Array.from({length:horizon==='rolling'?10:horizon}, (_, i) => formatKey(addDays(start, i))), [start, horizon])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShiftValues | null>(null)
 
   useEffect(()=>{let active=true
-    void getRecord<WeekRhythm>('settings',RHYTHM_ID).then(saved=>{if(active&&saved&&validRhythm(saved.days)){setRhythm(saved);setRhythmDraft([...saved.days])}}).catch(()=>undefined)
+    void getRecord<WeekRhythm>('settings',RHYTHM_ID).then(saved=>{if(active&&saved&&validRhythm(saved.days)){setRhythm(saved);setRhythmDraft(getRhythmActivities(saved))}}).catch(()=>undefined)
     return()=>{active=false}
   },[])
   async function saveRhythm(){
-    try{const value=makeRhythm(rhythmDraft,rhythm);await saveRecord('settings',value);setRhythm(value);setRhythmMessage('Standardwoche gespeichert. Folgevorschläge werden an deinen Rhythmus angepasst.');window.dispatchEvent(new Event('tempo:training-change'))}
+    try{const value=makeActivityRhythm(rhythmDraft,rhythm);await saveRecord('settings',value);setRhythm(value);setRhythmMessage('Standardwoche gespeichert. Folgevorschläge werden an deinen Rhythmus angepasst.');window.dispatchEvent(new Event('tempo:training-change'))}
     catch(error){setRhythmMessage(`Konnte Standardwoche nicht speichern: ${String(error)}`)}
   }
   useEffect(() => {
@@ -238,9 +238,7 @@ export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date
   }
   return <div className="tempo-shift">
     <section className="panel tempo-shift-header">
-      <div className="eyebrow">DIENSTE & VERFÜGBARKEIT</div>
-      <h2>Die nächsten Tage vorbereiten</h2>
-      <HelpDisclosure id="calendar-shift-intro"><p>Erst die Dienste und Möglichkeiten eintragen, danach können wir die Trainingseinheiten sinnvoll verteilen. Wochenenden sind standardmäßig <strong>Frei als Vorschlag</strong> – auch sie können Tagdienst oder Einsatz werden.</p></HelpDisclosure>
+      <div className="tempo38-calendar-header"><span className="eyebrow">DIENSTE & VERFÜGBARKEIT</span><HelpDisclosure id="calendar-shift-intro"><p>Trage Dienst und Verfügbarkeit ein. Vorläufige Trainingsvorschläge können nach Bestätigung übernommen werden; der Dienstplan bleibt geschützt.</p></HelpDisclosure></div>
       <div className="tempo-shift-toolbar">
         <div className="tempo-shift-choices" role="group" aria-label="Planungshorizont">
           <Choice selected={horizon === 7} onClick={() => {setHorizon(7);setSelectedDate(null);setDraft(null)}}>7 Tage</Choice>
@@ -257,15 +255,15 @@ export default function ShiftCalendarPanel({onOpenDay,onAddDay}:{onOpenDay:(date
 
     <details className="tempo35-rhythm">
       <summary>🔁 Meine Standardwoche · wiederkehrende Trainingsschwerpunkte</summary>
-      <p>Lege grob fest, wann Ausdauer, Kraft, Zusatztraining oder Recovery bevorzugt sind. Diese Präferenzen gelten auch in Folgewochen. Bei Dienst, Krankheit oder fixierten Trainingsterminen darf TEMPO abweichen; danach wird dein Wochenrhythmus wieder bevorzugt. Keine Einheit wird dadurch ungefragt gespeichert.</p>
-      <div className="tempo35-rhythm-grid">{RHYTHM_DAYS.map((label,i)=><label key={label}>{label}<select value={rhythmDraft[i]} onChange={e=>setRhythmDraft(old=>old.map((x,j)=>j===i?e.target.value as DayFocus:x))}>{Object.entries(RHYTHM_CHOICES).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>)}</div>
+      <details className="tempo38-rhythm-help"><summary>ⓘ Erklärung</summary><p>Mehrere Symbole pro Tag wählen: TEMPO nutzt sie als bevorzugte Möglichkeiten, nicht als zusätzliche Pflichttrainings. Dienst, Krankheit, fixe Ruhetage und Wettkampfaufbau haben Vorrang.</p></details>
+      <div className="tempo38-rhythm-grid">{RHYTHM_DAYS.map((label,i)=><div className="tempo38-rhythm-day" key={label}><strong>{label}</strong><div className="tempo38-rhythm-activities" role="group" aria-label={`${label}: bevorzugte Aktivitäten`}>{ACTIVITY_CHOICES.map(option=><button type="button" key={option.id} className={rhythmDraft[i].includes(option.id)?'selected':''} aria-pressed={rhythmDraft[i].includes(option.id)} title={option.label} aria-label={`${label}: ${option.label}`} onClick={()=>setRhythmDraft(old=>old.map((day,j)=>j!==i?day:day.includes(option.id)?day.filter(x=>x!==option.id):[...day,option.id]))}>{option.icon}{option.id.startsWith('strength-')?<small>{option.id.slice(-1).toUpperCase()}</small>:null}</button>)}</div></div>)}</div>
       <button type="button" onClick={()=>void saveRhythm()}>Standardwoche speichern</button>
       {rhythmMessage&&<p role="status">{rhythmMessage}</p>}
       <small>Nur eine Planungspräferenz. Dein Dienstplan wird nicht verändert. Fixierte Recoverytage und absolvierte Trainings haben Vorrang.</small>
     </details>
 
-    {horizon==='rolling'&&<div className="tempo31-calendar-info"><strong>Rollierender Ausblick · mindestens 10 Tage ab heute.</strong> Die Kalenderwochen werden vollständig im 3/2/2-Raster gezeigt. Farbige Vorschläge an noch ungeklärten Diensttagen sind vorläufig und noch nicht gespeichert. Unter „Trainingsvorschläge“ kannst du geeignete Termine nach Dienstbestätigung fest übernehmen.</div>}
-    <CalendarBoard shifts={Object.values(entries)} plans={[...savedPlans,...tentativePlan]} done={completedTrainings} onOpenDay={onOpenDay} onAddDay={onAddDay} days={days} restDays={restDays} blockKinds={blockKinds} onConfirm={async record=>{const current=await listRecords<TrainingRecord>('plannedSessions'); if(current.some(x=>x.profileId===PROFILE_ID&&x.date===record.date&&x.status==='geplant'))throw new Error('Für diesen Tag gibt es bereits einen gespeicherten Trainingsplan. Bitte zuerst den Tag öffnen.');const now=new Date().toISOString();await saveRecord('plannedSessions',{...record,id:`user:${PROFILE_ID}:${record.date}:${Date.now()}`,title:record.title.replace(/^Vorschlag · /,''),status:'geplant',createdBy:'tempo-user',locked:true,createdAt:now,updatedAt:now});window.dispatchEvent(new Event('tempo:training-change'))}}/>
+
+    <CalendarBoard onStart={onStartWorkout} shifts={Object.values(entries)} plans={[...savedPlans,...tentativePlan]} done={completedTrainings} onOpenDay={onOpenDay} onAddDay={onAddDay} days={days} restDays={restDays} blockKinds={blockKinds} onConfirm={async record=>{const current=await listRecords<TrainingRecord>('plannedSessions'); if(current.some(x=>x.profileId===PROFILE_ID&&x.date===record.date&&x.status==='geplant'&&x.sessionType===record.sessionType&&x.title===record.title.replace(/^Vorschlag · /,'')))throw new Error('Diese Einheit ist bereits gespeichert. Bitte öffne sie im Kalender.');const now=new Date().toISOString();const saved:TrainingRecord={...record,id:`user:${PROFILE_ID}:${record.date}:${Date.now()}`,title:record.title.replace(/^Vorschlag · /,''),status:'geplant',createdBy:'tempo-user',locked:true,createdAt:now,updatedAt:now};await saveRecord('plannedSessions',saved);window.dispatchEvent(new Event('tempo:training-change'));return saved}}/>
 
     {proposedWeekends.length > 0 && <button className="tempo-shift-weekend-button" type="button" onClick={() => void confirmWeekends()} disabled={saving || loading}>Freie Wochenend-Vorschläge bestätigen ({proposedWeekends.length})</button>}
 

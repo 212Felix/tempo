@@ -168,17 +168,44 @@ export default function ReadinessPanel() {
   const distanceText = (factor: number) => oneWayKm == null ? 'km offen' : `${Math.round(oneWayKm * factor * 10) / 10} km`
 
   return <div className="tempo-ready">
-    <section className="panel tempo-ready-panel">
+    <section className="panel tempo-ready-panel tempo38-ratings">
       <div className="eyebrow">HEUTE · {prettifyDate(day).toUpperCase()}</div>
       <h2>Wie fühlst du dich heute?</h2>
-      <p>Fünf kurze Einschätzungen. <strong>Bei Stress, Müdigkeit und schweren Beinen bedeutet 1 = wenig und 5 = viel.</strong></p>
+      <details className="tempo38-readiness-help"><summary>ⓘ Skalen erklären</summary><p>Bei Stress, Müdigkeit und schweren Beinen bedeutet 1 = wenig und 5 = viel. Bei Schlaf und Erholung ist 5 = sehr gut.</p></details>
       {fields.map(f => <div className="tempo-ready-field" key={f.key}>
         <div className="tempo-ready-field-head"><strong>{f.title}</strong><small>{f.left} → {f.right}</small></div>
         <BubbleSet label={f.title} positive={f.positive} selected={data.ratings[f.key]} onSelect={n => change({ ratings: { ...latest.current.ratings, [f.key]: n } })}/>
       </div>)}
     </section>
 
-    <section className="panel tempo-ready-panel">
+    <section className="panel tempo-ready-panel tempo38-illness">
+      <div className="eyebrow">GESUNDHEIT</div>
+      <h2>Krankheit / Auffälligkeit?</h2>
+      <div className="tempo-ready-choices tempo-ready-yesno">
+        <Choice chosen={data.illness === 'nein'} onClick={() => change({ illness: 'nein', illnessKind: '' })}>Nein</Choice>
+        <Choice chosen={data.illness === 'ja'} onClick={() => change({ illness: 'ja' })}>Ja</Choice>
+      </div>
+      {data.illness === 'ja' && <label className="tempo-ready-label">Art der Auffälligkeit
+        <select value={data.illnessKind} onChange={e => change({ illnessKind: e.target.value as IllnessKind | '' })}>
+          <option value="">Bitte auswählen (optional)</option>
+          <option value="erkaeltung">Erkältung</option><option value="hals">Hals</option>
+          <option value="magen">Magen / Darm</option><option value="schmerzen">Schmerzen</option>
+          <option value="verletzung">Verletzung</option><option value="sonstiges">Sonstiges</option>
+        </select>
+      </label>}
+
+    </section>
+
+
+    <section className={`panel tempo-ready-panel tempo-ready-result tempo-ready-result-${assessment.level}`}>
+      <div className="eyebrow">DEINE READINESS</div>
+      <h2>{assessment.title}</h2>
+      <details className="tempo38-result-help"><summary>ⓘ Einschätzung erklären</summary><p>{assessment.reason}</p><small>Vorläufige Einschätzung anhand deiner Angaben, keine medizinische Diagnose.</small></details>
+      <div role="status" className="tempo-ready-save">{status}</div>
+
+    </section>
+    <section className="panel tempo-ready-panel tempo38-other"><details><summary>Weitere Angaben und Dienstplanung</summary>
+    <div className="tempo38-availability">
       <div className="eyebrow">VERFÜGBARKEIT</div>
       <h2>Dienst heute</h2>
       <div className="tempo-ready-choices">
@@ -209,36 +236,14 @@ export default function ReadinessPanel() {
         {commuteKm != null && commuteKm > 0 && <p className="tempo-ready-hint">{commuteKm} km geplant. Stadtabschnitte immer verkehrsgerecht fahren. Bei beiden Strecken: Hinfahrt überwiegend locker, strukturierte Anteile höchstens auf der geeigneten Heimfahrt und nur bei Licht, Sicherheit und ausreichender Erholung.</p>}
       </div>}
       {data.shift === 'einsatz' && <p className="tempo-ready-hint">Früher oder unplanbarer Dienst: vorerst Pause oder leichte Recovery bevorzugen. Die tatsächliche Trainingsverschiebung folgt mit der Planungslogik.</p>}
-    </section>
+    </div>
 
-    <section className="panel tempo-ready-panel">
-      <div className="eyebrow">GESUNDHEIT</div>
-      <h2>Krankheit / Auffälligkeit?</h2>
-      <div className="tempo-ready-choices tempo-ready-yesno">
-        <Choice chosen={data.illness === 'nein'} onClick={() => change({ illness: 'nein', illnessKind: '' })}>Nein</Choice>
-        <Choice chosen={data.illness === 'ja'} onClick={() => change({ illness: 'ja' })}>Ja</Choice>
-      </div>
-      {data.illness === 'ja' && <label className="tempo-ready-label">Art der Auffälligkeit
-        <select value={data.illnessKind} onChange={e => change({ illnessKind: e.target.value as IllnessKind | '' })}>
-          <option value="">Bitte auswählen (optional)</option>
-          <option value="erkaeltung">Erkältung</option><option value="hals">Hals</option>
-          <option value="magen">Magen / Darm</option><option value="schmerzen">Schmerzen</option>
-          <option value="verletzung">Verletzung</option><option value="sonstiges">Sonstiges</option>
-        </select>
-      </label>}
+
       <label className="tempo-ready-label">Besonderheiten / kurze Notiz (optional)
         <textarea rows={2} maxLength={1000} value={data.note} onChange={e => change({ note: e.target.value })} placeholder="Was sollte TEMPO heute wissen?" />
       </label>
-    </section>
-
+    </details></section>
     <MorningFuelingCheck/>
-    <section className={`panel tempo-ready-panel tempo-ready-result tempo-ready-result-${assessment.level}`}>
-      <div className="eyebrow">DEINE READINESS</div>
-      <h2>{assessment.title}</h2>
-      <p>{assessment.reason}</p>
-      <div role="status" className="tempo-ready-save">{status}</div>
-      <small>Vorläufige Einschätzung anhand deiner Angaben, keine medizinische Diagnose und noch keine automatische Änderung des Trainingsplans.</small>
-    </section>
   </div>
 }
 
@@ -256,8 +261,8 @@ export function ReadinessHomeCard({ onOpen }: { onOpen: () => void }) {
         .catch(() => { if (active) setState({ loading: false, title: 'Nicht verfügbar', description: 'Lokale Daten konnten nicht gelesen werden.', level: 'offen' }) })
     }
     load()
-    window.addEventListener('tempo:readiness-change',load)
-    return () => { active = false; window.removeEventListener('tempo:readiness-change',load) }
+    window.addEventListener('tempo:readiness-change',load);window.addEventListener('tempo:day-rollover',load)
+    return () => { active = false; window.removeEventListener('tempo:readiness-change',load);window.removeEventListener('tempo:day-rollover',load) }
   }, [])
   return <section className={`panel tempo36-readiness tempo-ready-home-${state.level}`}>
     <div className="eyebrow">DEINE READINESS</div>

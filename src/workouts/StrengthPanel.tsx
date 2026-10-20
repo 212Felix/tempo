@@ -2,9 +2,10 @@ import TimeFields from '../time/TimeFields'
 import SessionGarminReview from '../phase37/SessionGarminReview'
 import OptionalFuelingNotes from '../phase37/OptionalFuelingNotes'
 import {parseHms,durationFor,formatSeconds} from '../time/duration'
-import {useEffect,useMemo,useState,type FormEvent} from 'react'
+import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,PROFILE_ID,type TrainingRecord} from '../planning/engine'
 import {STRENGTH,restLabel} from './catalog'
+import {strengthProposal,type StrengthProposal} from '../phase38/strength-progression'
 import {alreadyDone,finalizeWorkout,isStrength,loadWorkoutData,numberField,readinessWarning,strengthSessionKey,workoutKind,type StrengthInput,type StrengthSet} from './sessionStore'
 import {getRecord,listRecords,openTempoDatabase,saveRecord} from '../db/storage'
 import {EQUIPMENT_SETTINGS_ID,exerciseOptions,placeName,selectEquipment,type EquipmentPreferences} from './equipment'
@@ -30,6 +31,9 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const [equipment,setEquipment]=useState<Record<StrengthPlace,Record<string,string>>>({studio:{},arbeit:{}})
   const [plannedId,setPlannedId]=useState('')
   const [inputs,setInputs]=useState<Record<string,StrengthInput>>({})
+  const dirtyInputs=useRef(new Set<string>())
+  const activeStrengthKey=useRef('')
+  const [proposals,setProposals]=useState<Record<string,StrengthProposal>>({})
   const [completedHolds,setCompletedHolds]=useState<Record<string,boolean>>({})
   const [goals,setGoals]=useState<GoalEvent[]>([])
   const [duration,setDuration]=useState('00:55:00')
@@ -83,22 +87,29 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     if(found){setPlannedId(found.id);setDate(found.date);setVariant(workoutKind(found))}
   },[focusId,data.planned])
   useEffect(()=>{
+    if(activeStrengthKey.current!==sessionKey){activeStrengthKey.current=sessionKey;dirtyInputs.current.clear()}
     const existing=data.sets.filter(x=>x.sessionKey===sessionKey)
     const next:Record<string,StrengthInput>={}
+    const nextProposals:Record<string,StrengthProposal>={}
     const savedHolds:Record<string,boolean>={}
     for(const ex of template.exercises)for(let i=1;i<=setsForExercise(ex.id);i++){
       const stored=existing.find(x=>x.exerciseId===ex.id&&x.setIndex===i)
-      savedHolds[stateKey(ex.id,i)]=Boolean(stored?.completed)
-      next[stateKey(ex.id,i)]=stored?{
+      const variantName=selectEquipment(ex.id,location,ex.name,equipment[location])
+      const proposal=strengthProposal(ex,data.sets.filter(row=>data.completed.some(item=>item.plannedSessionId===row.sessionKey||item.id===`workout:${row.sessionKey}`)),location,variantName,onDate)
+      const key=stateKey(ex.id,i)
+      nextProposals[key]=proposal
+      savedHolds[key]=Boolean(stored?.completed)
+      next[key]=dirtyInputs.current.has(key)&&inputs[key]?inputs[key]:stored?{
         exerciseId:ex.id,setIndex:i,reps:stored.reps==null?'':String(stored.reps),weightKg:stored.weightKg==null?'':String(stored.weightKg),
         holdSeconds:stored.holdSeconds==null?'':String(stored.holdSeconds),rir:stored.rir==null?'':String(stored.rir),
-      }:blank(ex.id,i)
+      }:{exerciseId:ex.id,setIndex:i,reps:ex.hold?'':String(proposal.reps),weightKg:proposal.weightKg===undefined?'':String(proposal.weightKg),holdSeconds:ex.hold?String(proposal.holdSeconds):'',rir:String(proposal.rir)}
     }
-    setInputs(next);setCompletedHolds(savedHolds)
-  },[sessionKey,data.sets,suggestedCountKey])
+    setInputs(next);setProposals(nextProposals);setCompletedHolds(savedHolds)
+  },[sessionKey,data.sets,data.completed,suggestedCountKey,location,equipment])
 
   const patch=(id:string,index:number,key:'reps'|'weightKg'|'holdSeconds'|'rir',value:string)=>setInputs(previous=>{
     const k=stateKey(id,index)
+    dirtyInputs.current.add(k)
     return {...previous,[k]:{...(previous[k]??blank(id,index)),[key]:value}}
   })
   const chosen=(id:string,name:string)=>selectEquipment(id,location,name,equipment[location])
@@ -185,13 +196,15 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
         <div className="tw-sets"><div className="tw-set-head"><span>Satz</span><span>{ex.hold?'Halten (s)':'Wdh.'}</span><span>Gewicht (kg)</span><span>RIR</span></div>
           {Array.from({length:setsForExercise(ex.id)},(_,i)=>i+1).map(i=>{
             const value=inputs[stateKey(ex.id,i)]??blank(ex.id,i)
+            const recommendation=proposals[stateKey(ex.id,i)]
             return <div className="tw-set" key={i}><span>{i}</span>
               <input disabled={done} aria-label={`${ex.name} Satz ${i} ${ex.hold?'Haltezeit':'Wiederholungen'}`} type="number" inputMode="numeric" min="0" max={ex.hold?900:200} step="1" value={ex.hold?value.holdSeconds:value.reps} onChange={e=>patch(ex.id,i,ex.hold?'holdSeconds':'reps',e.target.value)} placeholder={ex.hold?'20':'8'}/>
-              <input disabled={done} aria-label={`${ex.name} Satz ${i} Gewicht`} type="number" inputMode="decimal" min="0" max="800" step="0.5" value={value.weightKg} onChange={e=>patch(ex.id,i,'weightKg',e.target.value)} placeholder="–"/>
+              <input disabled={done} aria-label={`${ex.name} Satz ${i} Gewicht`} type="number" inputMode="decimal" min="0" max="800" step="0.5" value={value.weightKg} className={recommendation?.increased&&!data.sets.some(row=>row.sessionKey===sessionKey&&row.exerciseId===ex.id&&row.setIndex===i)?'tempo38-progress-weight':''} title={recommendation?.previousWeight!==undefined?`Zuletzt ${recommendation.previousWeight} kg → Vorschlag ${recommendation.weightKg} kg. ${recommendation.reason}`:'Kein vergleichbares vorheriges Gewicht'} onChange={e=>patch(ex.id,i,'weightKg',e.target.value)} placeholder="–"/>
               <input disabled={done} aria-label={`${ex.name} Satz ${i} Reserve`} type="number" inputMode="numeric" min="0" max="5" step="1" value={value.rir} onChange={e=>patch(ex.id,i,'rir',e.target.value)} placeholder="2"/>
               {ex.hold&&<TimedHold exerciseId={ex.id} setNumber={i} targetSeconds={Number(value.holdSeconds)||20} checked={Boolean(completedHolds[stateKey(ex.id,i)])} onDone={checked=>{setCompletedHolds(prev=>({...prev,[stateKey(ex.id,i)]:checked}));if(checked&&!value.holdSeconds)patch(ex.id,i,'holdSeconds','20')}}/>}
             </div>
           })}</div>
+          {proposals[stateKey(ex.id,1)]?.increased&&<small className="tempo38-weight-note">Letztes Training: {proposals[stateKey(ex.id,1)].previousWeight} kg → Empfehlung: {proposals[stateKey(ex.id,1)].weightKg} kg. Falls du das Gewicht anders ausführst, bitte ändern.</small>}
       </section>)}
       <section className="panel tw-panel"><div className="eyebrow">ABSCHLUSS · DEINE IST-WERTE</div><h3>Training dokumentieren</h3>
         <div className="tw-form-grid"><TimeFields label="Trainingsdauer (vom Timer übernommen, bei Bedarf korrigieren)" value={duration} onChange={setDuration} required disabled={Boolean(done)}/><label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option value={i+1} key={i}>{i+1}</option>)}</select></label></div>

@@ -1,0 +1,61 @@
+/* Phase 38 – mobile-first, no database migration */
+.tempo38-ratings{padding:13px 15px 10px!important}
+.tempo38-ratings .eyebrow{font-size:10px;line-height:1.2}
+.tempo38-ratings h2{font-size:20px;margin:5px 0}
+.tempo38-readiness-help{margin:1px 0 3px;color:#9db4c1;font-size:11px}
+.tempo38-readiness-help summary{cursor:pointer}
+.tempo38-ratings .tempo-ready-field{padding:7px 0 8px}
+.tempo38-ratings .tempo-ready-field:first-of-type{margin-top:2px}
+.tempo38-ratings .tempo-ready-field-head{margin-bottom:5px;flex-wrap:nowrap}
+.tempo38-ratings .tempo-ready-field-head strong{font-size:13px}
+.tempo38-ratings .tempo-ready-field-head small{font-size:10px;text-align:right}
+.tempo38-ratings .tempo-ready-bubbles{flex-wrap:nowrap;justify-content:space-between;gap:6px}
+.tempo38-ratings .tempo-ready-bubble{width:37px;height:37px;flex:0 0 37px;font-size:14px}
+.tempo38-illness{padding:12px 15px!important}
+.tempo38-illness .eyebrow{display:none}
+.tempo38-illness h2{font-size:17px;margin:0 0 6px}
+.tempo38-illness .tempo-ready-choices{margin:5px 0 0}
+.tempo38-illness .tempo-ready-choice{min-height:36px;padding:7px 14px}
+.tempo38-other{padding:13px 17px!important}
+.tempo38-other summary,.tempo38-result-help summary{cursor:pointer;color:#b8d3df}
+.tempo38-availability{padding-top:16px}
+.tempo38-other .tempo-ready-label{margin-top:12px}
+.tempo38-result{padding:15px!important}
+.tempo38-result .eyebrow{font-size:10px}
+.tempo38-result h2{font-size:20px;margin:4px 0}
+.tempo38-result .tempo-ready-save{margin-top:5px;min-height:0;font-size:11px}
+.tempo38-result-help p{margin-top:7px}
+@media(min-width:600px){.tempo38-ratings{padding:18px 22px!important}.tempo38-ratings .tempo-ready-field{padding:10px 0}.tempo38-ratings .tempo-ready-bubble{width:43px;height:43px;flex-basis:43px}}
+.bottom-tabs .tempo38-heart-gruen svg{stroke:#65d6a8;fill:#65d6a837}
+.bottom-tabs .tempo38-heart-gelb svg{stroke:#ebc36d;fill:#ebc36d38}
+.bottom-tabs .tempo38-heart-rot svg{stroke:#f09291;fill:#f0929138}
+.bottom-tabs .tempo38-heart-offen svg{stroke:currentColor;fill:none}
+.tempo38-calendar-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tempo38-calendar-header .eyebrow{margin:0}
+.tempo38-calendar-header .help-disclosure{margin:0}
+.tempo-shift-stepper{justify-content:center;margin-inline:auto}
+.tempo38-rhythm-grid{display:grid;gap:11px;margin:14px 0}
+.tempo38-rhythm-day{display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid #ffffff17;padding-bottom:10px}
+.tempo38-rhythm-day>strong{width:26px;flex:0 0 26px;padding-top:8px;color:#d9e7f2}
+.tempo38-rhythm-activities{display:flex;gap:6px;flex-wrap:wrap}
+.tempo38-rhythm-activities button{position:relative;border:1px solid #627c8d;background:#10232e;color:#fff;min-width:38px;min-height:38px;border-radius:9px;font-size:19px;padding:6px}
+.tempo38-rhythm-activities button small{position:absolute;right:1px;bottom:1px;background:#264557;border-radius:4px;color:#eff9ff;font-size:11px;line-height:1.1;font-weight:800;padding:1px 3px}
+.tempo38-rhythm-activities button.selected{border-color:#9de7c5;background:#245842;box-shadow:inset 0 0 0 1px #9de7c577}
+.tempo38-rhythm-activities button.selected::before{content:'✓';position:absolute;top:0;right:1px;font-size:9px;color:#d8ffeb}
+.tempo38-rhythm-help{color:#c2d1db;margin:10px 0;font-size:12px}
+.tempo38-rhythm-help summary{cursor:pointer}
+.tempo38-progress-weight{background:#204635!important;border-color:#7ed4a4!important;color:#edfff3!important}
+.tempo38-weight-note{display:block;color:#9edbb8;font-size:11px;padding:4px 9px;margin:0}
+/* Do not paint native controls with system light backgrounds in dark mode. */
+.tempo-ready button,.tempo-shift button,.tempo35-rhythm button,.tw-panel button,.tw-exercise button{color-scheme:dark}
+.tempo38-calendar-header .tempo-help{position:relative;margin:0}
+.tempo38-calendar-header .tempo-help-toggle{width:35px;height:35px;font-size:20px}
+.tempo38-calendar-header .tempo-help-body{position:absolute;right:0;top:36px;z-index:45;width:min(78vw,340px);box-shadow:0 12px 30px #0009}
+.tempo-shift-toolbar{flex-direction:column;align-items:stretch;margin-top:12px;gap:8px}
+.tempo-shift-toolbar .tempo-shift-choices{justify-content:center}
+.tempo-shift-toolbar .tempo-shift-stepper{justify-content:center;align-self:center}
+.tempo38-calendar-hint{font-size:12px;color:#a7bac8}
+.tempo-28-commute-choices button,.tempo36-add-training,.tempo36-back{background:#263f4b!important;color:#e9f7fc!important;border:1px solid #668a9b!important;border-radius:10px;min-height:40px}
+.tempo-28-commute-choices button.selected{background:#2a6355!important;color:#ecfff5!important;border-color:#9cdec3!important}
+/* Native buttons without a class should not become unreadable white strips. */
+.content button:not([class]){background:#243d4c;color:#e9f4fb;border:1px solid #608293;border-radius:9px;padding:7px}

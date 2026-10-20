@@ -13,7 +13,7 @@ test('Phase 36: Vier Tabs, Startseite zuerst, Fortschritt nicht mehr unten',()=>
 test('Phase 36: aktive Seite im Header, kleines Hirschlogo, Versionsanzeige nur im Seitenmenü',()=>{
  assert.match(app,/tempo36-current-page/)
  assert.match(app,/tempo36-nav-logo/)
- assert.match(app,/V0\.37 · TEMPO/)
+ assert.match(app,/V0\.38 · TEMPO/)
  assert.doesNotMatch(app,/className="topbar-tag"/)
  assert.doesNotMatch(app,/className="page-heading"/)
 })
