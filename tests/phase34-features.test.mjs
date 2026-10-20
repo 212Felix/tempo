@@ -57,8 +57,8 @@ test('Phase 34: Laufpace, Schwimmen bleibt eigenständige Aktivität ohne automa
 })
 test('Phase 34: Versions- und Datenbank-Vertrag',()=>{
  const app=read('src/App.tsx')
- assert.match(app,/PHASE 36/);assert.match(app,/V0\.36/)
- assert.equal(JSON.parse(read('package.json')).version,'0.36.0')
+ assert.match(app,/PHASE 37/);assert.match(app,/V0\.37/)
+ assert.equal(JSON.parse(read('package.json')).version,'0.37.0')
  const db=read('src/db/types.ts')
  assert.match(db,/DATABASE_NAME = 'tempo-local'/)
  assert.match(db,/DATABASE_VERSION = 1/)

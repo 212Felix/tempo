@@ -1,0 +1,55 @@
+/* Phase 37 · high-contrast controls, date centered between arrows, no white CTA strips */
+.tempo36-date-nav{display:grid!important;grid-template-columns:44px minmax(0,1fr) 44px!important;align-items:center;gap:12px;justify-content:stretch}
+.tempo36-date-nav button{display:flex;align-items:center;justify-content:center;margin:0;padding:0;line-height:1;border-radius:12px;min-width:44px;width:44px;height:44px;color:#e5f2f7;background:#23343f;border:1px solid #607c8b;font-size:28px}
+.tempo37-date-label{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:44px;margin:0;text-align:center;font-weight:750;font-size:20px;line-height:1.2;cursor:pointer;color:#f1f6fa}
+.tempo37-date-label::after{content:'▾';font-size:11px;color:#95bed1;font-weight:500}
+.tempo37-date-label input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2}
+.tempo36-add-training,.tempo36-back{display:flex;align-items:center;justify-content:center;min-height:45px;border:1px solid #8ab5c7!important;background:#29485a!important;color:#f0f8fd!important;border-radius:11px!important;font-size:15px!important;font-weight:650!important;box-shadow:none!important;opacity:1!important}
+.tempo36-add-training:focus-visible,.tempo36-back:focus-visible{outline:3px solid #a7d8ea}
+.tempo37-workout-stack{max-width:740px;margin:0 auto;display:grid;gap:13px}
+.tempo37-workout-stack>.panel{margin:0}
+.tempo37-steps{margin:12px 0;padding-left:26px;display:grid;gap:11px}
+.tempo37-steps li{padding-left:4px}
+.tempo37-steps li strong,.tempo37-steps li span,.tempo37-steps li small{display:block}
+.tempo37-steps li strong{color:#eff8fd}
+.tempo37-steps li span{color:#b9d9e6;font-size:14px}
+.tempo37-steps li small{font-size:12px;color:#a1c8b2}
+.tempo37-step-sum{font-weight:650;border-top:1px solid #496578;padding-top:8px}
+.tempo37-plan-editor,.tempo37-run-recovery{border:1px solid #567787;border-radius:12px;padding:11px;margin:12px 0;background:#142936}
+.tempo37-plan-editor summary,.tempo37-run-recovery summary,.tempo37-optional-fuel summary{cursor:pointer;font-weight:700;color:#d9f1fb;padding:5px}
+.tempo37-step-inputs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;align-items:end;border-top:1px solid #476271;padding:10px 0}
+.tempo37-step-inputs strong{grid-column:1/-1;font-size:13px}
+.tempo37-step-inputs label,.tempo37-fields label,.tempo37-run-recovery label,.tempo37-optional-fuel label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:#bdd4e1}
+.tempo37-step-inputs input,.tempo37-fields input,.tempo37-fields select,.tempo37-run-recovery input,.tempo37-run-recovery select,.tempo37-optional-fuel input:not([type=checkbox]),.tempo37-optional-fuel select,.tempo37-notes textarea{background:#0d2430!important;color:#f1f8fd!important;border:1px solid #557382!important;border-radius:9px!important;padding:11px!important;max-width:100%}
+.tempo37-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tempo37-fields>.tempo-time-fields{grid-column:1/-1}
+.tempo37-notes{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.tempo37-notes textarea{width:100%;min-height:90px}
+.tempo37-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+.tempo37-actions button,.tempo37-match>button,.tempo37-plan-editor>button,.tempo37-run-recovery button,.tempo37-optional-fuel button{background:#31596c!important;color:#e7f8fd!important;border:1px solid #91b8c8!important;border-radius:10px!important;padding:12px!important;font-weight:650}
+.tempo37-actions button[type=submit]{background:#2d694f!important;border-color:#88c5a9!important}
+.tempo37-done{border:1px solid #649c80;padding:12px;border-radius:10px;color:#b5ecd0}
+.tempo37-match-row{background:#172c39;border:1px solid #4d6e7e;border-radius:11px;padding:12px;margin:10px 0}
+.tempo37-match-row>div{display:flex;gap:10px;margin-top:10px}
+.tempo37-match-row button{padding:9px 12px;border-radius:9px;background:#213a47;color:#e5f3f8;border:1px solid #567989}
+.tempo37-match-row button.yes{background:#236347;border-color:#7ac6a3}
+.tempo37-match-row button.no{background:#703434;border-color:#df9393}
+.tempo37-optional-fuel{padding:14px;display:grid;gap:9px}
+.tempo37-optional-fuel[open] label{margin:11px 0}
+.tempo37-optional-fuel label:has(input[type=checkbox]){flex-direction:row;align-items:center}
+@media(max-width:450px){.tempo37-fields{grid-template-columns:1fr}.tempo37-step-inputs{gap:4px}.tempo37-step-inputs input{padding:7px!important}.tempo37-actions{grid-template-columns:1fr}}
+
+.tempo37-match-choices{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.tempo37-match-choices button,.tempo37-match-save-all{background:#264451!important;color:#e6f6fb!important;border:1px solid #89b0c1!important;border-radius:10px!important;padding:10px 14px!important}
+.tempo37-match-choices .yes{background:#245f48!important;border-color:#95d3b4!important}
+.tempo37-match-choices .no{background:#6f3333!important;border-color:#d29191!important}
+.tempo37-match-save-all{margin:14px 0;width:100%;font-weight:720}
+
+.tempo37-step-inputs .tempo37-step-name{grid-column:1/3}
+.tempo37-step-inputs label:nth-child(2){grid-column:3/4}
+.tempo37-plan-editor select,.tempo37-plan-editor input{background:#0d2430;color:#f1f8fd;border:1px solid #557382;border-radius:9px;padding:9px;width:100%;min-width:0}
+.tempo37-remove-step{grid-column:1/-1;justify-self:end;background:transparent;color:#efaaaa;border:1px solid #a15b61;border-radius:8px;padding:6px 10px}
+.tempo37-add-step{width:100%;background:#243f4d!important;color:#e3eff4!important;border:1px solid #628599!important;border-radius:9px;padding:10px;margin:8px 0}
+
+.tempo37-pace-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;border:1px solid #466779;border-radius:10px;padding:9px;margin:10px 0}
+.tempo37-pace-fields legend{font-size:13px;color:#cee5f0;padding-inline:4px}

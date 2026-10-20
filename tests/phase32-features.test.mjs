@@ -50,5 +50,5 @@ test('Phase 32: Datenbankvertrag und lokale Sicherung unverändert',()=>{
  assert.match(db,/DATABASE_VERSION = 1/);assert.match(db,/BACKUP_SCHEMA_VERSION = 1/)
  assert.equal((db.split('STORE_NAMES = [')[1].split('] as const')[0].match(/'[^']+'/g)||[]).length,20)
  const app=readFileSync('src/App.tsx','utf8')
- assert.match(app,/PHASE 36/);assert.match(app,/FuelLibraryPanel/)
+ assert.match(app,/PHASE 37/);assert.match(app,/FuelLibraryPanel/)
 })

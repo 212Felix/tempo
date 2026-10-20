@@ -9,7 +9,7 @@ export type StrengthSet = TempoRecord & {
 }
 export type StrengthInput = {exerciseId:string;setIndex:number;reps:string;weightKg:string;holdSeconds:string;rir:string}
 export const strengthSessionKey=(date:string,kind:'A'|'B'|'C',plannedId?:string)=>plannedId??`free-strength:${date}:${kind}`
-export function isStrength(session:TrainingRecord){return ['strength-a','strength-b','strength-c','manual-strength'].includes(session.sessionType)}
+export function isStrength(session:TrainingRecord){return ['strength-a','strength-b','strength-c','manual-strength'].includes(session.sessionType)||/^Kraft\s+[ABC]\s*[·:/-]/i.test(session.title)}
 export function isRun(session:TrainingRecord){return ['run','manual-running'].includes(session.sessionType)}
 export const workoutKind=(session:TrainingRecord)=>session.sessionType==='strength-c'||/\bC\b/i.test(session.title)?'C':session.sessionType==='strength-b'||(/\bB\b/i).test(session.title)?'B':'A'
 export function numberField(text:string,label:string,max:number,required=false):number|undefined {
@@ -39,8 +39,8 @@ export function alreadyDone(planned:TrainingRecord|undefined,completed:Completed
 
 type FinalizeInput={
   date:string;title:string;durationMin:number;durationSec?:number;rpe:number;notes:string
-  sessionType:'manual-strength'|'manual-running'; planned?:TrainingRecord
-  distanceKm?:number;avgHrBpm?:number;strengthVariant?:'A'|'B'|'C';strengthLocation?:StrengthPlace; sets?:StrengthSet[];freeKey:string
+  sessionType:'manual-strength'|'manual-running'|'manual-cycling'|'manual-swimming'|'manual-martial'|'manual-mobility'|'manual-yoga'|'manual-stabi'|'manual-sportspiel'|'manual-golf'; planned?:TrainingRecord
+  distanceKm?:number;avgHrBpm?:number;avgPowerW?:number;elevationM?:number;strengthVariant?:'A'|'B'|'C';strengthLocation?:StrengthPlace; sets?:StrengthSet[];freeKey:string
 }
 /** Completed session, planned status and strength sets are written atomically. */
 export async function finalizeWorkout(input:FinalizeInput):Promise<void>{
@@ -50,14 +50,16 @@ export async function finalizeWorkout(input:FinalizeInput):Promise<void>{
   if(!Number.isInteger(input.rpe)||input.rpe<1||input.rpe>10)throw Error('RPE muss 1–10 sein.')
   if(input.distanceKm!==undefined&&(!Number.isFinite(input.distanceKm)||input.distanceKm<0||input.distanceKm>500))throw Error('Distanz ungültig.')
   if(input.avgHrBpm!==undefined&&(!Number.isInteger(input.avgHrBpm)||input.avgHrBpm<40||input.avgHrBpm>230))throw Error('Puls ungültig.')
+  if(input.avgPowerW!==undefined&&(!Number.isFinite(input.avgPowerW)||input.avgPowerW<0||input.avgPowerW>2500))throw Error('Ø Leistung ungültig.')
+  if(input.elevationM!==undefined&&(!Number.isFinite(input.elevationM)||input.elevationM<0||input.elevationM>15000))throw Error('Höhenmeter ungültig.')
   const db=await openTempoDatabase()
   const now=new Date().toISOString()
   const completedId=planned?`workout:${planned.id}`:`workout:${freeKey}`
-  const completed:CompletedRecord & {avgHrBpm?:number;strengthVariant?:'A'|'B'|'C';strengthLocation?:StrengthPlace}={
+  const completed:CompletedRecord & {avgHrBpm?:number;avgPowerW?:number;strengthVariant?:'A'|'B'|'C';strengthLocation?:StrengthPlace}={
     id:completedId,profileId:PROFILE_ID,date,title:input.title.trim(),durationMin:input.durationMin,durationSec:input.durationSec,
     sessionType:planned?.sessionType??input.sessionType,distanceKm:input.distanceKm,rpe:input.rpe,
     notes:input.notes.trim().slice(0,1500),source:planned?'plan':'manuell',
-    plannedSessionId:planned?.id,avgHrBpm:input.avgHrBpm,strengthVariant:input.strengthVariant,strengthLocation:input.strengthLocation,
+    plannedSessionId:planned?.id,avgHrBpm:input.avgHrBpm,avgPowerW:input.avgPowerW,elevationM:input.elevationM,strengthVariant:input.strengthVariant,strengthLocation:input.strengthLocation,
     createdAt:now,updatedAt:now,
   }
   return new Promise<void>((resolve,reject)=>{

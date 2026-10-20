@@ -13,7 +13,7 @@ test('Phase 36: Vier Tabs, Startseite zuerst, Fortschritt nicht mehr unten',()=>
 test('Phase 36: aktive Seite im Header, kleines Hirschlogo, Versionsanzeige nur im Seitenmenü',()=>{
  assert.match(app,/tempo36-current-page/)
  assert.match(app,/tempo36-nav-logo/)
- assert.match(app,/V0\.36 · TEMPO/)
+ assert.match(app,/V0\.37 · TEMPO/)
  assert.doesNotMatch(app,/className="topbar-tag"/)
  assert.doesNotMatch(app,/className="page-heading"/)
 })
@@ -26,7 +26,7 @@ test('Phase 36: Startseite zeigt vollständige Trainingseinheiten vor Dienst und
 test('Phase 36: direkte Workoutnavigation, keine Statistikseite bei Radtraining',()=>{
  assert.match(app,/workout-detail/)
  assert.match(day,/onOpenWorkout\(x\)/)
- assert.match(read('src/phase36/WorkoutDetail.tsx'),/Indoor · Schritte für Garmin/)
+ assert.match(read('src/phase36/WorkoutDetail.tsx'),/Indoor · vollständige Garmin-Schritte/)
  assert.match(read('src/phase36/WorkoutDetail.tsx'),/getRecord<TrainingRecord>/)
 })
 test('Phase 36: Trainingsdatum zwischen Pfeilen; keine doppelte Tagesliste oder Readinesskarte',()=>{

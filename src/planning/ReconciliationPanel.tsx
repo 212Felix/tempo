@@ -9,6 +9,7 @@ export default function ReconciliationPanel({context='calendar'}:{context?:'cale
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
   const [notice,setNotice]=useState('')
+  const [decisions,setDecisions]=useState<Record<string,'yes'|'no'>>({})
   async function refresh(){const rows=await loadReconcileData();setData(rows);setLoading(false)}
   useEffect(()=>{
     let alive=true
@@ -43,10 +44,16 @@ export default function ReconciliationPanel({context='calendar'}:{context?:'cale
     for(const ga of data.garmin){
       if(data.completed.some(c=>c.externalActivityId===ga.id))continue
       const candidates=data.completed.filter(c=>!c.externalActivityId && canMatchGarmin(ga,c))
-      if(candidates.length===1){items.push({garmin:ga,done:candidates[0]});continue}
+      if(candidates.length===1){
+        const others=data.garmin.filter(a=>a.id!==ga.id&&!data.completed.some(c=>c.externalActivityId===a.id)&&canMatchGarmin(a,candidates[0]))
+        if(others.length===0)items.push({garmin:ga,done:candidates[0]});continue
+      }
       if(candidates.length>1)continue // Ambiguous; never choose silently.
       const plans=data.planned.filter(p=>!linkedTo(p,data.completed)&&p.status!=='nicht-erledigt'&&canMatchGarmin(ga,{date:p.date,sessionType:p.sessionType,durationMin:p.durationMin,distanceKm:p.expectedKm}))
-      if(plans.length===1)items.push({garmin:ga,planned:plans[0]})
+      if(plans.length===1){
+        const others=data.garmin.filter(a=>a.id!==ga.id&&!data.completed.some(c=>c.externalActivityId===a.id)&&canMatchGarmin(a,{date:plans[0].date,sessionType:plans[0].sessionType,durationMin:plans[0].durationMin,distanceKm:plans[0].expectedKm}))
+        if(others.length===0)items.push({garmin:ga,planned:plans[0]})
+      }
     }
     return items.sort((a,b)=>b.garmin.date.localeCompare(a.garmin.date)).slice(0,20)
   },[data,context])
@@ -56,6 +63,16 @@ export default function ReconciliationPanel({context='calendar'}:{context?:'cale
     setBusy(true)
     try{await action();await refresh();setNotice('✓ Zuordnung gespeichert. Der Abschluss zählt im Kalender und in der Folgeplanung nur einmal.')}
     catch(e){setNotice('Nicht zusammengeführt: '+(e instanceof Error?e.message:String(e)))}
+    finally{setBusy(false)}
+  }
+  async function applySelected(){
+    const chosen=garminMatches.filter(row=>decisions[row.garmin.id]==='yes')
+    if(!chosen.length||busy)return
+    if(!window.confirm(`${chosen.length} bestätigte Garmin-Zuordnung(en) speichern? Nicht markierte Einträge bleiben unverändert.`))return
+    setBusy(true);let saved=0
+    try{for(const row of chosen){if(row.done)await attachGarminToCompleted(row.garmin.id,row.done.id);else if(row.planned)await completePlanFromGarmin(row.garmin.id,row.planned.id);saved++}
+      await refresh();setDecisions({});setNotice(`${saved} Garmin-Zuordnung(en) gespeichert. Keine doppelte Trainingszählung.`)
+    }catch(e){await refresh();setNotice(`Nach ${saved} Zuordnung(en) angehalten: ${String(e)}. Bitte Einträge vor erneutem Speichern prüfen.`)}
     finally{setBusy(false)}
   }
   if(loading)return null
@@ -74,7 +91,7 @@ export default function ReconciliationPanel({context='calendar'}:{context?:'cale
       <div className="tempo-reconcile-chip">{garmin.date} · {garmin.sport==='cycling'?'Rad':garmin.sport==='running'?'Lauf':garmin.sport==='strength'?'Kraft':'Schwimmen'}</div>
       <div><strong>Garmin:</strong> {garmin.title} · {durationFor(garmin)}{garmin.distanceKm?` · ${garmin.distanceKm.toFixed(1)} km`:''}</div>
       {done?<div><strong>Vorhandener Abschluss:</strong> {done.title} · RPE {done.rpe??'offen'}</div>:<div><strong>Geplante Einheit:</strong> {planned?.title} · {planned?durationFor(planned):'–'}</div>}
-      <button type="button" disabled={busy} onClick={()=>void run(done?()=>attachGarminToCompleted(garmin.id,done.id):()=>completePlanFromGarmin(garmin.id,planned!.id),done?`Garmin-Messwerte mit „${done.title}“ verbinden? RPE und Notizen bleiben erhalten.`:`„${planned?.title}“ mit Garmin abschließen?`)}>{done?'Messwerte verbinden – kein Duplikat':'Zuordnen und als absolviert markieren'}</button>
+      <div className="tempo37-match-choices"><button type="button" disabled={busy} aria-pressed={decisions[garmin.id]==='yes'} className={decisions[garmin.id]==='yes'?'yes':''} onClick={()=>setDecisions(old=>({...old,[garmin.id]:'yes'}))}>✓ Zuordnen</button><button type="button" disabled={busy} aria-pressed={decisions[garmin.id]==='no'} className={decisions[garmin.id]==='no'?'no':''} onClick={()=>setDecisions(old=>({...old,[garmin.id]:'no'}))}>✕ Nein</button></div>
     </div>)}
     {context==='calendar'&&duplicateCompletions.map(({keeper,extra})=><div className="tempo-reconcile-match" key={extra.id}>
       <div className="tempo-reconcile-chip">{extra.date} · Zwei tatsächliche Abschlüsse?</div>
@@ -83,6 +100,7 @@ export default function ReconciliationPanel({context='calendar'}:{context?:'cale
       <p className="tempo-reconcile-muted">Nur verbinden, wenn beide wirklich dieselbe absolvierte Einheit beschreiben. Der überzählige Originaleintrag wird zur Sicherheit im Backup-Bereich archiviert.</p>
       <button type="button" disabled={busy} onClick={()=>void run(()=>mergeDuplicateCompletions(keeper.id,extra.id),'Beide Abschlüsse zu genau einer realen Trainingseinheit zusammenführen?')}>Doppelabschluss bereinigen</button>
     </div>)}
+    {context==='garmin'&&garminMatches.some(x=>decisions[x.garmin.id]==='yes')&&<button type="button" disabled={busy} className="tempo37-match-save-all" onClick={()=>void applySelected()}>✓ Markierte Garmin-Zuordnungen gesamt speichern</button>}
     {context==='garmin'&&garminMatches.length===0&&<p className="tempo-reconcile-muted">Aktuell keine eindeutigen Zuordnungsvorschläge. Historische Garmin-Aktivitäten bleiben unverändert in der Bibliothek. Es werden keine Trainings automatisch abgeschlossen.</p>}
     {context==='garmin'&&garminMatches.length>0&&<p className="tempo-reconcile-muted">Bei mehreren ähnlich passenden Einheiten trifft TEMPO bewusst keine automatische Auswahl. Erst nach Bestätigung erfolgt die Zuordnung.</p>}
     {notice&&<p className="tempo-reconcile-status" role="status">{notice}</p>}

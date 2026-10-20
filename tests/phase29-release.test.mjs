@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs'
 const read = p => readFileSync(p,'utf8')
 // Legacy file name deliberately preserved because browser uploads don't delete older files.
 test('Phase 29 -> 30: Header und Paket zeigen die neue Version', () => {
-  assert.match(read('src/App.tsx'),/PHASE 36/)
-  assert.match(read('src/App.tsx'),/V0\.36/)
-  assert.equal(JSON.parse(read('package.json')).version,'0.36.0')
+  assert.match(read('src/App.tsx'),/PHASE 37/)
+  assert.match(read('src/App.tsx'),/V0\.37/)
+  assert.equal(JSON.parse(read('package.json')).version,'0.37.0')
 })
 test('Phase 29 -> 30: Readiness bleibt ohne Eintrag sicher', () => {
   assert.match(read('src/phase28/adaptive-planner.ts'),/if\s*\(readiness\s*&&\s*readiness\.date/)

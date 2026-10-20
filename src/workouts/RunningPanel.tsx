@@ -1,4 +1,8 @@
 import TimeFields from '../time/TimeFields'
+import SessionGarminReview from '../phase37/SessionGarminReview'
+import {recoveryValid,runRecoveryText,defaultsForRunRecovery,type RunningRecovery} from '../phase37/intervals'
+import {saveRecord,getRecord} from '../db/storage'
+import type {TempoRecord} from '../db/types'
 import {FuelingQuick} from '../phase30/FuelingPanel'
 import {parseHms,durationFor} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
@@ -22,6 +26,7 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
   const [heart,setHeart]=useState('')
   const [rpe,setRpe]=useState('3')
   const [notes,setNotes]=useState('')
+  const [recovery,setRecovery]=useState<RunningRecovery>(defaultsForRunRecovery())
   const [busy,setBusy]=useState(false)
   const [message,setMessage]=useState('Lade Laufeinheiten …')
   const planned=data.planned.filter(isRun).sort((a,b)=>a.date.localeCompare(b.date))
@@ -42,9 +47,13 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
   },[])
   useEffect(()=>{if(!focusId)return
     const found=data.planned.find(x=>x.id===focusId&&isRun(x))
-    if(found){setPlannedId(found.id);setDate(found.date);setDuration(durationFor(found))}
+    if(found){setPlannedId(found.id);setDate(found.date);setDuration(durationFor(found));setRecovery(found.runRecovery??defaultsForRunRecovery())}
   },[focusId,data.planned])
   const warning=readinessWarning(actualDate,data.readiness)
+  const hasIntervals=Boolean(session && /intervall|interval|\d+\s*[×x]\s*\d+/i.test(`${session.title} ${session.target}`))
+  useEffect(()=>{if(!session)return;let alive=true;void getRecord<TempoRecord&{duration?:string;distance?:string;heart?:string;rpe?:string;notes?:string}>('settings',`tempo37:run-draft:${session.id}`).then(d=>{if(!alive||!d)return;setDuration(d.duration??durationFor(session));setDistance(d.distance??'');setHeart(d.heart??'');setRpe(d.rpe??'3');setNotes(d.notes??'')}).catch(()=>undefined);return()=>{alive=false}},[session?.id])
+  async function saveRunDraft(){if(!session||done)return;try{await saveRecord('settings',{id:`tempo37:run-draft:${session.id}`,profileId:session.profileId,date:session.date,kind:'running-draft',duration,distance,heart,rpe,notes,createdAt:'',updatedAt:''});setMessage('Lauf-Ist-Werte zwischengespeichert.')}catch(e){setMessage('Entwurf konnte nicht gespeichert werden: '+String(e))}}
+  async function saveRecovery(){if(!session||!recoveryValid(recovery)) {setMessage('Bitte gültige Pausenwerte angeben.');return}try{const original=await getRecord<TrainingRecord>('plannedSessions',session.id);if(!original||original.status==='erledigt')throw Error('Einheit abgeschlossen oder nicht gespeichert.');await saveRecord('plannedSessions',{...original,runRecovery:recovery});window.dispatchEvent(new Event('tempo:training-change'));setMessage('Intervallpause einschließlich der Zielintensität gespeichert.')}catch(e){setMessage('Pause nicht gespeichert: '+String(e))}}
   const pace=(()=>{try{return paceLabel(parseHms(duration,true).minutes,Number(distance))}catch{return '–'}})()
   async function submit(e:FormEvent){
     e.preventDefault();setBusy(true)
@@ -77,8 +86,10 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
     </section>}
     <section className="panel tw-panel"><div className="eyebrow">LAUFABLAUF</div><h3>{session?.title??"Deine Einheit"}</h3>
       {session&&<div className="tw-info"><strong>{friendlyDate(session.date)} · {durationFor(session)} · {session.priority}</strong><span>{session.target}</span>{session.notes&&<span>{session.notes}</span>}</div>}
+      {hasIntervals&&<div className="tw-info"><strong>Geplanter Intervallreiz</strong><span>{session?.target}</span><span>Zwischen den Intervallen: {recoveryValid(recovery)?runRecoveryText(recovery):'Pausenart bitte festlegen'}</span></div>}
       <HelpDisclosure id="running-run-notes"><p>Wähle die Gesamtdauer je nach geplanter Einheit und Tagesform. Steigt die muskuläre Belastung oder treten Schmerzen auf, beende den Lauf.</p></HelpDisclosure>
-      {runInstructions.steps.map((step,i)=><div className="tw-run-step" key={step.name}><span className="tw-number">{i+1}</span><div><strong>{step.name}</strong><p>{step.detail}</p></div></div>)}
+      {hasIntervals&&<details className="tempo37-run-recovery"><summary>🏃 Intervallpause einstellen</summary><p>Eine Zeitpause oder eine individuelle HF-Grenze – kein allgemeiner 135-bpm-Standard. Die Herzfrequenz wird hier nicht live gemessen.</p><label>Erholungsart<select value={recovery.mode} onChange={e=>setRecovery({...recovery,mode:e.target.value as RunningRecovery['mode']})}><option value="active">Aktiv traben (Pace)</option><option value="passive">Stehen / Gehen nach Zeit</option><option value="heart-rate">Warten bis Herzfrequenz gesunken ist</option></select></label>{recovery.mode!=='heart-rate'&&<label>Pause (Sekunden)<input type="number" min="15" max="1800" step="15" value={recovery.seconds} onChange={e=>setRecovery({...recovery,seconds:Number(e.target.value)})}/></label>}{recovery.mode==='active'&&<fieldset className="tempo37-pace-fields"><legend>Trab-Pace (min/km)</legend><label>Minuten<input type="number" inputMode="numeric" min="3" max="15" step="1" value={Math.floor(recovery.paceMinPerKm??7)} onChange={e=>setRecovery({...recovery,paceMinPerKm:Number(e.target.value)+Math.round(((recovery.paceMinPerKm??7)%1)*60)/60})}/></label><label>Sekunden<input type="number" inputMode="numeric" min="0" max="59" step="1" value={Math.round(((recovery.paceMinPerKm??7)%1)*60)} onChange={e=>setRecovery({...recovery,paceMinPerKm:Math.floor(recovery.paceMinPerKm??7)+Number(e.target.value)/60})}/></label></fieldset>}{recovery.mode==='heart-rate'&&<><label>Individuelle HF-Grenze (bpm)<input type="number" min="75" max="190" placeholder="z. B. 135" value={recovery.heartRateLimit??''} onChange={e=>setRecovery({...recovery,heartRateLimit:Number(e.target.value)})}/></label><label>Maximale Wartezeit (Sekunden)<input type="number" min="30" max="1800" step="15" value={recovery.maxWaitSeconds??180} onChange={e=>setRecovery({...recovery,maxWaitSeconds:Number(e.target.value)})}/></label></>}<p><strong>Pausenvorgabe:</strong> {recoveryValid(recovery)?runRecoveryText(recovery):'Werte noch nicht vollständig'}</p><button type="button" onClick={()=>void saveRecovery()}>Pausenvorgabe speichern</button></details>}
+      {(hasIntervals?[]:runInstructions.steps).map((step,i)=><div className="tw-run-step" key={step.name}><span className="tw-number">{i+1}</span><div><strong>{step.name}</strong><p>{step.detail}</p></div></div>)}
 
     </section>
     {focusId&&session&&<FuelingQuick session={session}/>}
@@ -90,9 +101,10 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
         <label>RPE 1–10<select disabled={done} value={rpe} onChange={e=>setRpe(e.target.value)}>{Array.from({length:10},(_,i)=><option key={i} value={i+1}>{i+1}</option>)}</select></label>
       </div><div className="tw-info"><strong>Errechnete Durchschnittspace</strong><span>{pace} · inklusive der von dir eingetragenen Zeit</span></div>
         <label className="tw-notes">Notizen<textarea disabled={done} value={notes} maxLength={1500} onChange={e=>setNotes(e.target.value)} placeholder="Beine, Untergrund, Gehpausen, Wetter, Beschwerden …"/></label>
-        <div className="tw-actions"><button type="submit" disabled={busy||done}>{busy?'Speichere …':'Lauf abschließen ✓'}</button></div>
+        <div className="tw-actions">{session&&<button type="button" className="tw-secondary" disabled={busy||done} onClick={()=>void saveRunDraft()}>Zwischenspeichern</button>}<button type="submit" disabled={busy||done}>{busy?'Speichere …':'Lauf abschließen ✓'}</button></div>
       </form><div className="tw-feedback" role="status">{message}</div>
     </section>
+    {session&&<SessionGarminReview session={session}/>}
     <section className="panel tw-panel"><div className="eyebrow">LAUFEN · HISTORIE</div><h3>Zuletzt dokumentiert</h3>
       {history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{x.distanceKm??'–'} km · {durationFor(x)} · {typeof x.durationMin==='number' && typeof x.distanceKm==='number' && x.distanceKm>0 ? paceLabel(x.durationMin,x.distanceKm) : '–'} · RPE {x.rpe??'–'}</span></div>):<p>Noch kein Lauf abgeschlossen. Alte Garmin-CSV-Aktivitäten liegen weiterhin in der separaten Garmin-Bibliothek.</p>}
       <HelpDisclosure id="running-history-help"><p>Passende FIT- oder CSV-Aktivitäten können im Garmin-Datenimport über den Trainingsabgleich nach Bestätigung mit diesem Abschluss verknüpft werden. Keine zweite Trainingseinheit anlegen.</p></HelpDisclosure>

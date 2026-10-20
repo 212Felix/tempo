@@ -1,16 +1,22 @@
-TEMPO Phase 36 — Einfacher GitHub-Upload
-========================================
+TEMPO PHASE 37 · KORRIGIERTE VOLLSTÄNDIGE QUELLEN
 
-1. ZUERST aktuelles Backup in der installierten TEMPO-App auf dem iPhone nach iCloud Drive sichern.
-2. Das kleine ZIP „TEMPO_Phase36_EINFACHER_GITHUB_UPLOAD.zip“ auf deinem Mac entpacken.
-3. Den enthaltenen Ordner „tempo-main“ öffnen (nicht den ZIP-Ordner selbst hochladen).
-4. In GitHub 212Felix/tempo den Branch „main“ auswählen: Add file → Upload files.
-5. Sämtliche INHALTE aus „tempo-main“ hochladen; bisherige Dateien aktualisieren lassen.
-6. Kontrollieren, dass src/App.tsx, src/planning/TrainingDayPanel.tsx und src/phase36/WorkoutDetail.tsx dabei sind.
+Für den einfachen Upload nutze TEMPO_Phase37_EINFACHER_GITHUB_UPLOAD.zip.
+
+1. Vorher ein neues TEMPO-Backup auf dem iPhone in iCloud Drive speichern.
+2. Änderungs-ZIP entpacken, darin tempo-main öffnen.
+3. Auf GitHub 212Felix/tempo den Branch main öffnen.
+4. Add file -> Upload files.
+5. ALLE INHALTE aus tempo-main per Drag & Drop auf die Uploadfläche ziehen
+   (nicht den gesamten tempo-main-Ordner verschachtelt ablegen).
+6. Prüfen, ob src/phase36/WorkoutDetail.tsx, src/phase37/intervals.ts,
+   src/workouts/RunningPanel.tsx, src/workouts/StrengthPanel.tsx,
+   src/planning/ReconciliationPanel.tsx und package.json aufgeführt werden.
 7. Commit directly to main bestätigen.
-8. Auf GitHub Actions „TEMPO veröffentlichen“ prüfen: Build und Deploy grün.
-9. Vorhandene App in Safari und auf dem iPhone öffnen. Menü unten: V0.36.
-10. Stichprobe: Readiness, geplante Trainings, Dienst, chronologische Ziele und Trainings-/Garmin-Ansichten testen.
+8. Unter Actions zuerst den grünen Build abwarten. Erst dann
+   die App in Safari und auf dem iPhone mit PHASE 37 prüfen.
 
-HINWEIS: Installierte iPhone-PWA nicht löschen, Website-Daten nicht zurücksetzen.
-Das vollständige Phase-36-ZIP dient der Quellcode-Sicherung und ist NICHT als zusätzlicher Upload gedacht.
+NICHT die TEMPO-App deinstallieren, nicht Website-Daten löschen.
+Die vorhandene lokale IndexedDB mit 20 Stores bleibt bestehen.
+Der npm-/Vite-Produktions-Build konnte in der Erstellungsumgebung wegen
+fehlender npm-Abhängigkeiten nicht vollständig ausgeführt werden.
+GitHub Actions ist die abschließende Buildprüfung.

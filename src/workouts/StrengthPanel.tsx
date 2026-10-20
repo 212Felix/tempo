@@ -1,4 +1,6 @@
 import TimeFields from '../time/TimeFields'
+import SessionGarminReview from '../phase37/SessionGarminReview'
+import OptionalFuelingNotes from '../phase37/OptionalFuelingNotes'
 import {parseHms,durationFor,formatSeconds} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,PROFILE_ID,type TrainingRecord} from '../planning/engine'
@@ -174,6 +176,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
       {warning&&<div className="tw-warning" role="status">{warning} Keine automatische Trainingsfreigabe.</div>}
       {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert gespeichert. Satzprotokoll bleibt lesbar; ein erneuter Abschluss wird verhindert.</div>}
     </section>
+    {selected&&<OptionalFuelingNotes session={selected}/>}
     <form onSubmit={finish} className="tw-stack">
       {template.exercises.map((ex,index)=><section className="panel tw-exercise" key={ex.id}>
         <div className="tw-exercise-head"><span className="tw-number">{String(index+1).padStart(2,'0')}</span><div><h3>{ex.name}</h3><p>{ex.cue}</p></div></div>
@@ -197,6 +200,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
         <div className="tw-feedback" role="status">{message}</div>
       </section>
     </form>
+    {selected&&<SessionGarminReview session={selected}/>}
     <section className="panel tw-panel"><div className="eyebrow">KRAFT · LETZTE EINHEITEN</div><h3>Dein Verlauf nach Trainingsort</h3><div className="tw-location-summary"><span>Fitnessstudio <strong>{locationTotals.studio}</strong></span><span>Arbeit <strong>{locationTotals.arbeit}</strong></span><span>Nicht erfasst <strong>{locationTotals.unknown}</strong></span></div>{history.length?history.map(x=><div className="tw-history" key={x.id}><strong>{friendlyDate(x.date)} · {x.title}</strong><span>{durationFor(x)} · RPE {x.rpe??'–'} · {x.strengthLocation==='studio'?'Studio':x.strengthLocation==='arbeit'?'Arbeit':'Ort offen'}</span></div>):<p>Noch keine Kraft-Einheit protokolliert. Du kannst auch spontan ohne geplanten Termin beginnen.</p>}</section>
     {recentExerciseVariants.length>0&&<section className="panel tw-panel"><div className="eyebrow">ÜBUNGSVERLAUF NACH GERÄT</div><h3>Zuletzt verwendete Varianten</h3><p>Gewichte und Wiederholungen sind je Trainingsort und Gerät nachvollziehbar. Verschiedene Maschinen werden nicht als identische Last verglichen.</p>{recentExerciseVariants.map(row=><div className="tw-history" key={`${row.id}:${row.exerciseVariant}`}><strong>{row.exerciseVariant} · {row.trainingLocation==='studio'?'Fitnessstudio':'Arbeit'}</strong><span>{friendlyDate(row.date)} · {row.weightKg==null?'ohne Gewicht':`${row.weightKg} kg`} · {row.reps??row.holdSeconds??'–'} {row.holdSeconds?'s':'Wdh.'}</span></div>)}</section>}
   </div>

@@ -56,6 +56,8 @@ export type TrainingRecord = TempoRecord & {
   cyclingEnvironment?: 'indoor' | 'outdoor' | 'unknown'
   strengthLocation?: 'studio' | 'arbeit'
   strengthVariant?:'A'|'B'|'C'
+  workoutSteps?: import('../phase37/intervals').TrainingStep[]
+  runRecovery?: import('../phase37/intervals').RunningRecovery
   swimEnvironment?: 'pool' | 'openwater'
   swimFocus?: 'technik' | 'ausdauer' | 'intervalle' | 'locker'
   sessionOrigin?: 'self'|'extern'
@@ -129,7 +131,7 @@ function candidate(date: string, type: SessionKind, profile?: ProfileRecord, com
   }
   switch (type) {
     case 'long': return session(date, type, 'Lange Grundlage', weekIndex ? 135 : 105, 'MUSS', 'Ausdauer und Belastungsverträglichkeit; kontrollierter Wiedereinstieg.', wattText(ftp, .56, .73), 'Keine Jagd nach Durchschnittswatt. Fueling üben. Nach hoher Vorbelastung verkürzen.')
-    case 'quality': return session(date, type, 'Tempo-Einstieg 2 × 8', 60, 'MUSS', 'Dosierter Qualitätsreiz; keine maximale Belastung.', `15 min Einrollen · 2 × 8 min bei ${wattText(ftp, .80, .88)} · 5 min locker · Ausrollen`, 'Nur bei guter Tagesform; auf der Rolle oder sicheren, zusammenhängenden Abschnitten.')
+    case 'quality': return session(date, type, 'Tempo-Einstieg 2 × 8', 60, 'MUSS', 'Dosierter Qualitätsreiz; keine maximale Belastung.', `15 min Einrollen (50–65 % FTP) · 8 min Tempo ${wattText(ftp, .80, .88)} · 5 min aktiv (45–55 % FTP) · 8 min Tempo ${wattText(ftp, .80, .88)} · 14 min locker (55–68 % FTP) · 10 min Ausrollen (40–55 % FTP)`, 'Nur bei guter Tagesform; auf der Rolle oder sicheren, zusammenhängenden Abschnitten.')
     case 'strength-a': return session(date, type, 'Kraft A · Ganzkörper', 55, 'SOLL', 'Knie-/hüftdominant, Rücken, Brust, Core und Schulterpflege.', 'Saubere Technik, 2–3 Wiederholungen in Reserve', 'Mit Copenhagen Plank und Lateral Step-Down; kein schweres Überkopfdrücken.')
     case 'strength-b': return session(date, type, 'Kraft B · Ganzkörper', 55, 'SOLL', 'Unilateral/Hüfte, Rücken, Brust, Core und Schulterpflege.', 'Kontrolliert, keine Sätze bis zum Versagen', 'Mit Cossack Squat und Side Plank mit Beinheben; Belastung vor Schlüssel-Radtraining reduzieren.')
     case 'strength-c': return session(date, type, 'Kraft C · Oberkörper', 70, 'SOLL', 'Brust, Rücken, Bizeps, Trizeps und Schultern, keine direkte Beinbelastung.', '22 Arbeitssätze, gute Technik, 1–3 Wiederholungen in Reserve', 'Kann mit lockerem Rad-/Lauftraining am gleichen Tag kombiniert werden, wenn die Gesamtbelastung passt.')
