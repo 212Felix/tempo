@@ -4,6 +4,7 @@ import {holidaySaxony,isWeekendOrHoliday} from '../phase30/saxon-holidays'
 import type {RestDayRecord} from '../phase31/rest-days'
 import type {TrainingRecord} from '../planning/engine'
 import WeekReplanner from '../phase30/WeekReplanner'
+import {calendarWeeks,calendarWeekRows} from '../phase38/calendar-weeks'
 import './calendar-board.css'
 
 type Props={days:string[];shifts:ShiftLike[];plans:TrainingRecord[];done:ActivityLike[];restDays:RestDayRecord[];blockKinds:Record<string,string>;onOpenDay:(date:string)=>void;onAddDay:(date:string)=>void;onConfirm:(entry:TrainingRecord)=>Promise<TrainingRecord>;onStart:(session:TrainingRecord)=>void}
@@ -61,11 +62,12 @@ export default function CalendarBoard({days,shifts,plans,done,restDays,blockKind
  const restSelected=selected?restDays.find(r=>r.date===selected):null
  return <section className="tempo34-board" aria-label="Einheitlicher Wochenkalender">
   <div className="tempo38-calendar-hint">Tag antippen · Einheit lang drücken zum Verschieben</div>
-  {Array.from(new Set(records.map(day=>{const d=new Date(day.date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);return d.toISOString().slice(0,10)})),weekStart=>{
-   const week=records.filter(day=>{const d=new Date(day.date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);return d.toISOString().slice(0,10)===weekStart});if(!week.length)return null
+  {calendarWeeks(records).map(week=>{
+   // Rollierende Ansichten koennen mitten in einer Woche beginnen/enden.
+   // Nur tatsaechlich sichtbare Kalendertage ansprechen (kein week[6]).
    return <div className="tempo34-calendar-week" key={week[0].date}>
-    <div className="tempo34-calendar-week-label">{weekday(week[0].date)} – {weekday(week[6].date)}</div>
-    {Array.from({length:Math.ceil(week.length/3)},(_,i)=>week.slice(i*3,i*3+3)).map((row,i)=><div className={`tempo34-calendar-row tempo34-n-${row.length+(week.length===7&&i===2?1:0)}`} key={i}>{row.map(day=>{
+    <div className="tempo34-calendar-week-label">{weekday(week[0].date)} – {weekday(week[week.length-1].date)}</div>
+    {calendarWeekRows(week).map((row,i)=><div className={`tempo34-calendar-row tempo34-n-${row.length+(week.length===7&&i===2?1:0)}`} key={i}>{row.map(day=>{
      const date=day.date,rest=restDays.find(r=>r.date===date),kind=blockKinds[date];return <div key={date} data-tempo-date={date} className={`tempo34-calendar-tile ${date===todayLocal()?'is-today':''} ${isWeekendOrHoliday(date)?'is-holiday':''} ${hover===date?'is-drop-target':''} ${rest?'is-rest':''}`} role="button" tabIndex={0} onClick={e=>openTile(date,e.currentTarget)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTile(date,e.currentTarget)}}} aria-label={`${weekday(date)} · ${day.service} · ${day.activities.length} Aktivitäten`}>
       <div className="tempo34-tile-head"><strong>{weekday(date)}</strong>{kind&&<span className={`tempo31-block-label tempo31-block-${kind.toLowerCase()}`}>{kind}</span>}</div>
       <small className="tempo34-duty">{day.service}{holidaySaxony(date)?' · Feiertag':''}</small>

@@ -1,18 +1,13 @@
-TEMPO Phase 38 – Direkter GitHub-Upload
+TEMPO Phase 38.1 – Kalender-Hotfix
 
-1. Vorher auf dem iPhone ein frisches Backup in iCloud Drive sichern.
-2. Das ZIP „TEMPO_Phase38_EINFACHER_GITHUB_UPLOAD.zip“ auf dem Mac entpacken.
-3. Den darin enthaltenen Ordner „tempo-main“ öffnen.
-4. Auf github.com/212Felix/tempo den Branch main auswählen.
-5. Add file -> Upload files öffnen.
-6. Sämtliche Dateien und Ordner INNERHALB von tempo-main auf die Uploadfläche ziehen.
-   Wichtig: kein zusätzlicher tempo-main-Ordner im Repository!
-7. Kontrollieren: src/App.tsx, src/phase38/strength-progression.ts,
-   src/phase35/weekly-rhythm.ts, package.json und scripts/check-release-source.mjs.
-8. Commit directly to main.
-9. GitHub Actions: sowohl build als auch deploy müssen grün sein.
-10. Erst danach die App neu laden, V0.38 und vorhandene persönliche Daten prüfen.
+1. iPhone-Backup in iCloud Drive erstellen.
+2. ZIP entpacken und tempo-main oeffnen.
+3. GitHub 212Felix/tempo -> Branch main -> Add file -> Upload files.
+4. ALLE Inhalte INNERHALB tempo-main hochladen, nicht den Ordner tempo-main selbst.
+5. Pruefen: src/phase34/CalendarBoard.tsx, src/phase38/calendar-weeks.ts,
+   src/phase38/CalendarSafeguard.tsx, src/App.tsx und package.json.
+6. Commit directly to main.
+7. GitHub Actions: build UND deploy gruen abwarten.
+8. Auf Safari/iPhone V0.38.1 und Kalender-Funktion pruefen.
 
-Nicht die installierte iPhone-PWA löschen. Weder FIT-Dateien noch iPhone-Backups in GitHub hochladen.
-
-Vollständiger Vite-Build vorab offline nicht bestätigt; GitHub Actions entscheidet.
+Die installierte App NICHT loeschen. KEIN Daten-Reset.
