@@ -1,13 +1,16 @@
-TEMPO Phase 38.1 – Kalender-Hotfix
+TEMPO Phase 38.2 – Alpine-Design und funktionale Korrekturen
 
-1. iPhone-Backup in iCloud Drive erstellen.
-2. ZIP entpacken und tempo-main oeffnen.
+1. Vorher wenn moeglich ein aktuelles Backup auf dem iPhone sichern.
+2. ZIP entpacken und Ordner tempo-main oeffnen.
 3. GitHub 212Felix/tempo -> Branch main -> Add file -> Upload files.
-4. ALLE Inhalte INNERHALB tempo-main hochladen, nicht den Ordner tempo-main selbst.
-5. Pruefen: src/phase34/CalendarBoard.tsx, src/phase38/calendar-weeks.ts,
-   src/phase38/CalendarSafeguard.tsx, src/App.tsx und package.json.
+4. ALLE Inhalte INNERHALB tempo-main hochladen, nicht tempo-main als Ordner.
+5. Insbesondere src/App.tsx, src/phase382/, public/phase382/, package.json,
+   src/phase38/strength-progression.ts und src/planning/TrainingDayPanel.tsx.
 6. Commit directly to main.
-7. GitHub Actions: build UND deploy gruen abwarten.
-8. Auf Safari/iPhone V0.38.1 und Kalender-Funktion pruefen.
+7. GitHub Actions: build UND deploy muessen gruen sein.
+8. Auf iPhone unter Menue V0.38.2 und Seitenwechsel pruefen.
 
-Die installierte App NICHT loeschen. KEIN Daten-Reset.
+WICHTIG: installierte App NICHT loeschen; KEINE Browserdaten loeschen.
+Persoenliche JSON-Backups und Garmin-Dateien NICHT auf GitHub hochladen.
+
+Bei rotem Build GitHub-Fehlermeldung/Screenshot schicken, keine Daten loeschen.

@@ -21,7 +21,7 @@ test('Phase 38: Kraft-Pflichtvorgaben sind Zahlen statt Platzhalter',()=>{
  const exercise={id:'c-bench',sets:3,reps:'6–10',hold:false}
  assert.equal(targetReps(exercise.reps),6)
  const fresh=strengthProposal(exercise,[],'studio','Flachbank','2026-10-20')
- assert.equal(fresh.reps,6);assert.equal(fresh.rir,2);assert.equal(fresh.weightKg,undefined)
+ assert.equal(fresh.reps,8);assert.equal(fresh.rir,2);assert.equal(fresh.weightKg,undefined)
 })
 test('Phase 38: Progression nach oberem Wiederholungsziel und RIR >= 2; nicht bei zu wenig Leistung',()=>{
  const exercise={id:'c-bench',sets:3,reps:'6–10',hold:false}

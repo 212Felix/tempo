@@ -1,5 +1,5 @@
 import MetricsPanel from './metrics/MetricsPanel'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import {getRecord} from './db/storage'
 import type {TempoRecord} from './db/types'
 import {evaluateReadiness} from './db/ReadinessPanel'
@@ -25,6 +25,7 @@ import WorkoutDetail from './phase36/WorkoutDetail'
 import ManualTrainingPanel from './planning/ManualTrainingPanel'
 import './phase36/phase36.css'
 import './phase38/phase38.css'
+import './phase382/phase382.css'
 import {currentKey, type TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
 import './phase33.css'
@@ -39,7 +40,7 @@ type PageId =
 type PageInfo = { id: PageId; name: string; icon: IconName; description: string }
 type IconName = 'home' | 'heart' | 'play' | 'calendar' | 'trend' | 'drop' | 'wind' | 'dumbbell' | 'gauge' | 'layers' | 'flag' | 'map' | 'user' | 'menu' | 'chevron' | 'arrow' | 'check' | 'clock' | 'close' | 'bike' | 'swim' | 'football' | 'golf'
 
-// PHASE 38.1: version is intentionally displayed only in the navigation menu, never in the top header.
+// PHASE 38.2: version is intentionally displayed only in the navigation menu, never in the top header.
 const pages: PageInfo[] = [
   { id: 'workout-detail', name: 'Trainingseinheit', icon: 'play', description: 'Dein Workout direkt öffnen.' },
   { id: 'home', name: 'Startseite', icon: 'home', description: 'Alles Wichtige für deinen Tag.' },
@@ -106,7 +107,12 @@ function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 function Home({ go, openWorkout, openDuty }: { go: (id: PageId) => void; openWorkout: (session: TrainingRecord) => void; openDuty: () => void }) {
-  return <div className="tempo36-home">
+  return <div className="tempo36-home tempo382-home">
+    <section className="tempo382-home-hero" aria-label="Willkommen bei TEMPO">
+      <div className="tempo382-greeting">GUTEN TAG</div>
+      <h1>Bereit für deinen<br/>nächsten Schritt?</h1>
+      <div className="tempo382-hero-underline" aria-hidden="true"/>
+    </section>
     <ReadinessHomeCard onOpen={() => go('readiness')}/>
     <HomeTrainingCard onOpen={() => go('training')} onOpenWorkout={openWorkout}/>
     <ShiftHomeCard onOpen={openDuty}/>
@@ -160,19 +166,35 @@ export default function App() {
     return()=>{active=false;clearTimeout(timer);window.removeEventListener('tempo:readiness-change',check);window.removeEventListener('focus',check)}
   },[])
   useEffect(()=>{void ensureCooperGoal().then(()=>window.dispatchEvent(new Event('tempo:events-change'))).catch(error=>console.warn('Cooper-Ziel konnte nicht angelegt werden:',error))},[])
+  // Reset after the destination has mounted. Smooth scrolling before setPage used
+  // to preserve the outgoing screen's offset when the new screen was shorter.
+  useLayoutEffect(()=>{
+    const reset=()=>{
+      const root=document.documentElement
+      const previous=root.style.scrollBehavior
+      root.style.scrollBehavior='auto'
+      window.scrollTo(0,0)
+      if(document.scrollingElement)document.scrollingElement.scrollTop=0
+      document.body.scrollTop=0
+      root.style.scrollBehavior=previous
+    }
+    reset()
+    const frame=window.requestAnimationFrame(reset)
+    return()=>window.cancelAnimationFrame(frame)
+  },[page,dayFocus,addFocus,focusWorkout,autoOpenShift])
   const active = pages.find(p => p.id === page)!
-  function navigate(id: PageId) { if(activityPages.includes(id))setActivitiesOpen(true); if(id==='training'){setDayFocus('');setAddFocus('')} setFocusWorkout(''); setDetailWorkout(null);setAutoOpenShift(false); setPage(id); setMenuOpen(false); window.scrollTo({top:0,behavior:'smooth'}) }
-  function openCalendarDay(date:string) {setAutoOpenShift(false);setDayFocus(date);setAddFocus('');setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
-  function addCalendarTraining(date:string){setAutoOpenShift(false);setDayFocus(date);setAddFocus(date);setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
+  function navigate(id: PageId) { if(activityPages.includes(id))setActivitiesOpen(true); if(id==='training'){setDayFocus('');setAddFocus('')} setFocusWorkout(''); setDetailWorkout(null);setAutoOpenShift(false); setPage(id); setMenuOpen(false); }
+  function openCalendarDay(date:string) {setAutoOpenShift(false);setDayFocus(date);setAddFocus('');setPage('training');setMenuOpen(false);}
+  function addCalendarTraining(date:string){setAutoOpenShift(false);setDayFocus(date);setAddFocus(date);setPage('training');setMenuOpen(false);}
   function openWorkout(session: TrainingRecord) {
     setFocusWorkout(session.id)
     setDayFocus(session.date)
     if(!isStrength(session) && !isRun(session))setDetailWorkout(session)
     else setDetailWorkout(null)
     setPage(isStrength(session)?'strength':isRun(session)?'running':'workout-detail')
-    window.scrollTo({top:0,behavior:'smooth'})
+   
   }
-  function openDuty(){setDayFocus(currentKey());setAutoOpenShift(true);setAddFocus('');setPage('training');setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
+  function openDuty(){setDayFocus(currentKey());setAutoOpenShift(true);setAddFocus('');setPage('training');setMenuOpen(false);}
   return <div className="app">
     <div className={`mobile-shade ${menuOpen ? 'visible' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
@@ -190,9 +212,9 @@ export default function App() {
         if(activityPages.includes(item.id)||item.id==='workout-detail')return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.38.1 · TEMPO</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.38.2 · TEMPO</div>
     </aside>
-    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div><img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/></header>
+    <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div>{page!=='home'&&<img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/>}</header>
       <main className={`content page-${page}`}>
       <HelpProvider key={page}>
       {page === 'home' ? <Home go={navigate} openWorkout={openWorkout} openDuty={openDuty}/> : page === 'readiness' ? <ReadinessPanel key={activeDay}/> : page === 'calendar' ? <CalendarSafeguard onBack={()=>navigate('home')}><ShiftCalendarPanel key={activeDay} onOpenDay={openCalendarDay} onAddDay={addCalendarTraining} onStartWorkout={openWorkout}/></CalendarSafeguard> : page === 'training' ? <TrainingDayPanel key={`${dayFocus}:${addFocus}:${autoOpenShift}`} autoOpenShift={autoOpenShift} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'workout-detail' ? <WorkoutDetail session={detailWorkout} onBack={()=>openCalendarDay(detailWorkout?.date??currentKey())}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel key={focusWorkout} focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'golf' || page === 'sportspiel' ? <ManualTrainingPanel autoStartDate={currentKey()} initialSport={page} autoStartMode="completed"/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}

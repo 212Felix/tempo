@@ -30,3 +30,8 @@ verschobene Einheiten. Nie werden Dienst-/Schichtdaten angefasst.
 
 Kraft C: Oberkörper, 2 Brust-, 2 Rücken-, 2 Schulter-, 1 Bizeps-, 1 Trizepsübung, 22 Arbeitssätze.
 Diese Einheit hat keine direkte Beintrainingsbelastung.
+
+
+## Phase 38.2 – Alpine-Design und Kraftvorgaben
+
+Neue alpine Startseite, sportartspezifische Hintergründe im Tagestraining (Kalender bewusst schlicht), Vorbelegung der Wiederholungen auf den oberen Mittelwert und zuverlässiges Scrollen zum Seitenanfang nach Seitenwechsel. Details: `docs/PHASE38_2_DESIGN_RELEASE.md`.

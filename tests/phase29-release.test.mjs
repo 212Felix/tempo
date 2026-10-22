@@ -6,7 +6,7 @@ const read = p => readFileSync(p,'utf8')
 test('Phase 29 -> 30: Header und Paket zeigen die neue Version', () => {
   assert.match(read('src/App.tsx'),/PHASE 38/)
   assert.match(read('src/App.tsx'),/V0\.38/)
-  assert.equal(JSON.parse(read('package.json')).version,'0.38.1')
+  assert.equal(JSON.parse(read('package.json')).version,'0.38.2')
 })
 test('Phase 29 -> 30: Readiness bleibt ohne Eintrag sicher', () => {
   assert.match(read('src/phase28/adaptive-planner.ts'),/if\s*\(readiness\s*&&\s*readiness\.date/)

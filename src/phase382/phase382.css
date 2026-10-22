@@ -1,0 +1,136 @@
+/* TEMPO 38.2 – Alpine theme on START and TAGESTRAINING only.
+   No photo styling is applied to .page-calendar. All labels remain live UI text. */
+.page-home{
+  background-image:linear-gradient(180deg,transparent 0%,#0a1019aa 74%),url('/phase382/mountains.webp');
+  background-size:cover,100% auto;
+  background-position:top center,bottom center;
+  background-repeat:no-repeat;
+}
+.tempo382-home{
+  --tempo-alpine-blue:#163247;
+  max-width:740px;
+  gap:12px;
+}
+.tempo382-home-hero{
+  background-image:linear-gradient(90deg,rgba(8,16,27,.37),transparent 75%),url('/phase382/hero-deer.webp');
+  background-position:center,right center;
+  background-size:cover,cover;
+  min-height:254px;
+  padding:54px 18px 22px;
+  border-radius:17px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  color:#fff;
+  text-shadow:0 2px 11px #06101cbf;
+}
+.tempo382-greeting{font-size:11px;letter-spacing:4px;font-weight:750;color:#c8d4e2;margin-bottom:13px}
+.tempo382-home-hero h1{font-size:clamp(27px,5vw,43px);line-height:1.1;font-weight:820;letter-spacing:-.9px;max-width:390px;}
+.tempo382-hero-underline{width:34px;height:3px;background:#ecc36b;border-radius:3px;margin-top:18px;box-shadow:0 0 12px #edba4ca9}
+.tempo382-home>.panel{position:relative;isolation:isolate;overflow:hidden;border-radius:16px;padding:15px 16px;}
+.tempo382-home .eyebrow{font-size:10px;letter-spacing:2.6px;color:#b7c3d0;margin-bottom:9px}
+.tempo382-home .tempo36-readiness{border-color:#398a72;box-shadow:0 0 0 1px #0f241844,inset 0 1px 0 #ffffff13}
+.tempo382-home .tempo-ready-home-gelb{border-color:#c99937;box-shadow:0 0 20px #edb94129,inset 0 1px 0 #ffeab329}
+.tempo382-home .tempo-ready-home-rot{border-color:#d37d76;box-shadow:0 0 18px #ea66642e}
+.tempo382-home .tempo-ready-home-gruen{border-color:#4eae89;box-shadow:0 0 18px #3ab9842b}
+.tempo382-home .tempo-ready-home-offen{border-color:#5c8498}
+.tempo382-home .tempo36-readiness{background-image:linear-gradient(100deg,#171c24 0%,rgba(30,40,43,.92) 45%,rgba(50,57,34,.36) 100%),url('/phase382/summit.webp');background-position:center,right center;background-size:cover,cover}
+.tempo382-home .tempo-ready-home-gelb{background-image:linear-gradient(100deg,#302817f7 0%,#383018eb 45%,#d49a2828 100%),url('/phase382/summit.webp')}
+.tempo382-home .tempo-ready-home-rot{background-image:linear-gradient(100deg,#3a1d20f7 0%,#372025ee 45%,#be444d24 100%),url('/phase382/summit.webp')}
+.tempo382-home .tempo-ready-home-gruen{background-image:linear-gradient(100deg,#15362cf7 0%,#17382aee 45%,#3c95642b 100%),url('/phase382/summit.webp')}
+.tempo382-home .tempo36-readiness-action{min-height:46px}
+.tempo382-home .tempo36-readiness-action strong{font-size:22px}
+.tempo382-home .tempo36-ready-dot{width:16px;height:16px;box-shadow:0 0 10px currentColor}
+.tempo382-home .tempo36-ready-open{font-size:13px}
+.tempo382-home .tempo36-home-train{
+  background-image:linear-gradient(110deg,#122432f7,#142838e8 68%,#16364799),url('/phase382/mountains.webp');
+  background-position:center,right bottom;background-size:cover,cover;
+  border-color:#39627c;
+}
+.tempo382-home .tempo36-home-sessions{gap:9px}
+.tempo382-home .tempo36-home-session{
+  border:1px solid #4e7790;
+  min-height:68px;
+  padding:10px;
+  box-shadow:inset 0 1px 0 #ffffff11;
+}
+.tempo382-home .tempo36-home-shift{
+  border-color:#9e7836;
+  background-image:linear-gradient(90deg,#29241fe8 0%,#24282deb 51%,#26323b58 100%),url('/phase382/duty.webp');
+  background-position:center,right center;background-size:cover,cover;
+}
+.tempo382-home .tempo36-home-event{
+  border-color:#3e7089;
+  background-image:linear-gradient(90deg,#132635f5 0%,#152737e8 46%,#172c3660 100%),url('/phase382/run.webp');
+  background-position:center,right center;background-size:cover,cover;
+}
+.tempo382-home .tempo36-shift-icon{background:#594322;box-shadow:0 0 12px #d5a24e25}
+.tempo382-home .tempo36-chevron{color:#ecf3f5;text-shadow:0 2px 6px #051324}
+.tempo382-home .tempo36-home-session strong,
+.tempo382-home .tempo36-home-shift-action strong,
+.tempo382-home .tempo36-event-action strong{font-weight:760;text-shadow:0 1px 9px #04111d}
+
+/* Actual workout title, status and action remain React content. The photo is never a screenshot of controls. */
+.tempo382-sport-bike{--tempo382-photo:url('/phase382/bike.webp');--tempo382-tint:#142d40}
+.tempo382-sport-run{--tempo382-photo:url('/phase382/run.webp');--tempo382-tint:#152938}
+.tempo382-sport-yoga{--tempo382-photo:url('/phase382/yoga.webp');--tempo382-tint:#16313a}
+.tempo382-sport-strength{--tempo382-photo:url('/phase382/summit.webp');--tempo382-tint:#212e3b}
+.tempo382-sport-swim{--tempo382-photo:url('/phase382/mountains.webp');--tempo382-tint:#12394b}
+.tempo382-sport-golf{--tempo382-photo:url('/phase382/mountains.webp');--tempo382-tint:#223c31}
+.tempo382-sport-sportspiel{--tempo382-photo:url('/phase382/run.webp');--tempo382-tint:#253544}
+.tempo382-sport-recovery{--tempo382-photo:url('/phase382/yoga.webp');--tempo382-tint:#1b3d32}
+.tempo382-home .tempo36-home-session[class*='tempo382-sport-'],
+.page-training .tempo36-daily-workout[class*='tempo382-sport-']{
+  background-color:var(--tempo382-tint,#1b3040);
+  background-image:linear-gradient(90deg,rgba(14,28,42,.99) 0%,rgba(15,30,43,.96) 45%,rgba(15,30,43,.38) 100%),var(--tempo382-photo);
+  background-size:cover,cover;
+  background-position:center,right center;
+  color:#f6fafc;
+}
+.tempo382-home .tempo36-home-session .tempo36-session-icon{
+  background:#1b374a;border-color:#63849c;box-shadow:0 1px 7px #0615217a
+}
+
+/* Page-level atmosphere is limited to TAGESTRAINING; the calendar remains intentionally plain. */
+.page-training{
+  background-image:linear-gradient(180deg,rgba(10,15,23,.74),#0a0e15 73%),url('/phase382/hero-deer.webp');
+  background-size:cover,100% auto;
+  background-position:top center,top center;
+  background-repeat:no-repeat;
+}
+.page-training .tempo36-daily-main{
+  background:linear-gradient(140deg,#142432f5,#172c3af2);
+  border:1px solid #41657c;
+  box-shadow:0 6px 25px #0004;
+}
+.page-training .tempo36-daily-workout{
+  min-height:76px;
+  border-color:#527c90;
+  align-items:center;
+  box-shadow:inset 0 1px 0 #ffffff17,0 3px 12px #06121c66;
+}
+.page-training .tempo36-daily-workout strong{font-size:16px;text-shadow:0 2px 8px #06131c}
+.page-training .tempo36-daily-workout small,
+.page-training .tempo36-daily-workout-content>span{color:#c1d2de;text-shadow:0 1px 5px #06131c}
+.page-training .tempo36-date-nav{padding:3px 0 12px}
+.page-training .tempo36-date-nav button{background:#244151bb;border:1px solid #668fa1;color:white;border-radius:12px}
+.page-training .tempo36-manual-host>.tempo-manual,
+.page-training .tempo36-rest{background-color:#172735ee}
+/* Accessibility: preserve text contrast and respect users preferring flat presentation. */
+@media (prefers-contrast:more){
+  .tempo382-home .tempo36-home-session[class*='tempo382-sport-'],
+  .page-training .tempo36-daily-workout[class*='tempo382-sport-']{background-image:linear-gradient(90deg,#10202bfa,#10202bf0),var(--tempo382-photo)}
+}
+@media (max-width:680px){
+  .page-home{padding-top:0!important}
+  .tempo382-home{gap:10px}
+  .tempo382-home-hero{min-height:230px;margin:0 -12px 0;border-radius:0 0 16px 16px;padding:38px 20px 24px;background-position:center,61% center}
+  .tempo382-home-hero h1{font-size:clamp(25px,6.7vw,35px);max-width:62%}
+  .tempo382-greeting{font-size:10px;letter-spacing:3px}
+  .tempo382-home>.panel{padding:13px 13px}
+  .tempo382-home .tempo36-home-session{min-height:62px;padding:8px}
+  .tempo382-home .tempo36-home-shift-action,.tempo382-home .tempo36-event-action{min-height:48px}
+  .tempo382-home .tempo36-home-session strong{font-size:14px}
+  .page-training{background-size:cover,auto 380px;background-position:top center,top right}
+}
