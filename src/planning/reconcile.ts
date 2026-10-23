@@ -23,7 +23,7 @@ export async function loadReconcileData():Promise<ReconcileData>{
     listRecords<TrainingRecord>('plannedSessions'),listRecords<LinkedCompleted>('completedSessions'),listRecords<GarminActivity>('externalActivities'),
   ])
   const mine=<T extends {profileId?:string}>(rows:T[])=>rows.filter(x=>x.profileId===PROFILE_ID)
-  return {planned:mine(planned),completed:mine(completed),garmin:mine(garmin).filter(a=>a.source==='garmin-csv'||a.source==='garmin-fit')}
+  return {planned:mine(planned),completed:mine(completed),garmin:mine(garmin).filter(a=>a.source==='garmin-csv'||a.source==='garmin-fit'||a.source==='garmin-personal')}
 }
 export type ReconcileSport='cycling'|'running'|'strength'|'swimming'|'martial'|'mobility'|'other'
 export function kindSport(kind?:string):ReconcileSport{

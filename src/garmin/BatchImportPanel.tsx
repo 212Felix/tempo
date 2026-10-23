@@ -21,7 +21,7 @@ export default function BatchImportPanel({onSaved}:{onSaved:()=>void}){
   const [showNew,setShowNew]=useState(false)
   async function loadLibrary(){
     const [a,t]=await Promise.all([listRecords<GarminActivity>('externalActivities'),listRecords<FitTrace>('performanceEntries')])
-    const filtered=a.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'))
+    const filtered=a.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal'))
     const ft=t.filter(x=>x.profileId===PROFILE_ID&&x.kind==='garmin-fit-trace')
     setKnown(filtered);setTraces(ft)
     return {activities:filtered,traces:ft}
@@ -66,7 +66,7 @@ export default function BatchImportPanel({onSaved}:{onSaved:()=>void}){
     try{
       // Detect concurrent edits since the preview; do not silently overwrite them.
       const current=await listRecords<GarminActivity>('externalActivities')
-      const filtered=current.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'))
+      const filtered=current.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal'))
       if(filtered.length!==known.length || filtered.some(a=>known.find(b=>b.id===a.id)?.updatedAt!==a.updatedAt))
         throw new Error('Die Bibliothek wurde seit der Prüfung verändert. Bitte Dateien erneut auswählen.')
       const writes=prepareWrites(rows,filtered)

@@ -1,0 +1,27 @@
+.tempo39-sync-panel{background:linear-gradient(125deg,#142336,#0f1c29);border:1px solid #496f85;border-radius:18px;padding:17px;margin-bottom:18px;color:#e9f2f6}
+.tempo39-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.tempo39-heading h2{margin:4px 0 8px;font-size:clamp(20px,5vw,27px)}
+.tempo39-connection{font-size:12px;color:#b8c8d3;border:1px solid #63778a;border-radius:20px;padding:6px 9px}
+.tempo39-connection.online{color:#8be4bd;border-color:#4b9177}
+.tempo39-intro,.tempo39-small{font-size:13px;color:#acc1ce;line-height:1.5}
+.tempo39-sync-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.tempo39-sync-stats>div{background:#162b3a;border:1px solid #34556a;border-radius:12px;padding:10px;min-width:0}
+.tempo39-sync-stats strong{font-size:15px;display:block;overflow-wrap:anywhere}
+.tempo39-sync-stats span{display:block;color:#b2c4d1;font-size:11px;margin-top:5px}
+.tempo39-form{display:flex;flex-direction:column;gap:11px}
+.tempo39-form label,.tempo39-select-label{display:flex;flex-direction:column;gap:7px;color:#e0edf4;font-size:13px;font-weight:600}
+.tempo39-form input,.tempo39-select-label select{appearance:auto!important;box-sizing:border-box;display:block;width:100%;max-width:100%;min-height:43px;border:1px solid #617f91;border-radius:11px;background:#0a1d2b!important;color:#f5f9fc!important;-webkit-text-fill-color:#f5f9fc!important;padding:9px 11px;font-size:15px}
+.tempo39-form input::placeholder{color:#96aeba!important;-webkit-text-fill-color:#96aeba!important}
+.tempo39-form input:focus,.tempo39-select-label select:focus{outline:2px solid #e9b950;outline-offset:2px}
+.tempo39-buttons{display:flex;flex-wrap:wrap;gap:9px}
+.tempo39-buttons button,.tempo39-import{background:#294c60!important;color:#f6fbfd!important;border:1px solid #85aabe!important;border-radius:11px;padding:10px 13px;font-size:14px;font-weight:700;cursor:pointer;-webkit-text-fill-color:#f6fbfd!important}
+.tempo39-buttons button:disabled,.tempo39-import:disabled{opacity:.5;cursor:not-allowed}
+.tempo39-notice{background:#0c2531;border-left:3px solid #d8b566;padding:11px;font-size:13px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+.tempo39-candidates{margin-top:15px;border-top:1px solid #395567;padding-top:12px}
+.tempo39-candidates h3{font-size:17px;margin:0 0 7px}
+.tempo39-item{border:1px solid #32556a;border-radius:10px;padding:11px 9px;margin:8px 0;background:#102535;display:flex;flex-direction:column;gap:8px}
+.tempo39-item strong,.tempo39-item small{display:block}.tempo39-item small{color:#adcad5;margin-top:4px}
+.tempo39-new{color:#86d8ad;font-size:12px}
+.tempo39-privacy{margin-top:14px;border-top:1px solid #395567;padding-top:12px;font-size:13px;line-height:1.5}
+.tempo39-privacy summary{cursor:pointer;font-weight:750}
+@media(max-width:480px){.tempo39-sync-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.tempo39-sync-stats>div:first-child{grid-column:span 2}}

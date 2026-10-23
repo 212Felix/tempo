@@ -39,7 +39,7 @@ test('38.2: Routenwechsel setzt Scrollposition nach dem React-Mount zurück',()=
  assert.doesNotMatch(app,/window\.scrollTo\(\{top:0,behavior:'smooth'\}\)/)
 })
 test('38.2: Version 38.2 ohne Änderung am Datenbankschema und Kalenderhotfix',()=>{
- assert.match(source('src/App.tsx'),/V0\.38\.2/)
+ assert.match(source('src/App.tsx'),/V0\.39/)
  assert.match(source('src/db/types.ts'),/DATABASE_VERSION = 1/)
  assert.match(source('src/App.tsx'),/CalendarSafeguard/)
  assert.match(source('src/phase38/calendar-weeks.ts'),/week/)

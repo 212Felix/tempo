@@ -1,0 +1,27 @@
+/* Phase 39 final selected aesthetic. Only START and TAGESTRAINING use photography.
+   Calendar stays intentionally photo-free for fast scanning. */
+.page-home{background-image:linear-gradient(180deg,rgba(10,16,25,.16),#0b111c 85%)}
+.tempo39-home .tempo382-home-hero{background-image:linear-gradient(90deg,rgba(7,17,30,.99),rgba(7,17,30,.84) 38%,rgba(7,17,30,.06) 75%),url('/phase39/hero-deer.webp');background-position:center,right center;background-size:cover,cover;min-height:240px;padding:38px 23px 24px;border-radius:14px}
+.tempo39-home .tempo382-home-hero h1{font-size:clamp(26px,5.6vw,45px);line-height:1.12;font-weight:800;text-shadow:0 2px 10px #0009;max-width:60%;letter-spacing:-.7px}
+.tempo39-home .tempo382-home-hero h1 span{color:#f5c56d}
+.tempo39-home .tempo36-readiness{background-image:linear-gradient(100deg,#2b2517 0%,#222326dc 52%,#a67e222c 100%),url('/phase39/hero-deer.webp');border-color:#a17f36}
+.tempo39-home .tempo-ready-home-gruen{background-image:linear-gradient(100deg,#14342b,#182c2ae0 60%,#2d80502b),url('/phase39/hero-deer.webp');border-color:#519b7b}
+.tempo39-home .tempo-ready-home-rot{background-image:linear-gradient(100deg,#3d1d23,#30252be0 60%,#9b33372b),url('/phase39/hero-deer.webp');border-color:#b66a6a}
+.tempo39-home .tempo36-readiness{box-shadow:0 0 15px #e9b4471c}
+.tempo39-home .tempo36-home-shift{border-color:#ac833e}
+.tempo39-home .tempo36-home-train{border-color:#37677f;background-image:linear-gradient(100deg,#102233ee,#152a3dde),url('/phase39/hero-deer.webp')}
+/* A single barbell-equipped gym image is reused in ALL strength cards. */
+.tempo382-sport-strength{--tempo382-photo:url('/phase39/strength-gym.webp')!important;--tempo382-tint:#162635}
+.tempo39-home .tempo36-home-session[class*='tempo382-sport-'],
+.page-training .tempo36-daily-workout[class*='tempo382-sport-']{background-image:linear-gradient(90deg,#0c1d2beb 0%,#112331e8 45%,#14263555 100%),var(--tempo382-photo)}
+.page-calendar{background-image:none!important}
+/* iOS Safari rendering bug: native outline buttons/selects may otherwise display white strips. */
+.app button.outline,.app a.outline,.app button.secondary-button,.app button.tempo36-add-training{appearance:none;-webkit-appearance:none;background:#264354!important;color:#eff8fa!important;-webkit-text-fill-color:#eff8fa!important;border:1px solid #769aac!important;border-radius:12px}
+.app button.outline:disabled{opacity:.55}
+.app select,.app input[type='date'],.app input[type='time']{color-scheme:dark}
+@media(max-width:680px){.tempo39-home .tempo382-home-hero{margin:0 -12px 0;min-height:210px;padding:26px 19px 25px}.tempo39-home .tempo382-home-hero h1{font-size:clamp(27px,7vw,37px);max-width:56%}}
+@media(prefers-reduced-motion:reduce){.tempo39-home *{scroll-behavior:auto}}
+/* Native iOS form controls follow TEMPO's dark palette; buttons keep their existing interactive styles. */
+.app{color-scheme:dark}
+.app button{-webkit-appearance:none;appearance:none}
+.app select option{background:#142632;color:#f4f9fa}

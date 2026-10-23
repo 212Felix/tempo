@@ -2,7 +2,7 @@ import type { TempoRecord } from '../db/types'
 
 /** Garmin Connect CSV overview import. No requests to Garmin or other servers. */
 export type GarminActivity = TempoRecord & {
-  source: 'garmin-csv'|'garmin-fit' | 'garmin-fit'
+  source: 'garmin-csv'|'garmin-fit'|'garmin-personal'
   date: string
   startedAt?: string
   title: string

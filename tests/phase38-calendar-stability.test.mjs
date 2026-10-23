@@ -34,5 +34,5 @@ test('Kalender-Hotfix: Hauptkomponente verwendet keine festen Wochenindizes',()=
  assert.doesNotMatch(board,/week\[6\]\.date/)
  const app=readFileSync('src/App.tsx','utf8')
  assert.match(app,/CalendarSafeguard onBack/)
- assert.match(app,/V0\.38\.2/)
+ assert.match(app,/V0\.39/)
 })

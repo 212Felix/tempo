@@ -1,16 +1,19 @@
-TEMPO Phase 38.2 – Alpine-Design und funktionale Korrekturen
+TEMPO PHASE 39 – GITHUB-UPLOAD WIE BISHER
 
-1. Vorher wenn moeglich ein aktuelles Backup auf dem iPhone sichern.
-2. ZIP entpacken und Ordner tempo-main oeffnen.
-3. GitHub 212Felix/tempo -> Branch main -> Add file -> Upload files.
-4. ALLE Inhalte INNERHALB tempo-main hochladen, nicht tempo-main als Ordner.
-5. Insbesondere src/App.tsx, src/phase382/, public/phase382/, package.json,
-   src/phase38/strength-progression.ts und src/planning/TrainingDayPanel.tsx.
-6. Commit directly to main.
-7. GitHub Actions: build UND deploy muessen gruen sein.
-8. Auf iPhone unter Menue V0.38.2 und Seitenwechsel pruefen.
+1. Vorher auf dem iPhone ein frisches TEMPO-JSON-Backup in iCloud sichern.
+2. ZIP entpacken und den Ordner tempo-main oeffnen.
+3. GitHub: 212Felix/tempo, Branch main -> Add file -> Upload files.
+4. ALLE Inhalte INNERHALB von tempo-main hochladen, nicht tempo-main als Ordner.
+5. Commit directly to main. Der bestehende GitHub-Pages-Workflow bleibt erhalten.
+6. Unter GitHub Actions Build UND Deploy pruefen.
+7. Auf dem iPhone pruefen, dass im TEMPO-Seitenmenue V0.39 steht.
+8. Garmin-Synchronisierung kann erst nach der zusaetzlichen sicheren Cloudflare-
+   Einrichtung arbeiten. Dazu docs/PHASE39-GARMIN-EINRICHTUNG.md lesen.
+   Niemals den Garmin-API-Key in TEMPO, GitHub-Code oder in diesen Chat schreiben.
+9. Cloudflare-Worker erst nach Einrichtung der Secrets und D1 durch den separaten,
+   NUR MANUELL startbaren Workflow "TEMPO Phase 39 – Garmin Worker (privat)" bereitstellen.
 
-WICHTIG: installierte App NICHT loeschen; KEINE Browserdaten loeschen.
-Persoenliche JSON-Backups und Garmin-Dateien NICHT auf GitHub hochladen.
+WICHTIG: App NICHT deinstallieren. KEINE Browserdaten loeschen.
+Privates Backup, FIT-, GPX-, GPS-Dateien NIEMALS auf GitHub hochladen.
 
-Bei rotem Build GitHub-Fehlermeldung/Screenshot schicken, keine Daten loeschen.
+Ohne Cloudflare funktioniert die bisherige TEMPO-App inkl. CSV-/FIT-Import weiter.

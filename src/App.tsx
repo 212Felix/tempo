@@ -26,6 +26,7 @@ import ManualTrainingPanel from './planning/ManualTrainingPanel'
 import './phase36/phase36.css'
 import './phase38/phase38.css'
 import './phase382/phase382.css'
+import './phase39/design.css'
 import {currentKey, type TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
 import './phase33.css'
@@ -40,7 +41,7 @@ type PageId =
 type PageInfo = { id: PageId; name: string; icon: IconName; description: string }
 type IconName = 'home' | 'heart' | 'play' | 'calendar' | 'trend' | 'drop' | 'wind' | 'dumbbell' | 'gauge' | 'layers' | 'flag' | 'map' | 'user' | 'menu' | 'chevron' | 'arrow' | 'check' | 'clock' | 'close' | 'bike' | 'swim' | 'football' | 'golf'
 
-// PHASE 38.2: version is intentionally displayed only in the navigation menu, never in the top header.
+// PHASE 39: version is intentionally displayed only in the navigation menu, never in the top header.
 const pages: PageInfo[] = [
   { id: 'workout-detail', name: 'Trainingseinheit', icon: 'play', description: 'Dein Workout direkt öffnen.' },
   { id: 'home', name: 'Startseite', icon: 'home', description: 'Alles Wichtige für deinen Tag.' },
@@ -61,7 +62,7 @@ const pages: PageInfo[] = [
   { id: 'blocks', name: 'Blockübersicht', icon: 'layers', description: 'Umsetzung und Kennzahlen je Trainingsblock.' },
   { id: 'events', name: 'Ziele & Events', icon: 'flag', description: 'Fixe Rennen und flexible Challenges.' },
   { id: 'routes', name: 'Strecken & Challenges', icon: 'map', description: 'GPX-Routen und persönliche Herausforderungen.' },
-  { id: 'garmin', name: 'Garmin-Datenimport', icon: 'layers', description: 'Garmin-Aktivitäten lokal importieren und als Leistungsbibliothek nutzen.' },
+  { id: 'garmin', name: 'Garmin Synchronisierung', icon: 'layers', description: 'Offizielle Personal API und privater lokaler Garmin-Import.' },
   { id: 'profile', name: 'Profil & Daten', icon: 'user', description: 'Persönliche Werte lokal speichern und sichern.' },
 ]
 
@@ -107,11 +108,19 @@ function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 function Home({ go, openWorkout, openDuty }: { go: (id: PageId) => void; openWorkout: (session: TrainingRecord) => void; openDuty: () => void }) {
-  return <div className="tempo36-home tempo382-home">
+  const [name,setName]=useState('')
+  const [hour,setHour]=useState(new Date().getHours())
+  useEffect(()=>{let active=true
+    void getRecord('profiles','local-primary-profile').then(profile=>{if(active)setName(typeof profile?.displayName==='string'?profile.displayName.trim().split(/\s+/)[0].slice(0,32):'')})
+    const update=()=>setHour(new Date().getHours())
+    const timer=window.setInterval(update,60_000)
+    window.addEventListener('focus',update)
+    return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',update)}
+  },[])
+  const greeting=hour<11?'Guten Morgen':hour<17?'Guten Tag':hour<22?'Guten Abend':'Gute Nacht'
+  return <div className="tempo36-home tempo382-home tempo39-home">
     <section className="tempo382-home-hero" aria-label="Willkommen bei TEMPO">
-      <div className="tempo382-greeting">GUTEN TAG</div>
-      <h1>Bereit für deinen<br/>nächsten Schritt?</h1>
-      <div className="tempo382-hero-underline" aria-hidden="true"/>
+      <h1>{greeting}{name&&<>,<br/><span>{name}</span></>}</h1>
     </section>
     <ReadinessHomeCard onOpen={() => go('readiness')}/>
     <HomeTrainingCard onOpen={() => go('training')} onOpenWorkout={openWorkout}/>
@@ -212,14 +221,14 @@ export default function App() {
         if(activityPages.includes(item.id)||item.id==='workout-detail')return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.38.2 · TEMPO</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO</div>
     </aside>
     <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div>{page!=='home'&&<img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/>}</header>
       <main className={`content page-${page}`}>
       <HelpProvider key={page}>
       {page === 'home' ? <Home go={navigate} openWorkout={openWorkout} openDuty={openDuty}/> : page === 'readiness' ? <ReadinessPanel key={activeDay}/> : page === 'calendar' ? <CalendarSafeguard onBack={()=>navigate('home')}><ShiftCalendarPanel key={activeDay} onOpenDay={openCalendarDay} onAddDay={addCalendarTraining} onStartWorkout={openWorkout}/></CalendarSafeguard> : page === 'training' ? <TrainingDayPanel key={`${dayFocus}:${addFocus}:${autoOpenShift}`} autoOpenShift={autoOpenShift} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/> : page === 'workout-detail' ? <WorkoutDetail session={detailWorkout} onBack={()=>openCalendarDay(detailWorkout?.date??currentKey())}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel key={focusWorkout} focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'golf' || page === 'sportspiel' ? <ManualTrainingPanel autoStartDate={currentKey()} initialSport={page} autoStartMode="completed"/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>
-      <footer className="content-footer">TEMPO · Local first · Dein Training, dein System.</footer></main>
+      <footer className="content-footer">TEMPO · dein Training, dein System</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={`${page===id?'active':''} ${id==='readiness'?`tempo38-heart-${todayReadiness}`:''}`} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{item.name}</span></button>})}</nav>
     </div>
   </div>

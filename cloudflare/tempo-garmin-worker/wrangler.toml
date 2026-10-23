@@ -1,0 +1,18 @@
+name = "tempo-garmin-private"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+
+[vars]
+TEMPO_ALLOWED_ORIGIN = "https://212felix.github.io"
+
+[triggers]
+crons = ["0 */6 * * *"]
+
+[observability.logs]
+enabled = false
+
+# After `npx wrangler d1 create tempo-garmin-private`, uncomment and paste the UUID.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "tempo-garmin-private"
+# database_id = "UUID_AUS_CLOUDFLARE_D1"

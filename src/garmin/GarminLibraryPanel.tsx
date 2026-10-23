@@ -11,6 +11,7 @@ import type { FitTrace } from './fit'
 import type { GarminActivity } from './csv'
 import './garmin.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
+import GarminSyncPanel from '../phase39/GarminSyncPanel'
 
 const PROFILE_ID='local-primary-profile'
 const formatNumber=(n:number,opts?:Intl.NumberFormatOptions)=>new Intl.NumberFormat('de-DE',{maximumFractionDigits:1,...opts}).format(n)
@@ -28,14 +29,14 @@ export default function GarminLibraryPanel(){
   const [fitVersion,setFitVersion]=useState(0)
 
   async function refresh(){
-    const list=(await listRecords<GarminActivity>('externalActivities')).filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'))
+    const list=(await listRecords<GarminActivity>('externalActivities')).filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal'))
       .sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id))
     setStored(list)
     return list
   }
   useEffect(()=>{let live=true;void listRecords<GarminActivity>('externalActivities').then(rows=>{
     if(!live)return
-    const data=rows.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit')).sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id))
+    const data=rows.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal')).sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id))
     setStored(data);setNotice(data.length?`${data.length} importierte Garmin-Aktivitäten lokal verfügbar.`:'Noch keine Garmin-Aktivitäten importiert.')
   }).catch(error=>{if(live)setNotice('Datenbankfehler: '+String(error))});return()=>{live=false}},[])
 
@@ -65,10 +66,11 @@ export default function GarminLibraryPanel(){
   const totalHm=stored.reduce((sum,x)=>sum+(x.elevationM??0),0)
   const chosen=selected?stored.find(x=>x.id===selected):undefined
   return <section className="tempo-garmin-page">
+    <GarminSyncPanel onSaved={()=>{void refresh().then(()=>setFitVersion(n=>n+1))}}/>
     <div className="tempo-garmin-panel">
       <div className="eyebrow">GARMIN · DATENQUELLEN</div>
       <h2>Aktivitätsbibliothek</h2>
-      <HelpDisclosure id="garmin-intro"><p>Importiere deine bisherigen Rad-, Lauf- und anderen Aktivitäten aus Garmin Connect. Die Dateien werden ausschließlich in deinem Browser verarbeitet und lokal gespeichert – nicht zu GitHub hochgeladen.</p></HelpDisclosure>
+      <HelpDisclosure id="garmin-intro"><p>Importiere deine bisherigen Rad-, Lauf- und anderen Aktivitäten aus Garmin Connect. CSV- und FIT-Dateien werden ausschließlich in deinem Browser verarbeitet und lokal gespeichert. Die optionale Personal-API-Synchronisierung läuft über deinen privaten Cloudflare Worker.</p></HelpDisclosure>
       <div className="tempo-garmin-stats">
         <div><strong>{stored.length}</strong><small>Aktivitäten</small></div>
         <div><strong>{formatNumber(totalKm)}</strong><small>Kilometer</small></div>
@@ -91,7 +93,7 @@ export default function GarminLibraryPanel(){
       </button>)}</div>}
       {!showAll&&shown.length>30&&<button className="tempo-garmin-muted-button" onClick={()=>setShowAll(true)}>Alle {shown.length} anzeigen</button>}
       {chosen&&<div className="tempo-garmin-detail">
-        <h3>{chosen.title}</h3><p>{formatDate(chosen.date)} · {names[chosen.sport]} · {chosen.source==='garmin-fit'?'Garmin FIT':'Garmin CSV'}{chosenTrace?' + FIT-Verlauf':''}</p>
+        <h3>{chosen.title}</h3><p>{formatDate(chosen.date)} · {names[chosen.sport]} · {chosen.source==='garmin-fit'?'Garmin FIT':chosen.source==='garmin-personal'?'Garmin Personal API':'Garmin CSV'}{chosenTrace?' + FIT-Verlauf':''}</p>
         <div className="tempo-garmin-detail-grid">
           <span>Distanz <strong>{chosen.distanceKm==null?'–':formatNumber(chosen.distanceKm)+' km'}</strong></span>
           <span>Dauer <strong>{durationFor(chosen)}</strong></span>
@@ -99,12 +101,18 @@ export default function GarminLibraryPanel(){
           <span>Ø Leistung <strong>{chosen.avgPowerW==null?'–':formatNumber(chosen.avgPowerW,{maximumFractionDigits:0})+' W'}</strong></span>
           <span>Ø HF <strong>{chosen.avgHrBpm==null?'–':formatNumber(chosen.avgHrBpm,{maximumFractionDigits:0})+' bpm'}</strong></span>
           <span>NP <strong>{chosen.normalizedPowerW==null?'–':formatNumber(chosen.normalizedPowerW,{maximumFractionDigits:0})+' W'}</strong></span>
+          <span>Max. HF <strong>{chosen.maxHrBpm==null?'–':formatNumber(chosen.maxHrBpm,{maximumFractionDigits:0})+' bpm'}</strong></span>
+          <span>Max. Leistung <strong>{chosen.maxPowerW==null?'–':formatNumber(chosen.maxPowerW,{maximumFractionDigits:0})+' W'}</strong></span>
+          <span>Kadenz <strong>{chosen.avgCadence==null?'–':formatNumber(chosen.avgCadence,{maximumFractionDigits:0})+' /min'}</strong></span>
+          <span>Tempo Ø <strong>{chosen.avgSpeedKmh==null?'–':formatNumber(chosen.avgSpeedKmh)+' km/h'}</strong></span>
+          <span>Bewegungszeit <strong>{typeof chosen.movingSeconds==='number'?Math.round(chosen.movingSeconds/60)+' min':'–'}</strong></span>
+          <span>Garmin-ID <strong>{typeof chosen.garminActivityId==='string'?chosen.garminActivityId:'–'}</strong></span>
         </div>
         {chosenTrace&&<FitChart trace={chosenTrace}/>}
         {chosenTrace&&<FitInsights trace={chosenTrace} activity={chosen}/>}
         <button className="tempo-garmin-danger" disabled={busy} onClick={()=>void remove(chosen.id)}>Diesen importierten Eintrag löschen</button>
       </div>}
     </div>
-    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Hintergründe & Datenschutz</h3><HelpDisclosure id="garmin-future"><p><strong>FIT-Originaldaten:</strong> Jetzt können Leistung, Puls, Kadenz und Höhenprofil im zeitlichen Verlauf lokal gespeichert und angezeigt werden. Eine erste vorsichtige Anstiegssuche ist verfügbar; eine anstiegsübergreifende Vergleichsbibliothek ist vorhanden; geeignete Intervallorte folgen später.</p><p><strong>Trainingsplanung:</strong> Garmin-Aktivitäten werden nicht ungeprüft als zweite absolvierte Einheit gezählt. Über „Garmin mit TEMPO verbinden“ kannst du vorhandene Trainingseinträge nach Bestätigung zuordnen. Erst dann fließt diese Aktivität als tatsächliche Belastung in neue Planvorschläge ein.</p><p><strong>Datenschutz:</strong> Keine Anmeldung bei Garmin, keine Weitergabe der CSV- oder FIT-Datei, kein TEMPO-Server. FIT enthält gegebenenfalls private GPS-Daten. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></HelpDisclosure></div>
+    <div className="tempo-garmin-panel tempo-garmin-info"><h3>Hintergründe & Datenschutz</h3><HelpDisclosure id="garmin-future"><p><strong>FIT-Originaldaten:</strong> Jetzt können Leistung, Puls, Kadenz und Höhenprofil im zeitlichen Verlauf lokal gespeichert und angezeigt werden. Eine erste vorsichtige Anstiegssuche ist verfügbar; eine anstiegsübergreifende Vergleichsbibliothek ist vorhanden; geeignete Intervallorte folgen später.</p><p><strong>Trainingsplanung:</strong> Garmin-Aktivitäten werden nicht ungeprüft als zweite absolvierte Einheit gezählt. Über „Garmin mit TEMPO verbinden“ kannst du vorhandene Trainingseinträge nach Bestätigung zuordnen. Erst dann fließt diese Aktivität als tatsächliche Belastung in neue Planvorschläge ein.</p><p><strong>Datenschutz:</strong> Kein Garmin-Passwort-Login. CSV-/FIT-Dateien bleiben lokal; bei aktivierter Personal API werden Aktivitätszusammenfassungen über deinen geschützten Cloudflare Worker synchronisiert. FIT enthält gegebenenfalls private GPS-Daten. Das TEMPO-Backup kann die importierte Historie enthalten und sollte privat aufbewahrt werden.</p></HelpDisclosure></div>
   </section>
 }

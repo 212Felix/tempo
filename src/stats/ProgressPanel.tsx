@@ -19,7 +19,7 @@ export default function ProgressPanel(){
  const [notice,setNotice]=useState('Statistik wird geladen …')
  useEffect(()=>{let mounted=true
    const load=()=>void Promise.all([getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<GarminActivity>('externalActivities'),listRecords<DoneWithContext>('completedSessions'),getRecord<RideEnvSettings>('settings',RIDE_SETTINGS_ID)])
-     .then(([p,a,c,o])=>{if(!mounted)return;setProfile(p);setGarmin(uniqueImported(a.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'))));setCompleted(c.filter(x=>x.profileId===PROFILE_ID));setOverrides(o?.overrides??{});setNotice('Lokale Trainingsstatistik geladen ✓')})
+     .then(([p,a,c,o])=>{if(!mounted)return;setProfile(p);setGarmin(uniqueImported(a.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal'))));setCompleted(c.filter(x=>x.profileId===PROFILE_ID));setOverrides(o?.overrides??{});setNotice('Lokale Trainingsstatistik geladen ✓')})
      .catch(e=>{if(mounted)setNotice('Ladefehler: '+String(e))})
    load();window.addEventListener('tempo:training-change',load);return()=>{mounted=false;window.removeEventListener('tempo:training-change',load)}
  },[])

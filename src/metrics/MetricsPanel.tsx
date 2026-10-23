@@ -34,7 +34,7 @@ export default function MetricsPanel(){
       getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<GarminActivity>('externalActivities'),
       listRecords<GoalEvent>('events'),listRecords<StrengthSet>('strengthSets'),listRecords<PerformanceEntry>('performanceEntries')])
     setProfile(p)
-    setActivities(a.filter(r=>r.profileId===PROFILE_ID && (r.source==='garmin-csv'||r.source==='garmin-fit')))
+    setActivities(a.filter(r=>r.profileId===PROFILE_ID && (r.source==='garmin-csv'||r.source==='garmin-fit'||r.source==='garmin-personal')))
     setEvents(e.filter(r=>r.profileId===PROFILE_ID))
     setSets(strength.filter(r=>r.profileId===PROFILE_ID))
     setMetrics(perfs.filter(r=>r.profileId===PROFILE_ID && r.kind==='tempo-measured-performance'))

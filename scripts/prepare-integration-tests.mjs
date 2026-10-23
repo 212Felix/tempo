@@ -6,7 +6,7 @@ const require=createRequire(import.meta.url)
 let ts
 try{ts=require('typescript')}catch{ts=require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript')}
 const files=[
- 'src/phase37/intervals.ts','src/phase38/strength-progression.ts','src/phase38/calendar-weeks.ts','src/phase382/activity-art.ts',
+ 'src/phase39/garmin-sync.ts','src/phase37/intervals.ts','src/phase38/strength-progression.ts','src/phase38/calendar-weeks.ts','src/phase382/activity-art.ts',
  'src/phase28/periodization.ts','src/phase28/adaptive-planner.ts','src/phase28/strength-dose.ts','src/phase28/calendar-model.ts',
  'src/events/library.ts','src/events/running.ts','src/db/types.ts','src/db/storage.ts',
  'src/blocks/days.ts','src/blocks/library.ts','src/planning/load.ts','src/planning/engine.ts',

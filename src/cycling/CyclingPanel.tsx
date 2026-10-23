@@ -37,7 +37,7 @@ export default function CyclingPanel(){
       listRecords<DoneWithContext>('completedSessions'),getRecord<ZonePreferences>('settings',ZONE_SETTINGS_ID),
       getRecord<Environments>('settings',RIDE_SETTINGS_ID),
     ])
-    setProfile(p);setActivities(uniqueImported(a.filter(x=>x.profileId===PROFILE_ID&&x.sport==='cycling'&&(x.source==='garmin-csv'||x.source==='garmin-fit'))))
+    setProfile(p);setActivities(uniqueImported(a.filter(x=>x.profileId===PROFILE_ID&&x.sport==='cycling'&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal'))))
     setCompleted(c.filter(x=>x.profileId===PROFILE_ID))
     if(z?.powerUpperPct&&validUpper(z.powerUpperPct,6))setPowerPct(z.powerUpperPct)
     if(z?.hrUpperPct&&validUpper(z.hrUpperPct,4))setHrPct(z.hrUpperPct)

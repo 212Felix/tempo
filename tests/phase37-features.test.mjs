@@ -45,7 +45,7 @@ test('Datenschutz und Schichtschutz, Datenbank ohne Migration',()=>{
  const types=src('src/db/types.ts'),app=src('src/App.tsx'),planner=src('src/planning/engine.ts')
  assert.match(types,/DATABASE_VERSION = 1/)
  assert.match(types,/BACKUP_SCHEMA_VERSION = 1/)
- assert.match(app,/V0\.38/)
+ assert.match(app,/V0\.39/)
  assert.match(planner,/type ShiftRecord/)
  assert.match(src('src/planning/TrainingDayPanel.tsx'),/tempo37-date-label/)
 })

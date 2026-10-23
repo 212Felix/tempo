@@ -35,3 +35,12 @@ Diese Einheit hat keine direkte Beintrainingsbelastung.
 ## Phase 38.2 – Alpine-Design und Kraftvorgaben
 
 Neue alpine Startseite, sportartspezifische Hintergründe im Tagestraining (Kalender bewusst schlicht), Vorbelegung der Wiederholungen auf den oberen Mittelwert und zuverlässiges Scrollen zum Seitenanfang nach Seitenwechsel. Details: `docs/PHASE38_2_DESIGN_RELEASE.md`.
+
+## Phase 39 – Garmin Connect Personal API (offiziell)
+
+Über das Seitenmenü **Garmin Synchronisierung** können Aktivitäten von deinem privaten Cloudflare Worker über die offizielle Garmin Connect Personal API in TEMPO übernommen werden. Bereits bekannte Garmin-IDs werden nicht dupliziert, unklare Zuordnungen werden nicht still zusammengeführt und der Trainingsplan bleibt unverändert.
+
+Die private Cloudflare-Bereitstellung erfolgt nur durch einen eigenen GitHub-Actions-Workflow auf ausdrücklichen manuellen Aufruf. Garmin-/Worker-Secrets niemals ins öffentliche Repository oder in `localStorage` eintragen.
+
+Einrichtungsanleitung: `docs/PHASE39-GARMIN-EINRICHTUNG.md`.
+Release: `docs/PHASE39-RELEASE.md`.

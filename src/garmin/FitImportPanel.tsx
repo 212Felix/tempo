@@ -129,7 +129,7 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
         <select id="tempo-fit-link" value={candidate} disabled={Boolean(refreshTrace)} onChange={e=>setCandidate(e.target.value)}>
           {refreshTrace&&<option value={refreshTrace.activityId}>Bereits verknüpft: {known.find(a=>a.id===refreshTrace.activityId)?.title??refreshTrace.activityId}</option>}
           <option value="new">Als neue Aktivität anlegen (nur falls noch nicht vorhanden)</option>
-          {known.filter(a=>a.source==='garmin-csv' && typeof a.fitSeriesId!=='string' && Math.abs(Date.parse(a.date+'T12:00:00Z')-Date.parse(preview.date+'T12:00:00Z'))<=86400000)
+          {known.filter(a=>(a.source==='garmin-csv'||a.source==='garmin-personal') && typeof a.fitSeriesId!=='string' && Math.abs(Date.parse(a.date+'T12:00:00Z')-Date.parse(preview.date+'T12:00:00Z'))<=86400000)
             .map(a=><option key={a.id} value={a.id}>{a.date} · {a.title} · {n(a.distanceKm,' km')}{matches.some(m=>m.id===a.id)?' ✓ passend':''}</option>)}
         </select>
         <small>{refreshTrace?'Die Originaldatei wurde schon importiert. Jetzt werden nur ergänzende Zeitangaben aus dem FIT-Sitzungsdatensatz gesichert.': 'Bei einer bereits als CSV gespeicherten Fahrt unbedingt diese Aktivität auswählen. TEMPO hängt dann nur die FIT-Messwerte an; die Gesamtzahl bleibt unverändert.'}</small>

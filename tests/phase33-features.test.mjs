@@ -42,8 +42,8 @@ test('Phase 33: Fotoaufnahme und Fotomediathek getrennt, weiterhin lokale OCR',(
  assert.match(lib,/await worker\.recognize\(file\)/)
 })
 test('Phase 33: Release und 20 Stores, unveränderte Schemaversion',()=>{
- assert.match(src('src/App.tsx'),/PHASE 38/)
- assert.equal(JSON.parse(src('package.json')).version,'0.38.2')
+ assert.match(src('src/App.tsx'),/PHASE 39/)
+ assert.equal(JSON.parse(src('package.json')).version,'0.39.0')
  const db=src('src/db/types.ts')
  assert.match(db,/DATABASE_VERSION = 1/)
  assert.match(db,/BACKUP_SCHEMA_VERSION = 1/)
