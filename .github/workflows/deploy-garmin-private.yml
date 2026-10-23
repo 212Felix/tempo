@@ -1,0 +1,50 @@
+# Separate from GitHub Pages: DOES NOT run on push and never handles Garmin activities.
+# Explicit user trigger after 3 Cloudflare deployment secrets have been configured.
+name: TEMPO Phase 39 – Garmin Worker (privat)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-garmin-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode laden
+        uses: actions/checkout@v4
+      - name: Node.js vorbereiten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Cloudflare-Konfiguration sicher erstellen
+        shell: bash
+        working-directory: cloudflare/tempo-garmin-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID }}
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" || -z "$CLOUDFLARE_D1_ID" ]]; then
+            echo "STOPP: Mindestens eines der 3 Cloudflare-Deployment-Secrets fehlt." >&2
+            exit 1
+          fi
+          if [[ ! "$CLOUDFLARE_D1_ID" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "STOPP: CLOUDFLARE_D1_ID ist keine gültige Datenbank-UUID." >&2
+            exit 1
+          fi
+          # UUID is referenced only on the temporary CI runner, never committed.
+          printf '\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "tempo-garmin-private"\ndatabase_id = "%s"\n' "$CLOUDFLARE_D1_ID" >> wrangler.toml
+      - name: Private Datenbanktabellen initialisieren
+        working-directory: cloudflare/tempo-garmin-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 d1 execute tempo-garmin-private --remote --file=./schema.sql
+      - name: Cloudflare Worker veröffentlichen
+        working-directory: cloudflare/tempo-garmin-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy
