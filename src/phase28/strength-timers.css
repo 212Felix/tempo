@@ -7,3 +7,14 @@
 .tempo-28-hold-done{display:flex;gap:5px;align-items:center}
 .tempo-28-hold-done input{width:19px!important;height:19px!important}
 .tempo-28-timer-confirm{font-size:11px;color:#adcfbe}
+
+/* Phase 40: fixed, touch-first training clock inside the mobile viewport. */
+.tempo40-pinned-timer{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:24;display:flex;justify-content:center;pointer-events:none;margin:10px 0 12px}
+.tempo40-timer-touch{position:relative;pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:190px;min-height:75px;max-width:100%;padding:12px 23px;border:1px solid #83a7b6;border-radius:17px;background:linear-gradient(150deg,#1d3545,#152733);color:#e8f4f7;box-shadow:0 8px 28px #06111baa}
+.tempo40-timer-time{font-weight:800;font-variant-numeric:tabular-nums;font-size:clamp(24px,5vw,31px);letter-spacing:1px;line-height:1.1}
+.tempo40-timer-subtext{color:#b0c9d5;font-size:11px;padding-top:6px}
+.tempo40-timer-watermark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;color:#d9f4f744;pointer-events:none;animation:tempo40-flash .55s ease-out both}
+@keyframes tempo40-flash{from{opacity:.8}to{opacity:0}}
+.tempo40-autosave{font-size:11px!important;color:#a9d2c6!important;line-height:1.5;margin:0 0 8px!important}
+.tw-set input,.tw-form-grid input,.tw-form-grid select,.tw-notes textarea,.tw-variant select{font-size:16px!important}
+@media(max-width:480px){.tempo40-pinned-timer{top:calc(env(safe-area-inset-top,0px) + 54px)}}

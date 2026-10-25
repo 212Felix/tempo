@@ -2,7 +2,7 @@ const dayText = {
     frei: 'Frei', tagdienst: 'Tagdienst', einsatz: 'Einsatz', offen: 'Offen',
     fruehdienst: 'Frühdienst', spaetdienst: 'Spätdienst', nachtdienst: 'Nachtdienst',
 };
-const iconFor = (type) => type.includes('strength') ? '🏋' : type.includes('run') ? '🏃' : type.includes('mobility') ? '🧘' : type.includes('swim') ? '🏊' : type.includes('recovery') ? '◯' : type.includes('commute') ? '🚲' : '🚴';
+const iconFor = (type) => type.includes('strength') ? '🏋' : type.includes('run') ? '🏃' : type.includes('stabi') ? '🤸' : type.includes('yoga') ? '🧘' : type.includes('mobility') ? '🧘' : type.includes('swim') ? '🏊' : type.includes('recovery') ? '◯' : type.includes('commute') ? '🚲' : '🚴';
 export const todayLocal = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export const mondayOf = (date) => { const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return todayLocal(d); };
 export const addDays = (date, count) => { const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() + count); return todayLocal(d); };

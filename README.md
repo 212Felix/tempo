@@ -44,3 +44,7 @@ Die private Cloudflare-Bereitstellung erfolgt nur durch einen eigenen GitHub-Act
 
 Einrichtungsanleitung: `docs/PHASE39-GARMIN-EINRICHTUNG.md`.
 Release: `docs/PHASE39-RELEASE.md`.
+
+## Phase 40A – Sicherheitspaket (noch Version 0.39.0)
+
+Automatische lokale Kraft-Trainingssicherung, Fortsetzen aus dem Tagestraining, interaktiver fortlaufender Timer, Fehler-Markierung bei mehrfacher Garmin-/FIT-Zuordnung. Technische Details, Prüfstatus und iPhone-Testablauf unter `docs/PHASE40A-RELEASE.md`. Weitere Phase-40-Pakete folgen separat.
