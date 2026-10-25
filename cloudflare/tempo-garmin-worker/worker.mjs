@@ -65,13 +65,13 @@ async function secureEqual(a,b) {
   return [...new Uint8Array(x)].every((byte,index)=>byte===new Uint8Array(y)[index])
 }
 async function garminGet(path, token) {
-  const response = await fetch(GARMIN_BASE+path,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},redirect:'error'})
+  const response = await fetch(GARMIN_BASE+path,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},redirect:'manual'})
   if (!response.ok) throw new Error(`Garmin antwortet mit HTTP ${response.status}`)
   return response.json()
 }
 async function fetchToken(env) {
   if (!env.GARMIN_PERSONAL_API_KEY) throw new Error('Garmin-Key ist noch nicht als Worker-Secret eingerichtet.')
-  const response=await fetch(GARMIN_BASE+TOKEN_PATH,{method:'POST',headers:{Authorization:`ApiKey ${env.GARMIN_PERSONAL_API_KEY}`,Accept:'application/json'},redirect:'error'})
+  const response=await fetch(GARMIN_BASE+TOKEN_PATH,{method:'POST',headers:{Authorization:`ApiKey ${env.GARMIN_PERSONAL_API_KEY}`,Accept:'application/json'},redirect:'manual'})
   if (!response.ok)throw new Error(`Garmin-Authentifizierung fehlgeschlagen (HTTP ${response.status}).`)
   const body=await response.json()
   const token=body.access_token || body.accessToken || body.token
