@@ -25,3 +25,11 @@
 .tempo39-privacy{margin-top:14px;border-top:1px solid #395567;padding-top:12px;font-size:13px;line-height:1.5}
 .tempo39-privacy summary{cursor:pointer;font-weight:750}
 @media(max-width:480px){.tempo39-sync-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.tempo39-sync-stats>div:first-child{grid-column:span 2}}
+
+/* Phase 40: precise, actionable Garmin/FIT conflict detection. */
+.tempo40-conflict-summary{margin:12px 0;padding:14px;border:1px solid #d8b566;background:#483c2455;border-radius:12px;color:#ffe3ad;overflow-wrap:anywhere}
+.tempo40-conflict-summary p,.tempo40-conflict-summary span{display:block;font-size:12px;line-height:1.5;margin:7px 0}
+.tempo40-conflict-summary>div{padding:8px 0;border-top:1px solid #d8b5664d}
+.tempo40-conflict-item{border:2px solid #e7bb66;background:#342c246b}
+.tempo40-conflict-help{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;color:#ffe3ad;font-size:12px;line-height:1.5}
+.tempo40-conflict-help button{padding:8px 11px;border-radius:8px;background:#3f3940;border:1px solid #e7bb66;color:#fff;cursor:pointer;font-size:13px}

@@ -1,0 +1,16 @@
+TEMPO PHASE 40A – SICHERER GITHUB-UPLOAD
+
+1. ZUERST auf dem iPhone in TEMPO unter "Profil & Daten" ein aktuelles JSON-Backup erstellen und sicher in iCloud/Dateien sichern.
+2. Diese ZIP auf dem Mac entpacken.
+3. GitHub-Repository 212Felix/tempo auf Branch main öffnen.
+4. Wie gewohnt unter Add file -> Upload files ALLE Inhalte INNERHALB des entpackten Ordners "tempo-main" hochladen, nicht den Ordner selbst als eine Ebene.
+5. Änderungen prüfen. Keine privaten JSON-Backups, FIT/GPX-Dateien, API-Keys oder Passwörter hochladen.
+6. Commit auf main erst nach Kontrolle; GitHub Actions muss Sicherheitsprüfung, Logiktests UND Produktions-Build erfolgreich abschließen.
+7. Auf dem iPhone TEMPO neu laden und im Seitenmenü "Phase 40A" prüfen.
+8. Ein Krafttraining testweise starten, Satzdaten ändern, über Tagestraining verlassen und mit "Aktives Training fortsetzen" fortsetzen.
+9. Garmin-Dubletten testen. Bestehenden Cloudflare Worker NICHT erneut hochladen und keine Secrets ändern.
+
+WICHTIG: TEMPO NICHT DEINSTALLIEREN. KEINE BROWSERDATEN LÖSCHEN.
+BEREITS VORHANDENE PERSÖNLICHE DATEN VERBLEIBEN NUR LOKAL AUF DEINEM GERÄT.
+
+Falls GitHub Actions einen roten Fehler anzeigt: App nicht als erfolgreich aktualisiert betrachten, Fehler-Screenshot schicken und keine unkontrollierten weiteren Uploads durchführen.

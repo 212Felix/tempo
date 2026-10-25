@@ -3,6 +3,7 @@ import {getRecord,listRecords,saveRecord} from '../db/storage'
 import type {GarminActivity} from '../garmin/csv'
 import {bridgeRequest,classifyPersonal,commitPersonalImport,validateBridgeUrl,validatePersonalSummary,
  type PersonalCandidate,type PersonalDecision} from './garmin-sync'
+import {findAssignmentConflicts} from './garmin-conflicts'
 import './garmin-sync.css'
 
 const CONFIG_ID='garmin-personal-bridge:local-primary-profile'
@@ -59,6 +60,8 @@ export default function GarminSyncPanel({onSaved}:{onSaved:()=>void}){
  const pending=useMemo(()=>rows.filter(x=>x.status!=='already'),[rows])
  const visiblePending=pending.slice(0,40)
  const unclear=visiblePending.filter(x=>x.status==='review'&&!choices[x.activity.garminActivityId])
+ const conflicts=useMemo(()=>findAssignmentConflicts(visiblePending,choices),[visiblePending,choices])
+ const conflictingIds=new Set(conflicts.flatMap(x=>x.activityIds))
  async function authorize(){
   setLoading(true)
   try{
@@ -80,6 +83,7 @@ export default function GarminSyncPanel({onSaved}:{onSaved:()=>void}){
  }
  async function save(){
   if(unclear.length){setNotice('Bitte alle möglichen Doppelungen einzeln prüfen.');return}
+  if(conflicts.length){setNotice('Bitte zuerst die unten markierten doppelten FIT-Zuordnungen korrigieren.');return}
   setLoading(true)
   try{
    const decisions:PersonalDecision[]=visiblePending.map(r=>({garminActivityId:r.activity.garminActivityId,targetId:choices[r.activity.garminActivityId]??'new'}))
@@ -109,16 +113,19 @@ export default function GarminSyncPanel({onSaved}:{onSaved:()=>void}){
    <p className="tempo39-notice" role="status">{notice}</p>
    {rows.length>0&&<section className="tempo39-candidates"><h3>Aktivitäten abgleichen</h3>
      <p>{rows.filter(r=>r.status==='already').length} bereits bekannt · {pending.filter(r=>r.status==='new').length} neu · {pending.filter(r=>r.status==='review').length} bitte prüfen</p>
-     {visiblePending.map(r=><div key={r.activity.garminActivityId} className="tempo39-item">
+     {conflicts.length>0&&<div className="tempo40-conflict-summary" role="alert"><strong>{conflicts.length} doppelte FIT-Zuordnung{conflicts.length===1?'':'en'} gefunden</strong><p>Je TEMPO-/FIT-Eintrag darf nur eine Garmin-Aktivität verknüpft werden. Die betreffenden Karten sind markiert:</p>
+       {conflicts.map(conflict=><div key={conflict.targetId}><strong>{existing.find(x=>x.id===conflict.targetId)?.title??'FIT-Eintrag'}</strong><span>{conflict.activityNames.join(' · ')}</span></div>)}
+     </div>}
+     {visiblePending.map(r=><div key={r.activity.garminActivityId} className={`tempo39-item ${conflictingIds.has(r.activity.garminActivityId)?'tempo40-conflict-item':''}`}>
        <div><strong>{r.activity.title}</strong><small>{dates(r.activity.date)} · {r.activity.sport==='cycling'?'🚴 Rad':r.activity.sport==='running'?'🏃 Lauf':'🏊 Schwimmen'} · {Math.round(r.activity.durationSeconds/60)} min · {r.activity.distanceKm?.toFixed(1)??'—'} km</small></div>
        {r.status==='review'?<><label className="tempo39-select-label">Möglicherweise bereits gespeichert
          <select value={choices[r.activity.garminActivityId]??''} onChange={e=>setChoices(prev=>({...prev,[r.activity.garminActivityId]:e.target.value}))}>
            <option value="">Bitte entscheiden</option><option value="skip">Nicht importieren</option><option value="new">Trotzdem als neue Aktivität speichern</option>
            {r.matches.map(m=><option value={m.id} key={m.id}>Mit {m.date} · {m.title} verknüpfen</option>)}
-         </select></label></>:<span className="tempo39-new">Neu ✓</span>}
+         </select></label>{conflictingIds.has(r.activity.garminActivityId)&&<div className="tempo40-conflict-help" role="alert"><strong>Diese FIT-Datei ist mehrfach ausgewählt.</strong><span>Bitte eine andere vorhandene Aktivität wählen, als neue Aktivität speichern (nur wenn wirklich neu) oder nicht importieren.</span><button type="button" onClick={()=>setChoices(prev=>({...prev,[r.activity.garminActivityId]:''}))}>Zuordnung zurücksetzen</button></div>}</>:<span className="tempo39-new">Neu ✓</span>}
      </div>)}
      {pending.length>40&&<p>Es werden zunächst 40 Einträge angezeigt. Nach dem ersten Import erneut laden.</p>}
-     <button type="button" className="tempo39-import" disabled={loading||visiblePending.length===0||unclear.length>0} onClick={()=>void save()}>Geprüfte Aktivitäten lokal übernehmen ({visiblePending.length})</button>
+     <button type="button" className="tempo39-import" disabled={loading||visiblePending.length===0||unclear.length>0||conflicts.length>0} onClick={()=>void save()}>Geprüfte Aktivitäten lokal übernehmen ({visiblePending.length})</button>
      <p className="tempo39-small">Bestehende Datensätze werden nicht überschrieben. Zusammenführen ergänzt fehlende Garmin-Werte. Der Trainingsplan und die Tagesreadiness werden niemals automatisch verändert.</p>
    </section>}
    <details className="tempo39-privacy"><summary>Datenschutz & Einrichtung</summary><p>Dein Garmin-Key liegt ausschließlich in einem Worker-Secret, Aktivitäten nur in deiner privaten D1-Datenbank und lokal in TEMPO. Weder Schlüssel noch GPS-Daten werden im öffentlichen GitHub-Repository gespeichert. Nur Rad, Lauf und Schwimmen werden synchronisiert; FIT-Dateien kannst du weiterhin manuell importieren.</p><p>Zum Einrichten: siehe <strong>docs/PHASE39-GARMIN-EINRICHTUNG.md</strong> im Upload-Paket. Ohne eingerichteten Worker bleibt der vorhandene manuelle Import verfügbar.</p></details>

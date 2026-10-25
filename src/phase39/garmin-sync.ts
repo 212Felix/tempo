@@ -96,7 +96,7 @@ export async function commitPersonalImport(candidates:PersonalCandidate[],decisi
    operations.push(personalRecord(a));created++
   } else {
    if(!matches.some(x=>x.id===choice))throw Error('Ungültiges Zuordnungsziel.')
-   if(claimedTarget.has(choice))throw Error('Dieselbe TEMPO-Aktivität ist mehrfach ausgewählt.')
+   if(claimedTarget.has(choice))throw Error(`Die FIT-/TEMPO-Aktivität ${existing.find(x=>x.id===choice)?.title??choice} ist mehrfach ausgewählt. Bitte die markierten Zuordnungen korrigieren.`)
    claimedTarget.add(choice)
    const old=existing.find(x=>x.id===choice)
    if(!old)throw Error('Zielaktivität wurde nicht gefunden.')
