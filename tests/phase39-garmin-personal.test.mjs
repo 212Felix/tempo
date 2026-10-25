@@ -98,9 +98,17 @@ test('Phase39: end-to-end mock uses official token/list/detail and stores privat
 
  const originalFetch=globalThis.fetch
  let tokenCount=0
- globalThis.fetch=async(url)=>{
-  if(String(url).includes('personal-api-key/token')){tokenCount++;return Response.json({access_token:'mock-token'})}
-  if(String(url).includes('activities/search'))return Response.json([sample])
+ globalThis.fetch=async(url, options)=>{
+  if(String(url).includes('personal-api-key/token')){
+   tokenCount++
+   assert.equal(options.headers.Accept,'*/*')
+   assert.equal(options.redirect,'manual')
+   return new Response('header.payload.signature\n',{headers:{'Content-Type':'text/plain'}})
+  }
+  if(String(url).includes('activities/search')){
+   assert.equal(options.headers.Authorization,'Bearer header.payload.signature')
+   return Response.json([sample])
+  }
   if(String(url).includes('/activity-service/activity/'))return Response.json(sample)
   throw Error('unexpected network route')
  }

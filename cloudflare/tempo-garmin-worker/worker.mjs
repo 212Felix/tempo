@@ -64,18 +64,38 @@ async function secureEqual(a,b) {
   const [x,y] = await Promise.all([crypto.subtle.digest('SHA-256',enc.encode(a)),crypto.subtle.digest('SHA-256',enc.encode(b))])
   return [...new Uint8Array(x)].every((byte,index)=>byte===new Uint8Array(y)[index])
 }
+// Cloudflare Workers support manual/follow redirect modes; we explicitly reject unexpected redirects.
+// Never follow an unexpected Garmin redirect with an Authorization header.
+function rejectGarminRedirect(response) {
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error('Garmin hat eine unerwartete Weiterleitung gesendet. Die Anfrage wurde aus Sicherheitsgründen abgebrochen.')
+  }
+  return response
+}
 async function garminGet(path, token) {
-  const response = await fetch(GARMIN_BASE+path,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},redirect:'manual'})
+  const response = rejectGarminRedirect(await fetch(GARMIN_BASE+path,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},redirect:'manual'}))
   if (!response.ok) throw new Error(`Garmin antwortet mit HTTP ${response.status}`)
   return response.json()
 }
 async function fetchToken(env) {
   if (!env.GARMIN_PERSONAL_API_KEY) throw new Error('Garmin-Key ist noch nicht als Worker-Secret eingerichtet.')
-  const response=await fetch(GARMIN_BASE+TOKEN_PATH,{method:'POST',headers:{Authorization:`ApiKey ${env.GARMIN_PERSONAL_API_KEY}`,Accept:'application/json'},redirect:'manual'})
-  if (!response.ok)throw new Error(`Garmin-Authentifizierung fehlgeschlagen (HTTP ${response.status}).`)
-  const body=await response.json()
-  const token=body.access_token || body.accessToken || body.token
-  if(typeof token!=='string'||!token.length)throw new Error('Garmin hat keinen verwendbaren Zugangstoken geliefert.')
+  // Garmin's official Personal API returns a JWT as plain text, not a JSON object.
+  // Match Garmin's reference client: Accept */* on the token endpoint.
+  const response = rejectGarminRedirect(await fetch(GARMIN_BASE + TOKEN_PATH, {
+    method: 'POST',
+    headers: {
+      Authorization: `ApiKey ${env.GARMIN_PERSONAL_API_KEY}`,
+      Accept: '*/*',
+    },
+    redirect: 'manual',
+  }))
+  if (!response.ok) throw new Error(`Garmin-Authentifizierung fehlgeschlagen (HTTP ${response.status}).`)
+  const token = (await response.text()).trim()
+  // The official Personal API returns a three-part JWT, rather than {access_token: ...}.
+  // Never include the response or the API key in logs or user-facing errors.
+  if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) {
+    throw new Error('Garmin hat keinen gültigen Zugangstoken geliefert.')
+  }
   return token
 }
 async function sync(env) {
