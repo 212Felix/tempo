@@ -1,3 +1,4 @@
+import {germanDate} from '../phase40c/date'
 import {activeGarminActivities} from '../garmin/stored-duplicates'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {deleteRecord,getRecord,listRecords,saveRecord} from '../db/storage'
@@ -104,7 +105,7 @@ export default function MetricsPanel(){
       <div className="tempo-metrics-grid"><div><small>Garmin-Radfahrten</small><strong>{cycling.length}</strong></div><div><small>Garmin-Läufe</small><strong>{running.length}</strong></div><div><small>Radfahrten mit Ø Watt</small><strong>{garminWithPower.length}</strong></div><div><small>Gespeicherte Krafteinzelsätze</small><strong>{sets.length}</strong></div></div>
       <HelpDisclosure id="metrics-data-note">Die Aktivitätszahlen sind Bibliothekseinträge, keine deduplizierte Trainingsstatistik. Für aggregierte Kilometer und Indoor-/Outdoorfahrten bitte „Fortschritt“ verwenden. Garmin-Schnittwerte ersetzen keine Leistungsdiagnostik.</HelpDisclosure>
       {maxStrength.length>0&&<><h3>Bisherige Satzgewichte</h3><div className="tempo-metrics-list">{maxStrength.map(r=><div key={r.id}><strong>{r.exerciseVariant??exerciseNames.find(x=>x.id===r.exerciseId)?.name??r.exerciseId}</strong><span>{format(r.weightKg??0)} kg · {r.reps??'–'} Wdh. · {r.trainingLocation==='studio'?'Studio':r.trainingLocation==='arbeit'?'Arbeit':'Ort offen'}</span></div>)}</div><p className="tempo-metrics-note">Höchstes gespeichertes Satzgewicht je Übung, Gerätevariante und Trainingsort; kein berechnetes 1RM.</p></>}
-      {cooper&&<div className="tempo-metrics-highlight"><strong>Cooper-Ziel · {format((cooper.distanceKm??3.2)*1000,0)} m in {displayDuration(cooper.targetSeconds??720)}</strong><span>{paceText(cooper.distanceKm,cooper.targetSeconds)} · {cooper.date?`Test am ${cooper.date}`:'Datum noch offen'}</span></div>}
+      {cooper&&<div className="tempo-metrics-highlight"><strong>Cooper-Ziel · {format((cooper.distanceKm??3.2)*1000,0)} m in {displayDuration(cooper.targetSeconds??720)}</strong><span>{paceText(cooper.distanceKm,cooper.targetSeconds)} · {cooper.date?`Test am ${germanDate(cooper.date)}`:'Datum noch offen'}</span></div>}
     </section>
     <section className="panel tempo-metrics-panel">
       <div className="eyebrow">TESTS & BESTLEISTUNGEN</div><h2>Leistungswert hinzufügen</h2>
@@ -116,7 +117,7 @@ export default function MetricsPanel(){
         <label>Notiz / Testbedingungen (optional)<textarea rows={2} maxLength={500} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Gerät, Strecke, Testart …"/></label>
         <button type="submit" disabled={busy}>{busy?'Speichere …':'Leistungswert speichern'}</button>
       </form><p role="status" className="tempo-metrics-note">{message}</p>
-      {metrics.length>0&&<><h3>Deine protokollierten Bestwerte</h3><div className="tempo-metrics-list">{(Object.keys(METRIC_OPTIONS) as MetricCode[]).filter(id=>latest[id]).map(id=>{const item=latest[id]!;const option=METRIC_OPTIONS[id];return <div key={id}><div><strong>{option.name}</strong><span>{item.date} · {option.kind==='time'?formatSeconds(item.value):`${format(item.value)} ${option.unit}`}</span></div><button type="button" onClick={()=>void remove(item)} aria-label={`${option.name} löschen`}>Löschen</button></div>})}</div></>}
+      {metrics.length>0&&<><h3>Deine protokollierten Bestwerte</h3><div className="tempo-metrics-list">{(Object.keys(METRIC_OPTIONS) as MetricCode[]).filter(id=>latest[id]).map(id=>{const item=latest[id]!;const option=METRIC_OPTIONS[id];return <div key={id}><div><strong>{option.name}</strong><span>{germanDate(item.date)} · {option.kind==='time'?formatSeconds(item.value):`${format(item.value)} ${option.unit}`}</span></div><button type="button" onClick={()=>void remove(item)} aria-label={`${option.name} löschen`}>Löschen</button></div>})}</div></>}
     </section>
   </div>
 }

@@ -1,3 +1,4 @@
+import {germanDate} from '../phase40c/date'
 import {useEffect,useMemo,useState,type ChangeEvent} from 'react'
 import {parseGarminCsv,type GarminActivity} from './csv'
 import {decodeFitFile,type FitTrace} from './fit'
@@ -122,7 +123,7 @@ function BatchItem({row,busy,update}:{row:BatchRow;busy:boolean;update:(key:stri
   const hasTarget=Boolean(row.matchId)&&row.matches.some(x=>x.id===row.matchId)
   const canMerge=row.source.kind==='csv'||(hasTarget&&row.source.kind==='fit')
   return <div className={`tempo-batch-row ${row.decision==='review'?'needs-review':''}`}>
-    <div className="tempo-batch-row-head"><strong>{row.date} · {sportNames[row.sport]} · {row.label}</strong><span>{statusLabel(row)}</span></div>
+    <div className="tempo-batch-row-head"><strong>{germanDate(row.date)} · {sportNames[row.sport]} · {row.label}</strong><span>{statusLabel(row)}</span></div>
     <small>{row.fileName} · {fmt(row.distanceKm)} km · {Math.floor(row.durationSeconds/3600)}:{String(Math.floor(row.durationSeconds/60)%60).padStart(2,'0')}:{String(row.durationSeconds%60).padStart(2,'0')}</small>
     <p>{row.reason}</p>
     {!!row.matches.length&&<label className="tempo-batch-match">Mögliche bestehende Aktivität

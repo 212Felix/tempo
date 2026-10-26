@@ -1,3 +1,4 @@
+import {germanDate} from '../phase40c/date'
 import {activeGarminActivities} from '../garmin/stored-duplicates'
 import TimeFields from '../time/TimeFields'
 import {formatSeconds,parseHms} from '../time/duration'
@@ -103,7 +104,7 @@ export default function BlockDaysPanel({block,onSaved}:{block:TrainingBlock;onSa
       {looksRide(form.kind)&&<>
         <label>Bekannte Route / vorherige Fahrt (optional)<select value={form.routeId?`${form.routeSource}:${form.routeId}`:''} onChange={e=>{const v=e.target.value;const index=v.indexOf(':');update({routeSource:index<0?undefined:v.slice(0,index) as 'garmin'|'route',routeId:index<0?undefined:v.slice(index+1),climbKey:undefined,climbIntervals:[]})}}><option value="">Noch keine Route auswählen</option>
           <optgroup label="Eigene gespeicherte Routen">{routes.map(r=><option key={r.id} value={`route:${r.id}`}>{r.name}{r.distanceKm?` · ${r.distanceKm} km`:''}</option>)}</optgroup>
-          <optgroup label="Vergangene Garmin-Radfahrten">{activities.map(a=><option key={a.id} value={`garmin:${a.id}`}>{a.date} · {a.title} · {a.distanceKm?.toLocaleString('de-DE')??'?'} km</option>)}</optgroup>
+          <optgroup label="Vergangene Garmin-Radfahrten">{activities.map(a=><option key={a.id} value={`garmin:${a.id}`}>{germanDate(a.date)} · {a.title} · {a.distanceKm?.toLocaleString('de-DE')??'?'} km</option>)}</optgroup>
         </select></label>
         {selectedRoute&&<p className="tempo-day-route-info">{labels[form.routeSource??'']}: {form.routeSource==='garmin'?activities.find(a=>a.id===form.routeId)?.title:routes.find(r=>r.id===form.routeId)?.name} · {selectedRoute.distanceKm?.toLocaleString('de-DE')??'?'} km · {'elevationM' in selectedRoute&&selectedRoute.elevationM!==undefined?`${selectedRoute.elevationM} hm`: 'Höhenmeter offen'}.</p>}
         <label>Trainingscharakter<select value={form.effort??'easy'} onChange={e=>update({effort:e.target.value as BlockDayEffort})}>{(Object.entries(effortLabels) as [BlockDayEffort,string][]).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>

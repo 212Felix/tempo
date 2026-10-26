@@ -1,3 +1,4 @@
+import {germanDate} from '../phase40c/date'
 import TimeFields from '../time/TimeFields'
 import SessionGarminReview from '../phase37/SessionGarminReview'
 import {recoveryValid,runRecoveryText,defaultsForRunRecovery,type RunningRecovery} from '../phase37/intervals'
@@ -77,7 +78,7 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
       <HelpDisclosure id="running-intro"><p>Der Laufteil startet bewusst behutsam: erst Umfang und Sehnenverträglichkeit, später gezielte Geschwindigkeit. Aktuell keine harten 800-m- oder 1.000-m-Intervalle.</p></HelpDisclosure>
       <div className="tw-form-grid"><label>Geplante Laufeinheit<select value={plannedId} onChange={e=>{
         setPlannedId(e.target.value);const item=planned.find(x=>x.id===e.target.value);if(item){setDate(item.date);setDuration(durationFor(item))}else setDuration('00:30:00')
-      }}><option value="">Freien Lauf erfassen</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
+      }}><option value="">Freien Lauf erfassen</option>{planned.map(x=><option key={x.id} value={x.id}>{germanDate(x.date)} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
         {!session&&<label>Datum<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>}
       </div>
       <div className="tw-info"><strong>{session?.title??runInstructions.title} · {friendlyDate(actualDate)}</strong><span>RPE 3–4 · lockere Atmung · Gehpausen erlaubt</span><span>{runInstructions.note}</span></div>

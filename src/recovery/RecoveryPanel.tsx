@@ -1,3 +1,4 @@
+import {germanDate} from '../phase40c/date'
 import MovementPreview from './MovementPreview'
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {listRecords,openTempoDatabase} from '../db/storage'
@@ -100,7 +101,7 @@ export default function RecoveryPanel(){
    </section>
    <section className="tempo-recovery-panel">
      <div className="eyebrow">LOKAL GESPEICHERT</div><h2>Deine letzten Routinen</h2>
-     {!history.length?<p>Noch keine Recovery-Einheit dokumentiert.</p>:<div className="tempo-recovery-history">{history.map(x=><div key={x.id}><strong>{x.date} · {focusLabels[x.focus]??'Recovery'}</strong><span>{formatSeconds(x.actualSeconds)}</span></div>)}</div>}
+     {!history.length?<p>Noch keine Recovery-Einheit dokumentiert.</p>:<div className="tempo-recovery-history">{history.map(x=><div key={x.id}><strong>{germanDate(x.date)} · {focusLabels[x.focus]??'Recovery'}</strong><span>{formatSeconds(x.actualSeconds)}</span></div>)}</div>}
    </section>
  </div>
 }

@@ -1,3 +1,4 @@
+import {germanDate} from '../phase40c/date'
 import { useEffect, useState,type ChangeEvent } from 'react'
 import { decodeFitFile,fitMatches,type FitDecoded,type FitTrace } from './fit'
 import FitChart from './FitChart'
@@ -130,7 +131,7 @@ export default function FitImportPanel({onSaved}:{onSaved:(id:string)=>void}){
           {refreshTrace&&<option value={refreshTrace.activityId}>Bereits verknüpft: {known.find(a=>a.id===refreshTrace.activityId)?.title??refreshTrace.activityId}</option>}
           <option value="new">Als neue Aktivität anlegen (nur falls noch nicht vorhanden)</option>
           {known.filter(a=>(a.source==='garmin-csv'||a.source==='garmin-personal') && typeof a.fitSeriesId!=='string' && Math.abs(Date.parse(a.date+'T12:00:00Z')-Date.parse(preview.date+'T12:00:00Z'))<=86400000)
-            .map(a=><option key={a.id} value={a.id}>{a.date} · {a.title} · {n(a.distanceKm,' km')}{matches.some(m=>m.id===a.id)?' ✓ passend':''}</option>)}
+            .map(a=><option key={a.id} value={a.id}>{germanDate(a.date)} · {a.title} · {n(a.distanceKm,' km')}{matches.some(m=>m.id===a.id)?' ✓ passend':''}</option>)}
         </select>
         <small>{refreshTrace?'Die Originaldatei wurde schon importiert. Jetzt werden nur ergänzende Zeitangaben aus dem FIT-Sitzungsdatensatz gesichert.': 'Bei einer bereits als CSV gespeicherten Fahrt unbedingt diese Aktivität auswählen. TEMPO hängt dann nur die FIT-Messwerte an; die Gesamtzahl bleibt unverändert.'}</small>
       </div>

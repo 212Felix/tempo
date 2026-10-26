@@ -8,6 +8,7 @@ import type {TrainingBlock} from '../blocks/library'
 import type {CompletedRecord, ShiftRecord, ReadinessRecord, TrainingRecord} from '../planning/engine'
 import {adviseStrengthVolume, type BlockKind} from './periodization'
 import {REGULAR_LEG_SETS} from './strength-dose'
+import type {Wellness} from '../phase40c/wellness'
 
 export type AdaptiveKind = BlockKind | 'TAPER' | 'RECOVERY'
 export type AdaptiveWeek = {
@@ -23,7 +24,7 @@ export type AdaptiveOptions = {
   start: string; weeks: number; events: GoalEvent[]; blocks?: TrainingBlock[];
   completed?: CompletedRecord[]; planned?: TrainingRecord[];
   shifts?: Record<string, ShiftRecord>; readiness?: ReadinessRecord;
-  regularLegSets?: number; ftpWatts?: number;
+  regularLegSets?: number; ftpWatts?: number; wellness?:Wellness;
 }
 const MS_DAY = 86400000
 function validDate(s?:string):boolean {
@@ -92,7 +93,7 @@ function historyBaseline(start:string, completed:CompletedRecord[]):number|undef
 const LEG_DEFAULT=REGULAR_LEG_SETS
 export function deriveAdaptiveWeeks(options:AdaptiveOptions):AdaptiveWeek[] {
   const {
-    events,completed=[],planned=[],blocks=[],shifts={},readiness,
+    events,completed=[],planned=[],blocks=[],shifts={},readiness,wellness,
     regularLegSets=LEG_DEFAULT,
   }=options
   const start=mondayUTC(options.start)
@@ -125,7 +126,9 @@ export function deriveAdaptiveWeeks(options:AdaptiveOptions):AdaptiveWeek[] {
     const enduranceMinutes=weeklySessions.filter(x=>/long|endurance|quality|commute|cycl|run/.test(x.sessionType??'')).reduce((sum,x)=>sum+Math.min(600,Math.max(0,x.durationMin??0)),0)
     const dutyDays=Array.from({length:7},(_,i)=>advance(weekStart,i)).filter(d=>shifts[d]?.shift==='einsatz').length
     const currentReady=readiness&&readiness.date>=weekStart&&readiness.date<=weekEnd?readiness:undefined
-    const underRecovered=Boolean(currentReady?.illness==='ja'||(currentReady?.ratings?.energy??5)<=2||(currentReady?.ratings?.fatigue??1)>=4)
+    const garminToday=wellness&&wellness.date>=weekStart&&wellness.date<=weekEnd?wellness:undefined
+    const garminLow=Boolean(garminToday&&((garminToday.bodyBattery!==undefined&&garminToday.bodyBattery<30)||(garminToday.sleepHours!==undefined&&garminToday.sleepHours<6)))
+    const underRecovered=Boolean(currentReady?.illness==='ja'||(currentReady?.ratings?.energy??5)<=2||(currentReady?.ratings?.fatigue??1)>=4||garminLow)
     const volumeFactor=enduranceMinutes>=600?.5:enduranceMinutes>=420?.7:1
     const dutyFactor=dutyDays>=3?.6:dutyDays>=1?.85:1
     const readinessFactor=underRecovered?.5:1
@@ -151,6 +154,7 @@ export function deriveAdaptiveWeeks(options:AdaptiveOptions):AdaptiveWeek[] {
     if(enduranceMinutes>=420)notes.push(`Geplante/dokumentierte Rad- und Laufzeit ${Math.round(enduranceMinutes)} min: Beinvolumen vorsichtig reduziert.`)
     if(dutyDays)notes.push(`${dutyDays} Einsatztag(e): weniger Beinvolumen zur Dienstbelastung.`)
     if(underRecovered)notes.push('Schwache Erholung/Beschwerden gemeldet: Beinvolumen und intensive Reize reduziert; bei Beschwerden Training aussetzen.')
+    if(garminLow)notes.push('Garmin Schlaf/Body Battery niedrig: zusätzliche Erholungsempfehlung. TEMPO Check-in und bestehende Einheiten bleiben unverändert.')
     if(confirmedBlock)notes.push(`Dein Sonderblock „${confirmedBlock.name}“ wird berücksichtigt.`)
     if(next)notes.push(`Ausrichtung auf ${next.name} (${next.priority}-Ziel, ${next.date}).`)
     if(kind==='HIT')notes.push('Maximal ein qualitätsbetonter VO₂-Reiz; die übrigen Radfahrten locker.')

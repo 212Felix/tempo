@@ -1,4 +1,5 @@
 import {durationFor} from '../time/duration'
+import CyclingIntervalChart from '../phase40c/CyclingIntervalChart'
 import {prescription} from './session-prescription'
 import type {ProfileRecord} from '../db/types'
 import {getRecord} from '../db/storage'
@@ -12,6 +13,8 @@ import DayShiftEditor from './DayShiftEditor'
 import './plan.css'
 import WeekReplanner from '../phase30/WeekReplanner'
 import {addDays} from '../phase28/calendar-model'
+import {germanDate} from '../phase40c/date'
+import GarminWellnessCard from '../phase40c/GarminWellnessCard'
 
 function HomeTrainingCard({onOpen,onOpenWorkout}:{onOpen:()=>void;onOpenWorkout?:(session:TrainingRecord)=>void}) {
   const [today,setToday]=useState<TrainingRecord[]>([])
@@ -70,11 +73,13 @@ export default function TrainingDayPanel({onOpenWorkout,initialDate,autoAddDate,
   const previousDate=addDays(selectedDay,-1)
   const nextDate=addDays(selectedDay,1)
   return <div className="tempo-workout tempo-28-daily tempo36-day">
+    <GarminWellnessCard date={selectedDay} compact/>
     <section className="panel tempo-workout-head tempo36-daily-main">
       <div className="tempo-workout-nav tempo36-date-nav"><button type="button" onClick={()=>setSelected(previousDate)} aria-label="Vorheriger Kalendertag">‹</button><label className="tempo37-date-label"><span>{friendlyDate(selectedDay)}</span><input aria-label="Datum auswählen" type="date" value={selectedDay} onChange={e=>setSelected(e.target.value||today)}/></label><button type="button" onClick={()=>setSelected(nextDate)} aria-label="Nächster Kalendertag">›</button></div>
       {loading&&<p>{notice}</p>}
       {!loading&&atDate.length===0&&<p>Heute keine fest gespeicherte Einheit. Über „Training hinzufügen“ kannst du selbst planen.</p>}
       {!loading&&atDate.map(x=><button key={x.id} type="button" className={`tempo36-daily-workout tempo382-sport-${activityArt(x)}`} onClick={()=>onOpenWorkout(x)} aria-label={`${x.title} öffnen`}><span className="tempo36-daily-workout-icon">{iconForSession(x)}</span><span className="tempo36-daily-workout-content"><strong>{x.title}</strong><small>{x.status==='erledigt'?'✓ Absolviert':x.priority} · {x.durationMin?durationFor(x):'Dauer offen'}{x.expectedKm?` · ${x.expectedKm} km`:''}</small><span className="tempo40b-training-preview">{prescription(x,profile).slice(1,4).map((line,i)=><span key={i}>{line}</span>)}</span></span><span className="tempo36-chevron">›</span></button>)}
+      {atDate.filter(x=>['quality','endurance','long','commute','manual-cycling'].includes(x.sessionType)).map(x=><CyclingIntervalChart key={x.id} session={x} ftp={profile?.ftpWatts} compact/>)}
       <button className="tempo36-add-training" type="button" onClick={()=>setManualOpen(true)}>＋ Training hinzufügen</button>
     </section>
     <section className="tempo36-rest"><button className="tempo36-rest-trigger" type="button" onClick={()=>setRestPreview(true)} disabled={selectedDay<today&&!savedRest}><span>🌿</span><strong>{savedRest?'🔒 '+(savedRest.mode==='free'?'Trainingsfrei':'Recoverytag'):'Ruhetag / Recovery festlegen'}</strong><span>›</span></button>{savedRest&&<button type="button" className="outline" onClick={()=>void releaseDay()}>Ruhetag wieder freigeben</button>}</section>

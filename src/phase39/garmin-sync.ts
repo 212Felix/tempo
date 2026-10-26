@@ -96,6 +96,7 @@ export async function commitPersonalImport(candidates:PersonalCandidate[],decisi
    operations.push(personalRecord(a));created++
   } else {
    if(!matches.some(x=>x.id===choice))throw Error('Ungültiges Zuordnungsziel.')
+   if(existing.some(x=>x.id===choice && x.garminActivityId && x.garminActivityId!==a.garminActivityId))throw Error('Zielaktivität ist schon mit einer anderen Garmin-ID verknüpft.')
    if(claimedTarget.has(choice))throw Error(`Die FIT-/TEMPO-Aktivität ${existing.find(x=>x.id===choice)?.title??choice} ist mehrfach ausgewählt. Bitte die markierten Zuordnungen korrigieren.`)
    claimedTarget.add(choice)
    const old=existing.find(x=>x.id===choice)

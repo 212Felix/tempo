@@ -1,0 +1,17 @@
+/* Phase 40C: native-feeling but non-destructive, accessible mobile transitions. */
+.tempo40c-enter{animation:tempo40c-in .19s ease-out both}
+@keyframes tempo40c-in{from{opacity:.83;transform:translateX(var(--tempo40c-dir,12px))}to{opacity:1;transform:translateX(0)}}
+.tempo40c-interval{border:1px solid #345263;border-radius:16px;background:linear-gradient(155deg,#102a37,#11202e);padding:12px;margin:12px 0;max-width:100%;min-width:0}
+.tempo40c-interval-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:14px}
+.tempo40c-interval-heading small,.tempo40c-interval-foot{color:#b4c8d3;font-size:11px}
+.tempo40c-interval-scroll{overflow-x:auto;max-width:100%;touch-action:pan-x;overscroll-behavior-inline:contain}
+.tempo40c-interval svg{display:block;min-width:min(520px,100%);width:100%;height:auto;color:#c0d3df}
+.tempo40c-interval.compact{padding:9px}.tempo40c-interval.compact .tempo40c-interval-heading{font-size:12px}
+.tempo40c-legend{display:flex;flex-wrap:wrap;gap:8px 13px;margin:4px 0 6px;font-size:11px;color:#c5d8e1}.tempo40c-legend span{display:inline-flex;gap:4px;align-items:center}.tempo40c-legend i{height:9px;width:9px;border-radius:2px}
+@media(prefers-reduced-motion:reduce){.tempo40c-enter{animation:none}}
+
+.tempo40c-wellness{border:1px solid #416070;border-radius:16px;background:linear-gradient(130deg,#122735,#172431);padding:15px;margin:12px 0;min-width:0}
+.tempo40c-wellness h3{font-size:16px;margin:0 0 10px}.tempo40c-wellness p{color:#c5d6df;font-size:13px;margin:10px 0;line-height:1.5}.tempo40c-wellness small{color:#97afbc;font-size:11px}
+.tempo40c-wellness-values{display:flex;flex-wrap:wrap;gap:8px}.tempo40c-wellness-values span{flex:1 1 88px;border:1px solid #344b59;border-radius:10px;padding:8px;color:#b2c5d0;font-size:12px}.tempo40c-wellness-values b{display:block;font-size:18px;color:#e1f0fa;margin-top:4px}
+.tempo40c-wellness.compact{padding:10px}.tempo40c-wellness.compact h3{font-size:13px}.tempo40c-wellness.compact .tempo40c-wellness-values b{font-size:15px}
+.tempo40c-unresolved{border-left:3px solid #e2bb6a;color:#ffe3b0;padding:7px 10px;font-size:13px}

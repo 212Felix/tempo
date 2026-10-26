@@ -9,6 +9,8 @@ import {FuelingQuick} from '../phase30/FuelingPanel'
 import {alreadyDone,finalizeWorkout} from '../workouts/sessionStore'
 import {cyclingIntervalSteps,formatStepTime,stepsSeconds,wattsForStep,type TrainingStep} from '../phase37/intervals'
 import SessionGarminReview from '../phase37/SessionGarminReview'
+import CyclingIntervalChart from '../phase40c/CyclingIntervalChart'
+import {germanDate} from '../phase40c/date'
 import '../phase37/phase37.css'
 
 /** One directly executable detail view; saved plan ≠ saved actual, Garmin linking is always reviewed. */
@@ -60,8 +62,9 @@ export default function WorkoutDetail({session,onBack}:{session:TrainingRecord|n
  if(!session)return <section className="panel tempo36-workout-detail"><p>Keine Trainingseinheit ausgewählt.</p><button type="button" onClick={onBack}>Zum Tagestraining</button></section>
  const visibleSteps=steps
  return <div className="tempo37-workout-stack"><section className="panel tempo36-workout-detail">
-    <div className="eyebrow">TRAININGSPLAN · {session.date}</div><h2>{session.title}</h2><p>{durationFor(session)} · {session.priority}{session.expectedKm?` · ${session.expectedKm} km`:''}</p>
+    <div className="eyebrow">TRAININGSPLAN · {germanDate(session.date)}</div><h2>{session.title}</h2><p>{durationFor(session)} · {session.priority}{session.expectedKm?` · ${session.expectedKm} km`:''}</p>
     {cycling&&<fieldset className="tempo36-environment"><legend>Wie absolvierst du diese Einheit?</legend><div><button type="button" disabled={busy||completed} className={environment==='outdoor'?'active':''} aria-pressed={environment==='outdoor'} onClick={()=>void setRidePlace('outdoor')}>🚴 Outdoor</button><button type="button" disabled={busy||completed} className={environment==='indoor'?'active':''} aria-pressed={environment==='indoor'} onClick={()=>void setRidePlace('indoor')}>🏠 Indoor</button></div></fieldset>}
+    {cycling&&<CyclingIntervalChart session={{...session,workoutSteps:visibleSteps??undefined}} ftp={ftp}/>}
     <div className="tempo36-workout-prescription"><h3>{cycling&&environment==='indoor'?'Indoor · vollständige Garmin-Schritte':'Dein Trainingsprogramm'}</h3>
      {session.description&&<p>{session.description}</p>}
      {visibleSteps?<><ol className="tempo37-steps">{visibleSteps.map(step=><li key={step.id}><strong>{step.title}</strong><span>{formatStepTime(step.seconds)} · {wattsForStep(step,ftp)}</span>{step.effort==='recovery'&&<small>Aktive Pause – nicht anhalten.</small>}</li>)}</ol><p className="tempo37-step-sum">Gesamt: {durationFor({durationSec:stepsSeconds(visibleSteps)})} · einschließlich aller Pausen</p></>:<><p>{session.target}</p><p className="tempo36-hint">Für diese Einheit sind noch keine vollständigen Intervallphasen mit Zeiten und Intensitäten hinterlegt. TEMPO ergänzt fehlende Watt- oder Pausenwerte nicht durch Schätzungen.</p></>}

@@ -1,3 +1,5 @@
+import {germanDate} from '../phase40c/date'
+import {validateWellness,type Wellness} from '../phase40c/wellness'
 import TimeFields from '../time/TimeFields'
 import SessionGarminReview from '../phase37/SessionGarminReview'
 import OptionalFuelingNotes from '../phase37/OptionalFuelingNotes'
@@ -45,6 +47,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const [trainingBlocks,setTrainingBlocks]=useState<TrainingBlock[]>([])
   const [weekShifts,setWeekShifts]=useState<Record<string,ShiftRecord>>({})
   const [readiness,setReadiness]=useState<ReadinessRecord|undefined>()
+  const [garminWellness,setGarminWellness]=useState<Wellness|undefined>()
   const [sportFocus,setSportFocus]=useState<SportFocus>('Radfahren')
   const [addedExercise,setAddedExercise]=useState('')
   const [sessionExerciseMap,setSessionExerciseMap]=useState<Record<string,Exercise[]>>(()=>{const d=previousDraft.current;return d?.exercises?{[d.sessionKey]:d.exercises}:{}})
@@ -70,8 +73,8 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const sessionKey=strengthSessionKey(onDate,kind,selected?.id)
   const exercises=sessionExerciseMap[sessionKey]??template.exercises
   const exerciseSignature=exercises.map(ex=>ex.id).join('|')
-  const coachingWeek=useMemo(()=>deriveAdaptiveWeeks({start:onDate,weeks:1,events:goals,blocks:trainingBlocks,completed:data.completed,planned:data.planned,shifts:weekShifts,readiness,regularLegSets:REGULAR_LEG_SETS})[0],
-    [onDate,goals,trainingBlocks,data.completed,data.planned,weekShifts,readiness])
+  const coachingWeek=useMemo(()=>deriveAdaptiveWeeks({start:onDate,weeks:1,events:goals,blocks:trainingBlocks,completed:data.completed,planned:data.planned,shifts:weekShifts,readiness,regularLegSets:REGULAR_LEG_SETS,wellness:garminWellness})[0],
+    [onDate,goals,trainingBlocks,data.completed,data.planned,weekShifts,readiness,garminWellness])
   const preservedCounts=useMemo(()=>Object.fromEntries(exercises.map(ex=>[ex.id,
     data.sets.filter(x=>x.sessionKey===sessionKey&&x.exerciseId===ex.id).reduce((n,x)=>Math.max(n,x.setIndex),0)])),[sessionKey,exerciseSignature,data.sets])
   const suggestedCounts=useMemo(()=>suggestedStrengthSets(exercises,coachingWeek?.legSets??REGULAR_LEG_SETS,preservedCounts),
@@ -102,6 +105,11 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     }).catch(()=>undefined)
     load();window.addEventListener('tempo:training-change',load);window.addEventListener('tempo:readiness-change',load)
     return()=>{alive=false;window.removeEventListener('tempo:training-change',load);window.removeEventListener('tempo:readiness-change',load)}
+  },[onDate])
+  useEffect(()=>{let live=true
+    const load=()=>void getRecord('settings',`garmin-wellness:${PROFILE_ID}:${onDate}`).then(row=>{if(live)setGarminWellness(validateWellness(row?.wellness)??undefined)}).catch(()=>undefined)
+    load();window.addEventListener('tempo:garmin-wellness-change',load)
+    return()=>{live=false;window.removeEventListener('tempo:garmin-wellness-change',load)}
   },[onDate])
   useEffect(()=>{void getRecord<EquipmentPreferences>('settings',EQUIPMENT_SETTINGS_ID).then(record=>{if(record?.favourites&&!previousDraft.current?.equipment)setEquipment({studio:record.favourites.studio??{},arbeit:record.favourites.arbeit??{}})}).catch(()=>undefined)},[])
   useEffect(()=>{
@@ -297,7 +305,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
           const id=e.target.value;touched.current=true;setPlannedId(id)
           const item=planned.find(x=>x.id===id)
           if(item){setDate(item.date);setVariant(workoutKind(item));setDuration(durationFor(item))}else setDuration('00:55:00')
-        }}><option value="">Eigene Einheit – unabhängig vom Plan</option>{planned.map(x=><option key={x.id} value={x.id}>{x.date} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
+        }}><option value="">Eigene Einheit – unabhängig vom Plan</option>{planned.map(x=><option key={x.id} value={x.id}>{germanDate(x.date)} · {x.title}{x.status==='erledigt'?' ✓':''}</option>)}</select></label>
         {!selected&&<><label>Datum<input type="date" value={date} onChange={e=>{touched.current=true;setDate(selectDate(e.target.value))}}/></label><label>Programm<select value={variant} onChange={e=>{touched.current=true;setVariant(e.target.value as 'A'|'B'|'C')}}><option value="A">Kraft A</option><option value="B">Kraft B</option><option value="C">Kraft C · Oberkörper</option></select></label></>}
       </div>
       <div className="tw-location"><strong>Trainingsort</strong><div className="tw-location-choices">{(['studio','arbeit'] as const).map(place=><button type="button" key={place} className={location===place?'selected':''} disabled={done} onClick={()=>{touched.current=true;setLocation(place)}}>{placeName[place]}</button>)}</div><p>Gerätevarianten werden für jeden Ort separat gemerkt und mit den Sätzen protokolliert.</p></div>

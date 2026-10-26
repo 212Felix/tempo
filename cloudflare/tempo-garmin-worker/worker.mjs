@@ -135,6 +135,53 @@ async function sync(env) {
   await env.DB.prepare('INSERT INTO sync_meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind('last_success',completedAt).run()
   return {scanned,supported:seen,newStored:upserts,lastSuccess:completedAt}
 }
+
+/** Optional Garmin Personal API wellness. Persist only bounded daily summaries in private sync_meta. */
+const wellnessNum=(x,max)=>typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=max?x:undefined
+function firstNumber(source,fields,max){
+ if(!source||typeof source!=='object')return undefined
+ for(const field of fields){const n=wellnessNum(source[field],max);if(n!==undefined)return n}
+ return undefined
+}
+export function normalizeWellness(date,sleep,hrv,battery){
+ const sd=sleep?.dailySleepDTO??sleep?.sleepData??sleep
+ const hd=hrv?.hrvSummary??hrv?.summary??hrv
+ const sleepSeconds=firstNumber(sd,['sleepTimeSeconds','totalSleepSeconds','sleepDurationInSeconds'],86400)
+ const sleepHours=sleepSeconds!==undefined?Math.round(sleepSeconds/360)/10:undefined
+ const hrvMs=firstNumber(hd,['lastNightAvg','lastNightAverage'],250)
+ // Garmin's Body Battery response varies; only explicitly measured numeric readings are accepted.
+ const reports=Array.isArray(battery)?battery:Array.isArray(battery?.reports)?battery.reports:[]
+ const latest=reports.at(-1)??battery
+ let bodyBattery=firstNumber(latest,['bodyBattery','endValue','currentValue'],100)
+ const values=latest?.bodyBatteryValues??latest?.bodyBatteryValueDescriptorDTOList
+ if(bodyBattery===undefined&&Array.isArray(values)){
+  for(const v of [...values].reverse()){
+   const n=Array.isArray(v)?wellnessNum(v[1],100):firstNumber(v,['bodyBattery','value','bodyBatteryLevel'],100)
+   if(n!==undefined){bodyBattery=n;break}
+  }
+ }
+ const result={date,fetchedAt:new Date().toISOString()}
+ if(sleepHours!==undefined)result.sleepHours=sleepHours
+ if(hrvMs!==undefined)result.hrvMs=hrvMs
+ if(bodyBattery!==undefined)result.bodyBattery=bodyBattery
+ result.available=['sleepHours','hrvMs','bodyBattery'].filter(k=>result[k]!==undefined)
+ return result
+}
+async function fetchWellness(env,date){
+ const token=await fetchToken(env)
+ const end=date
+ const paths=[`/sleep-service/sleep/dailySleep?date=${date}`,`/hrv-service/hrv/${date}`,`/wellness-service/wellness/bodyBattery/reports/daily?startDate=${date}&endDate=${end}`]
+ const [sleep,hrv,battery]=await Promise.all(paths.map(path=>garminGet(path,token).catch(()=>null)))
+ const result=normalizeWellness(date,sleep,hrv,battery)
+ await env.DB.prepare('INSERT INTO sync_meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind('wellness:'+date,JSON.stringify(result)).run()
+ return result
+}
+async function cachedWellness(env,date){
+ const row=await env.DB.prepare('SELECT value FROM sync_meta WHERE key=?').bind('wellness:'+date).first()
+ if(row?.value){try{const cached=JSON.parse(row.value);if(Date.now()-Date.parse(cached.fetchedAt)<6*3600_000)return cached}catch{/* refetch */}}
+ return fetchWellness(env,date)
+}
+
 const api = {
   async fetch(request,env){
     const origin=request.headers.get('Origin')||''
@@ -142,8 +189,9 @@ const api = {
     if (request.method==='OPTIONS')return origin===env.TEMPO_ALLOWED_ORIGIN?new Response(null,{status:204,headers:h}):json({error:'Origin nicht freigeschaltet.'},403)
     if(!request.url.startsWith('https://'))return json({error:'HTTPS erforderlich.'},400,h)
     if(origin && !h['Access-Control-Allow-Origin'])return json({error:'Origin nicht freigeschaltet.'},403)
-    const path=new URL(request.url).pathname
-    if(!['/v1/status','/v1/activities','/v1/sync'].includes(path))return json({error:'Nicht gefunden.'},404,h)
+    const parsed=new URL(request.url)
+    const path=parsed.pathname
+    if(!['/v1/status','/v1/activities','/v1/sync','/v1/wellness'].includes(path))return json({error:'Nicht gefunden.'},404,h)
     if(!env.TEMPO_BRIDGE_TOKEN || !await secureEqual(request.headers.get('Authorization')?.replace(/^Bearer /,'')||'',env.TEMPO_BRIDGE_TOKEN))return json({error:'Zugangscode ungültig.'},401,h)
     if(!env.DB)return json({error:'D1-Datenbank fehlt.'},503,h)
     try{
@@ -155,6 +203,12 @@ const api = {
       if(path==='/v1/activities' && request.method==='GET'){
         const data=await env.DB.prepare('SELECT payload FROM activities ORDER BY started_at DESC LIMIT 250').all()
         return json({activities:data.results.map(r=>JSON.parse(r.payload))},200,h)
+      }
+      if(path==='/v1/wellness'&&request.method==='GET'){
+        const date=parsed.searchParams.get('date')||new Date().toISOString().slice(0,10)
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date+'T12:00:00Z')))return json({error:'Ungültiges Datum.'},400,h)
+        if(Math.abs(Date.now()-Date.parse(date+'T12:00:00Z'))>32*DAY)return json({error:'Erholungsdaten nur für die letzten 31 Tage verfügbar.'},400,h)
+        return json(await cachedWellness(env,date),200,h)
       }
       if(path==='/v1/sync'&&request.method==='POST'){
         return json({ok:true,...await sync(env)},200,h)

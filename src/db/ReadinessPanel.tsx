@@ -4,6 +4,7 @@ import type { TempoRecord, ProfileRecord } from './types'
 import './readiness.css'
 import MorningFuelingCheck from '../phase32/MorningFuelingCheck'
 import ReadinessBattery from './ReadinessBattery'
+import GarminWellnessCard from '../phase40c/GarminWellnessCard'
 import {AVAILABILITY_CHOICES,availabilityFlag} from '../planning/availability'
 
 const PROFILE_ID = 'local-primary-profile'
@@ -169,6 +170,7 @@ export default function ReadinessPanel() {
   const distanceText = (factor: number) => oneWayKm == null ? 'km offen' : `${Math.round(oneWayKm * factor * 10) / 10} km`
 
   return <div className="tempo-ready">
+    <GarminWellnessCard date={day}/>
     <section className="panel tempo-ready-panel tempo38-ratings">
       <div className="eyebrow">HEUTE · {prettifyDate(day).toUpperCase()}</div>
       <h2>Wie fühlst du dich heute?</h2>

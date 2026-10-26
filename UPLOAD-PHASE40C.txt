@@ -1,0 +1,15 @@
+TEMPO PHASE 40C – GITHUB DESKTOP
+================================
+1. Vorher TEMPO-JSON-Backup sichern.
+2. GitHub Desktop: im Repository tempo von main Branch phase40c-test erstellen.
+3. Die kleine ZIP nach Downloads entpacken. Sie erstellt den Ordner tempo-phase40c-update.
+4. Im Mac-Terminal nur diesen Befehl (eine Zeile) ausführen:
+   rsync -a --exclude='.DS_Store' "$HOME/Downloads/tempo-phase40c-update/" "$HOME/Documents/GitHub/tempo/"
+   (Falls dein Projektordner nicht dort liegt, zuerst Zielpfad prüfen.)
+5. Die originale .git-Struktur NICHT verändern, alte Dateien NICHT löschen.
+6. Commit: TEMPO Phase 40C – iOS Navigation, Garmin Review, Intervalle, Wellness
+7. Publish branch und GitHub Actions »TEMPO Phase 40C – Test vor Veröffentlichung« prüfen.
+8. Erst nach grünem Build PR nach main, auf main »TEMPO veröffentlichen« prüfen.
+9. Für Garmin Schlaf/HRV/Body Battery muss danach der private Worker separat über GitHub Actions »TEMPO Phase 39 – Garmin Worker (privat)« aktualisiert werden.
+   Wenn das nicht geschieht, läuft Phase 40B Garmin-Import weiter; Erholungsdaten bleiben vorerst leer.
+WICHTIG: Keine Schlüssel, Zugangscodes, Garmin-Tokens oder Screenshots geheimer Werte in GitHub hochladen.

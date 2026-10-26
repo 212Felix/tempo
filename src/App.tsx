@@ -1,5 +1,5 @@
 import MetricsPanel from './metrics/MetricsPanel'
-import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties, type TouchEvent } from 'react'
 import {getRecord} from './db/storage'
 import type {TempoRecord} from './db/types'
 import {evaluateReadiness} from './db/ReadinessPanel'
@@ -30,6 +30,8 @@ import './phase38/phase38.css'
 import './phase382/phase382.css'
 import './phase39/design.css'
 import './phase40b/phase40b.css'
+import './phase40c/phase40c.css'
+import {gestureBlocked,swipeDelta} from './phase40c/navigation'
 import {currentKey, type TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
 import './phase33.css'
@@ -151,6 +153,8 @@ function Placeholder({ id, go }: { id: PageId; go: (id: PageId) => void }) {
 
 export default function App() {
   const [page, setPage] = useState<PageId>('home')
+  const touchStart=useRef<{x:number;y:number}|null>(null)
+  const [swipeDirection,setSwipeDirection]=useState(1)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activitiesOpen,setActivitiesOpen]=useState(false)
   const [focusWorkout, setFocusWorkout] = useState('')
@@ -195,7 +199,19 @@ export default function App() {
     return()=>window.cancelAnimationFrame(frame)
   },[page,dayFocus,addFocus,focusWorkout,autoOpenShift])
   const active = pages.find(p => p.id === page)!
-  function navigate(id: PageId) { if(activityPages.includes(id))setActivitiesOpen(true); if(id==='training'){setDayFocus('');setAddFocus('')} setFocusWorkout(''); setDetailWorkout(null);setAutoOpenShift(false); setPage(id); setMenuOpen(false); }
+  function navigate(id: PageId) { if(id!==page)setSwipeDirection(primary.indexOf(id)>=primary.indexOf(page)?1:-1); if(activityPages.includes(id))setActivitiesOpen(true); if(id==='training'){setDayFocus('');setAddFocus('')} setFocusWorkout(''); setDetailWorkout(null);setAutoOpenShift(false); setPage(id); setMenuOpen(false); }
+  function touchBegin(event:TouchEvent<HTMLElement>){
+    if(!primary.includes(page)||menuOpen||event.touches.length!==1||gestureBlocked(event.target)){touchStart.current=null;return}
+    touchStart.current={x:event.touches[0].clientX,y:event.touches[0].clientY}
+  }
+  function touchFinish(event:TouchEvent<HTMLElement>){
+    const start=touchStart.current;touchStart.current=null
+    if(!start||!primary.includes(page)||menuOpen||event.changedTouches.length!==1)return
+    const end=event.changedTouches[0]
+    const direction=swipeDelta(end.clientX-start.x,end.clientY-start.y,start.x,window.innerWidth)
+    const index=primary.indexOf(page)+direction
+    if(direction&&index>=0&&index<primary.length){setSwipeDirection(direction);navigate(primary[index])}
+  }
   function openCalendarDay(date:string) {setAutoOpenShift(false);setDayFocus(date);setAddFocus('');setPage('training');setMenuOpen(false);}
   function addCalendarTraining(date:string){setAutoOpenShift(false);setDayFocus(date);setAddFocus(date);setPage('training');setMenuOpen(false);}
   function openWorkout(session: TrainingRecord) {
@@ -225,10 +241,10 @@ export default function App() {
         if(activityPages.includes(item.id)||item.id==='workout-detail')return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40B</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40C</div>
     </aside>
     <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div>{page!=='home'&&<img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/>}</header>
-      <main className={`content page-${page}`}>
+      <main key={page} className={`content page-${page} tempo40c-enter`} style={{"--tempo40c-dir":swipeDirection>0?"14px":"-14px"} as CSSProperties} onTouchStart={touchBegin} onTouchEnd={touchFinish} onTouchCancel={()=>{touchStart.current=null}}>
       <HelpProvider key={page}>
       {page === 'home' ? <Home go={navigate} openWorkout={openWorkout} openDuty={openDuty}/> : page === 'readiness' ? <ReadinessPanel key={activeDay}/> : page === 'calendar' ? <CalendarSafeguard onBack={()=>navigate('home')}><ShiftCalendarPanel key={activeDay} onOpenDay={openCalendarDay} onAddDay={addCalendarTraining} onStartWorkout={openWorkout}/></CalendarSafeguard> : page === 'training' ? <><StrengthResumeBanner onResume={resumeStrength}/><TrainingDayPanel key={`${dayFocus}:${addFocus}:${autoOpenShift}`} autoOpenShift={autoOpenShift} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/></> : page === 'workout-detail' ? <WorkoutDetail session={detailWorkout} onBack={()=>openCalendarDay(detailWorkout?.date??currentKey())}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel key={focusWorkout} focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'golf' || page === 'sportspiel' ? <ManualTrainingPanel autoStartDate={currentKey()} initialSport={page} autoStartMode="completed"/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>

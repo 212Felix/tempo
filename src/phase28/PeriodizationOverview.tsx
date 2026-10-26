@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useState,useRef} from 'react'
+import {validateWellness,type Wellness} from '../phase40c/wellness'
 import {getRecord,listRecords} from '../db/storage'
 import type {ProfileRecord} from '../db/types'
 import {BLOCK_INFO,adviseStrengthVolume,type BlockKind} from './periodization'
@@ -33,12 +34,13 @@ export default function PeriodizationOverview({events,blocks}:{events:GoalEvent[
  const [shifts,setShifts]=useState<Record<string,ShiftRecord>>({})
  const [readiness,setReadiness]=useState<ReadinessRecord|undefined>()
  const [profile,setProfile]=useState<ProfileRecord|undefined>()
+ const [garminWellness,setGarminWellness]=useState<Wellness|undefined>()
  const [loadError,setLoadError]=useState('')
  const [revision,setRevision]=useState(0)
  useEffect(()=>{
   const changed=()=>setRevision(n=>n+1)
-  for(const name of ['tempo:training-change','tempo:shift-change','tempo:readiness-change','tempo:blocks-change','tempo:events-change'])window.addEventListener(name,changed)
-  return()=>{for(const name of ['tempo:training-change','tempo:shift-change','tempo:readiness-change','tempo:blocks-change','tempo:events-change'])window.removeEventListener(name,changed)}
+  for(const name of ['tempo:training-change','tempo:shift-change','tempo:readiness-change','tempo:blocks-change','tempo:events-change','tempo:garmin-wellness-change'])window.addEventListener(name,changed)
+  return()=>{for(const name of ['tempo:training-change','tempo:shift-change','tempo:readiness-change','tempo:blocks-change','tempo:events-change','tempo:garmin-wellness-change'])window.removeEventListener(name,changed)}
  },[])
  useEffect(()=>{
   let live=true
@@ -46,15 +48,16 @@ export default function PeriodizationOverview({events,blocks}:{events:GoalEvent[
    listRecords<CompletedRecord>('completedSessions'),listRecords<TrainingRecord>('plannedSessions'),
    listRecords<ShiftRecord>('shifts'),getRecord<ReadinessRecord>('readinessEntries',`${PROFILE_ID}:${today}`),
    getRecord<ProfileRecord>('profiles',PROFILE_ID),
-  ]).then(([done,existing,duties,ready,personal])=>{
+   getRecord('settings',`garmin-wellness:${PROFILE_ID}:${today}`),
+  ]).then(([done,existing,duties,ready,personal,wellness])=>{
    if(!live)return
-   setCompleted(done);setPlanned(existing);setShifts(Object.fromEntries(duties.map(d=>[d.date,d])));setReadiness(ready);setProfile(personal);setLoadError('')
+   setCompleted(done);setPlanned(existing);setShifts(Object.fromEntries(duties.map(d=>[d.date,d])));setReadiness(ready);setProfile(personal);setGarminWellness(validateWellness(wellness?.wellness)??undefined);setLoadError('')
   }).catch(err=>{if(live)setLoadError(`Trainingsdaten nicht verfügbar: ${String(err)}`)})
   return()=>{live=false}
  },[revision,today])
  const stage=useMemo(()=>deriveSeasonPhases(events,today),[events,today])
- const weeks=useMemo(()=>deriveAdaptiveWeeks({start:today,weeks:52,events,blocks,completed,planned,shifts,readiness,regularLegSets:legSets,ftpWatts:profile?.ftpWatts}),
-  [today,events,blocks,completed,planned,shifts,readiness,legSets,profile?.ftpWatts])
+ const weeks=useMemo(()=>deriveAdaptiveWeeks({start:today,weeks:52,events,blocks,completed,planned,shifts,readiness,regularLegSets:legSets,ftpWatts:profile?.ftpWatts,wellness:garminWellness}),
+  [today,events,blocks,completed,planned,shifts,readiness,legSets,profile?.ftpWatts,garminWellness])
  const week=weeks[chosen]??weeks[0]
  const advice=adviseStrengthVolume(focus,legSets)
  const budget=week?estimateWeek(week,overrides[week.startDate]):undefined
