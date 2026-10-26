@@ -1,3 +1,4 @@
+import {activeGarminActivities} from '../garmin/stored-duplicates'
 import {useEffect,useMemo,useState} from 'react'
 import {getRecord,listRecords,saveRecord} from '../db/storage'
 import type {ProfileRecord,TempoRecord} from '../db/types'
@@ -33,7 +34,7 @@ export default function CyclingPanel(){
   const [busy,setBusy]=useState(false)
   async function reload(){
     const [p,a,c,z,e]=await Promise.all([
-      getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<RideWithLocation>('externalActivities'),
+      getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<RideWithLocation>('externalActivities').then(activeGarminActivities),
       listRecords<DoneWithContext>('completedSessions'),getRecord<ZonePreferences>('settings',ZONE_SETTINGS_ID),
       getRecord<Environments>('settings',RIDE_SETTINGS_ID),
     ])

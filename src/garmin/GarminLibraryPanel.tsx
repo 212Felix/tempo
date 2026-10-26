@@ -12,6 +12,8 @@ import type { GarminActivity } from './csv'
 import './garmin.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import GarminSyncPanel from '../phase39/GarminSyncPanel'
+import StoredDuplicatesPanel from './StoredDuplicatesPanel'
+import {activeGarminActivities} from './stored-duplicates'
 
 const PROFILE_ID='local-primary-profile'
 const formatNumber=(n:number,opts?:Intl.NumberFormatOptions)=>new Intl.NumberFormat('de-DE',{maximumFractionDigits:1,...opts}).format(n)
@@ -62,11 +64,12 @@ export default function GarminLibraryPanel(){
   }
   const shown=useMemo(()=>stored.filter(x=>filter==='all'||x.sport===filter),[stored,filter])
   const subset=showAll?shown:shown.slice(0,30)
-  const totalKm=stored.reduce((sum,x)=>sum+(x.distanceKm??0),0)
-  const totalHm=stored.reduce((sum,x)=>sum+(x.elevationM??0),0)
+  const totalKm=activeGarminActivities(stored).reduce((sum,x)=>sum+(x.distanceKm??0),0)
+  const totalHm=activeGarminActivities(stored).reduce((sum,x)=>sum+(x.elevationM??0),0)
   const chosen=selected?stored.find(x=>x.id===selected):undefined
   return <section className="tempo-garmin-page">
     <GarminSyncPanel onSaved={()=>{void refresh().then(()=>setFitVersion(n=>n+1))}}/>
+    <StoredDuplicatesPanel onChanged={()=>{void refresh().then(()=>setFitVersion(n=>n+1))}}/>
     <div className="tempo-garmin-panel">
       <div className="eyebrow">GARMIN · DATENQUELLEN</div>
       <h2>Aktivitätsbibliothek</h2>
@@ -79,7 +82,7 @@ export default function GarminLibraryPanel(){
       <BatchImportPanel onSaved={()=>{void refresh().then(()=>setFitVersion(n=>n+1))}}/>
     </div>
     <ReconciliationPanel context="garmin" key={`${stored.length}-${fitVersion}`}/>
-    <ClimbLibraryPanel activities={stored} refreshVersion={fitVersion}/>
+    <ClimbLibraryPanel activities={activeGarminActivities(stored)} refreshVersion={fitVersion}/>
     <div className="tempo-garmin-panel">
       <div className="eyebrow">HISTORIE · ALLE SPORTARTEN</div>
       <h2>Gespeicherte Aktivitäten</h2>
@@ -88,7 +91,7 @@ export default function GarminLibraryPanel(){
       </div>
       {!shown.length?<p className="tempo-garmin-empty">Keine Aktivitäten in dieser Kategorie gespeichert.</p>:
       <div className="tempo-garmin-list">{subset.map(x=><button key={x.id} className={selected===x.id?'selected':''} onClick={()=>setSelected(selected===x.id?null:x.id)}>
-        <span><strong>{formatDate(x.date)}</strong><small>{names[x.sport]} · {x.title}{typeof x.fitSeriesId==='string'?' · FIT ✓':''}</small></span>
+        <span><strong>{formatDate(x.date)}</strong><small>{names[x.sport]} · {x.title}{x.duplicateOf?' · Dublette (aus Auswertungen ausgeblendet)':''}{typeof x.fitSeriesId==='string'?' · FIT ✓':''}</small></span>
         <span>{x.distanceKm==null?'–':formatNumber(x.distanceKm)+' km'}<small>{durationFor(x)}{x.elevationM!=null?` · ${formatNumber(x.elevationM,{maximumFractionDigits:0})} hm`:''}</small></span>
       </button>)}</div>}
       {!showAll&&shown.length>30&&<button className="tempo-garmin-muted-button" onClick={()=>setShowAll(true)}>Alle {shown.length} anzeigen</button>}

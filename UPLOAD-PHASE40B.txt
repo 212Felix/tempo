@@ -1,0 +1,14 @@
+TEMPO PHASE 40B – NEUES PAKET
+===========================
+Basis: TEMPO Phase 40A (nicht alte Phase 39 verwenden).
+
+GitHub Desktop verwenden, KEIN Browser-Einzelupload!
+1) In GitHub Desktop neues Branch "phase40b-test" vom bestehenden main erstellen.
+2) Das komplette Archiv entpacken; Dateiinhalte in das geklonte lokale Tempo-Repo KOPIEREN/ZUSAMMENFUEHREN. NICHT .git ersetzen.
+3) In GitHub Desktop Changes kontrollieren, Commit erstellen, "Publish branch".
+4) Auf GitHub Actions: "TEMPO Phase 40B – Test vor Veröffentlichung" MUSS gruen sein.
+5) Pull Request in main erst danach; anschliessend den Workflow "TEMPO veröffentlichen" pruefen.
+6) Mobilen Praxistest nach JSON-Backup aus TEMPO Profil & Daten.
+
+Es wird KEIN Cloudflare Worker und KEINE Garmin Secret-Konfiguration veraendert.
+Alle technischen Details: docs/PHASE40B-RELEASE.md

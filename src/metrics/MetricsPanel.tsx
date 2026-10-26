@@ -1,3 +1,4 @@
+import {activeGarminActivities} from '../garmin/stored-duplicates'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {deleteRecord,getRecord,listRecords,saveRecord} from '../db/storage'
 import type {ProfileRecord} from '../db/types'
@@ -31,7 +32,7 @@ export default function MetricsPanel(){
   const [message,setMessage]=useState('Lade Leistungsbibliothek …')
   async function reload(){
     const [p,a,e,strength,perfs]=await Promise.all([
-      getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<GarminActivity>('externalActivities'),
+      getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<GarminActivity>('externalActivities').then(activeGarminActivities),
       listRecords<GoalEvent>('events'),listRecords<StrengthSet>('strengthSets'),listRecords<PerformanceEntry>('performanceEntries')])
     setProfile(p)
     setActivities(a.filter(r=>r.profileId===PROFILE_ID && (r.source==='garmin-csv'||r.source==='garmin-fit'||r.source==='garmin-personal')))
@@ -42,7 +43,7 @@ export default function MetricsPanel(){
   }
   useEffect(()=>{let active=true
     const load=()=>void Promise.all([
-      getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<GarminActivity>('externalActivities'),
+      getRecord<ProfileRecord>('profiles',PROFILE_ID),listRecords<GarminActivity>('externalActivities').then(activeGarminActivities),
       listRecords<GoalEvent>('events'),listRecords<StrengthSet>('strengthSets'),listRecords<PerformanceEntry>('performanceEntries')
     ]).then(([p,a,e,strength,perfs])=>{
       if(!active)return

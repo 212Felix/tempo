@@ -119,9 +119,19 @@ export function deriveAdaptiveWeeks(options:AdaptiveOptions):AdaptiveWeek[] {
     const trainedRecently=completed.filter(x=>x.date>=advance(weekStart,-42)&&x.date<weekStart&&x.profileId==='local-primary-profile')
     const hasTrainingHistory=trainedRecently.filter(x=>['long','endurance','quality','commute','manual-cycling'].includes(x.sessionType??'')).length>=4
     if(kind==='HIT'&&!hasTrainingHistory)kind='MIT'
-    const legs=kind==='TAPER'?Math.round(safeLegSets*.4):kind==='RECOVERY'?0:adviseStrengthVolume(kind,safeLegSets).suggestedLegSets
+    const baselineLegs=kind==='TAPER'?Math.round(safeLegSets*.4):kind==='RECOVERY'?0:adviseStrengthVolume(kind,safeLegSets).suggestedLegSets
+    const weeklySessions=[...completed.filter(x=>x.profileId==='local-primary-profile'&&x.date>=weekStart&&x.date<=weekEnd),
+      ...planned.filter(x=>x.profileId==='local-primary-profile'&&x.date>=weekStart&&x.date<=weekEnd&&x.status==='geplant')]
+    const enduranceMinutes=weeklySessions.filter(x=>/long|endurance|quality|commute|cycl|run/.test(x.sessionType??'')).reduce((sum,x)=>sum+Math.min(600,Math.max(0,x.durationMin??0)),0)
+    const dutyDays=Array.from({length:7},(_,i)=>advance(weekStart,i)).filter(d=>shifts[d]?.shift==='einsatz').length
+    const currentReady=readiness&&readiness.date>=weekStart&&readiness.date<=weekEnd?readiness:undefined
+    const underRecovered=Boolean(currentReady?.illness==='ja'||(currentReady?.ratings?.energy??5)<=2||(currentReady?.ratings?.fatigue??1)>=4)
+    const volumeFactor=enduranceMinutes>=600?.5:enduranceMinutes>=420?.7:1
+    const dutyFactor=dutyDays>=3?.6:dutyDays>=1?.85:1
+    const readinessFactor=underRecovered?.5:1
+    const legs=Math.max(0,Math.min(baselineLegs,Math.floor(baselineLegs*Math.min(volumeFactor,dutyFactor,readinessFactor))))
     const limits:Record<AdaptiveKind,number>={BASE:1,STRENGTH:1,MIT:1,HIT:1,VOLUME:1,MOUNTAIN:1,RUN:0,TAPER:0,RECOVERY:0}
-    const qualityLimit=deload?0:limits[kind]
+    const qualityLimit=deload||underRecovered?0:limits[kind]
     const strengthSlots=kind==='RECOVERY'?0:kind==='TAPER'?1:2
     let hoursRange:[number,number]|undefined
     if(initialBaseline!==undefined && weekIndex<4){
@@ -138,6 +148,9 @@ export function deriveAdaptiveWeeks(options:AdaptiveOptions):AdaptiveWeek[] {
     const thisWeek=weekMinutesFromSessions(weekStart,weekEnd,completed,planned)
     const notes:string[]=[]
     const safeguards:string[]=[]
+    if(enduranceMinutes>=420)notes.push(`Geplante/dokumentierte Rad- und Laufzeit ${Math.round(enduranceMinutes)} min: Beinvolumen vorsichtig reduziert.`)
+    if(dutyDays)notes.push(`${dutyDays} Einsatztag(e): weniger Beinvolumen zur Dienstbelastung.`)
+    if(underRecovered)notes.push('Schwache Erholung/Beschwerden gemeldet: Beinvolumen und intensive Reize reduziert; bei Beschwerden Training aussetzen.')
     if(confirmedBlock)notes.push(`Dein Sonderblock „${confirmedBlock.name}“ wird berücksichtigt.`)
     if(next)notes.push(`Ausrichtung auf ${next.name} (${next.priority}-Ziel, ${next.date}).`)
     if(kind==='HIT')notes.push('Maximal ein qualitätsbetonter VO₂-Reiz; die übrigen Radfahrten locker.')

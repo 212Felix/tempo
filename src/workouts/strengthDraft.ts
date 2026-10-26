@@ -3,13 +3,15 @@
  */
 import {deleteRecord,getRecord,saveRecord} from '../db/storage'
 import type {StrengthInput} from './sessionStore'
+import type {Exercise} from './catalog'
+import {validSessionExercises} from './sportExercises'
 import type {StrengthPlace} from '../stats/activity'
 
 export type StrengthDraft = {
  version:1; sessionKey:string;profileId:'local-primary-profile';date:string;
  plannedId:string;variant:'A'|'B'|'C';location:StrengthPlace;
  inputs:Record<string,StrengthInput>;completedHolds:Record<string,boolean>;
- equipment?:Record<StrengthPlace,Record<string,string>>;durationEdited?:boolean;
+ equipment?:Record<StrengthPlace,Record<string,string>>;exercises?:Exercise[];durationEdited?:boolean;
  duration:string;rpe:string;notes:string;savedAt:string;
 }
 const PREFIX='tempo40:strength-draft:'
@@ -25,6 +27,7 @@ export function isStrengthDraft(raw:unknown):raw is StrengthDraft{
   (d.location==='studio'||d.location==='arbeit')&&
   !!d.inputs&&typeof d.inputs==='object'&&!Array.isArray(d.inputs)&&
   !!d.completedHolds&&typeof d.completedHolds==='object'&&!Array.isArray(d.completedHolds)&&
+  (d.exercises===undefined||validSessionExercises(d.exercises))&&
   typeof d.duration==='string'&&typeof d.rpe==='string'&&typeof d.notes==='string'&&
   typeof d.savedAt==='string'
 }

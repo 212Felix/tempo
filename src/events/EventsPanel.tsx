@@ -2,7 +2,7 @@ import {formatSeconds,parseHms} from '../time/duration'
 import TimeFields from '../time/TimeFields'
 import { useEffect, useState, type FormEvent } from 'react'
 import { deleteRecord, listRecords, saveRecord } from '../db/storage'
-import { LOCAL_PROFILE, dateLabel, dayDelta, effectiveDate, routeValues, upcomingEvents, validDate, type EventKind, type EventPriority, type EventStatus, type GoalEvent, type RouteEntry, type Surface, type GoalSport, type RunningDiscipline, type VacationStatus } from './library'
+import { LOCAL_PROFILE, dateLabel, dayDelta, effectiveDate, routeValues, upcomingEvents, orderGoalsChronologically, validDate, type EventKind, type EventPriority, type EventStatus, type GoalEvent, type RouteEntry, type Surface, type GoalSport, type RunningDiscipline, type VacationStatus } from './library'
 import './events.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import { RUN_LABELS,displayDuration,parseTargetTime,paceText,runDistancePreset, type RunKind } from './running'
@@ -37,10 +37,10 @@ export default function EventsPanel() {
   const [message,setMessage]=useState('')
   const refresh = async () => {
     const [e,r]=await Promise.all([listRecords<GoalEvent>('events'),listRecords<RouteEntry>('routes')])
-    setEvents(e.filter(x=>x.profileId===LOCAL_PROFILE).sort((a,b)=>(effectiveDate(a)??'9999').localeCompare(effectiveDate(b)??'9999')))
+    setEvents(orderGoalsChronologically(e.filter(x=>x.profileId===LOCAL_PROFILE),today()))
     setRoutes(r.filter(x=>x.profileId===LOCAL_PROFILE))
   }
-  useEffect(()=>{let mounted=true;void Promise.all([listRecords<GoalEvent>('events'),listRecords<RouteEntry>('routes')]).then(([e,r])=>{if(mounted){setEvents(e.filter(x=>x.profileId===LOCAL_PROFILE));setRoutes(r.filter(x=>x.profileId===LOCAL_PROFILE))}}).catch(err=>{if(mounted)setMessage(String(err))});return()=>{mounted=false}},[])
+  useEffect(()=>{let mounted=true;void Promise.all([listRecords<GoalEvent>('events'),listRecords<RouteEntry>('routes')]).then(([e,r])=>{if(mounted){setEvents(orderGoalsChronologically(e.filter(x=>x.profileId===LOCAL_PROFILE),today()));setRoutes(r.filter(x=>x.profileId===LOCAL_PROFILE))}}).catch(err=>{if(mounted)setMessage(String(err))});return()=>{mounted=false}},[])
   const patch=(update:Partial<FormData>)=>setForm(old=>({...old,...update}))
   const linked=routes.find(r=>r.id===form.routeId)
   const save=async(ev:FormEvent)=>{

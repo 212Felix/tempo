@@ -1,3 +1,4 @@
+import {activeGarminActivities} from '../garmin/stored-duplicates'
 import TimeFields from '../time/TimeFields'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {listRecords} from '../db/storage'
@@ -26,7 +27,7 @@ export default function SwimmingPanel(){
   const [busy,setBusy]=useState(false)
   const [message,setMessage]=useState('Freies Schwimmen – keine Pflichttermine.')
   useEffect(()=>{let live=true
-    const load=()=>void Promise.all([listRecords<CompletedRecord>('completedSessions'),listRecords<GarminActivity>('externalActivities')]).then(([c,g])=>{
+    const load=()=>void Promise.all([listRecords<CompletedRecord>('completedSessions'),listRecords<GarminActivity>('externalActivities').then(activeGarminActivities)]).then(([c,g])=>{
       if(!live)return
       setCompleted(c.filter(x=>x.profileId===PROFILE_ID&&(x.sessionType==='manual-swimming')))
       setImports(g.filter(x=>x.profileId===PROFILE_ID&&x.sport==='swimming'))

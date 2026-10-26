@@ -4,7 +4,8 @@ import OptionalFuelingNotes from '../phase37/OptionalFuelingNotes'
 import {parseHms,durationFor,formatSeconds} from '../time/duration'
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react'
 import {currentKey,friendlyDate,PROFILE_ID,type TrainingRecord} from '../planning/engine'
-import {STRENGTH,restLabel} from './catalog'
+import {STRENGTH,restLabel,type Exercise} from './catalog'
+import {SPORT_EXERCISES,SPORT_FOCI,exercisePool,validSessionExercises,type SportFocus} from './sportExercises'
 import {strengthProposal,type StrengthProposal} from '../phase38/strength-progression'
 import {alreadyDone,finalizeWorkout,isStrength,loadWorkoutData,numberField,readinessWarning,strengthSessionKey,workoutKind,type StrengthInput,type StrengthSet} from './sessionStore'
 import {getRecord,listRecords,openTempoDatabase,saveRecord} from '../db/storage'
@@ -18,6 +19,8 @@ import '../phase28/strength-timers.css'
 import {deriveAdaptiveWeeks} from '../phase28/adaptive-planner'
 import {suggestedStrengthSets,REGULAR_LEG_SETS,LEG_EXERCISE_IDS} from '../phase28/strength-dose'
 import type {GoalEvent} from '../events/library'
+import type {TrainingBlock} from '../blocks/library'
+import type {ReadinessRecord,ShiftRecord} from '../planning/engine'
 
 const blank=(exerciseId:string,setIndex:number):StrengthInput=>({exerciseId,setIndex,reps:'',weightKg:'',holdSeconds:'',rir:''})
 const stateKey=(id:string,index:number)=>`${id}:${index}`
@@ -39,6 +42,12 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const [proposals,setProposals]=useState<Record<string,StrengthProposal>>({})
   const [completedHolds,setCompletedHolds]=useState<Record<string,boolean>>({})
   const [goals,setGoals]=useState<GoalEvent[]>([])
+  const [trainingBlocks,setTrainingBlocks]=useState<TrainingBlock[]>([])
+  const [weekShifts,setWeekShifts]=useState<Record<string,ShiftRecord>>({})
+  const [readiness,setReadiness]=useState<ReadinessRecord|undefined>()
+  const [sportFocus,setSportFocus]=useState<SportFocus>('Radfahren')
+  const [addedExercise,setAddedExercise]=useState('')
+  const [sessionExerciseMap,setSessionExerciseMap]=useState<Record<string,Exercise[]>>(()=>{const d=previousDraft.current;return d?.exercises?{[d.sessionKey]:d.exercises}:{}})
   const [duration,setDuration]=useState(previousDraft.current?.duration??'00:55:00')
   const [rpe,setRpe]=useState(previousDraft.current?.rpe??'5')
   const [notes,setNotes]=useState(previousDraft.current?.notes??'')
@@ -59,13 +68,15 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   const template=STRENGTH[kind]
   const onDate=selected?.date??date
   const sessionKey=strengthSessionKey(onDate,kind,selected?.id)
-  const coachingWeek=useMemo(()=>deriveAdaptiveWeeks({start:onDate,weeks:1,events:goals,completed:data.completed,planned:data.planned,regularLegSets:REGULAR_LEG_SETS})[0],
-    [onDate,goals,data.completed,data.planned])
-  const preservedCounts=useMemo(()=>Object.fromEntries(template.exercises.map(ex=>[ex.id,
-    data.sets.filter(x=>x.sessionKey===sessionKey&&x.exerciseId===ex.id).reduce((n,x)=>Math.max(n,x.setIndex),0)])),[sessionKey,template,data.sets])
-  const suggestedCounts=useMemo(()=>suggestedStrengthSets(template.exercises,coachingWeek?.legSets??REGULAR_LEG_SETS,preservedCounts),
-    [template,coachingWeek?.legSets,preservedCounts])
-  const suggestedCountKey=template.exercises.map(ex=>suggestedCounts[ex.id]).join(',')
+  const exercises=sessionExerciseMap[sessionKey]??template.exercises
+  const exerciseSignature=exercises.map(ex=>ex.id).join('|')
+  const coachingWeek=useMemo(()=>deriveAdaptiveWeeks({start:onDate,weeks:1,events:goals,blocks:trainingBlocks,completed:data.completed,planned:data.planned,shifts:weekShifts,readiness,regularLegSets:REGULAR_LEG_SETS})[0],
+    [onDate,goals,trainingBlocks,data.completed,data.planned,weekShifts,readiness])
+  const preservedCounts=useMemo(()=>Object.fromEntries(exercises.map(ex=>[ex.id,
+    data.sets.filter(x=>x.sessionKey===sessionKey&&x.exerciseId===ex.id).reduce((n,x)=>Math.max(n,x.setIndex),0)])),[sessionKey,exerciseSignature,data.sets])
+  const suggestedCounts=useMemo(()=>suggestedStrengthSets(exercises,coachingWeek?.legSets??REGULAR_LEG_SETS,preservedCounts),
+    [exerciseSignature,coachingWeek?.legSets,preservedCounts])
+  const suggestedCountKey=exercises.map(ex=>suggestedCounts[ex.id]).join(',')
   const setsForExercise=(id:string)=>suggestedCounts[id]??0
   const done=alreadyDone(selected,data.completed,selected?undefined:sessionKey)
   const locationTotals=useMemo(()=>strengthSummary(data.completed),[data.completed])
@@ -82,6 +93,16 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     refreshGoals();window.addEventListener('tempo:events-change',refreshGoals)
     return()=>{active=false;window.removeEventListener('tempo:events-change',refreshGoals)}
   },[])
+  useEffect(()=>{let alive=true
+    const load=()=>void Promise.all([listRecords<TrainingBlock>('trainingBlocks'),listRecords<ShiftRecord>('shifts'),getRecord<ReadinessRecord>('readinessEntries',`${PROFILE_ID}:${onDate}`)]).then(([blocks,shifts,ready])=>{
+      if(!alive)return
+      setTrainingBlocks(blocks.filter(b=>b.profileId===PROFILE_ID))
+      setWeekShifts(Object.fromEntries(shifts.filter(x=>x.profileId===PROFILE_ID).map(x=>[x.date,x])))
+      setReadiness(ready)
+    }).catch(()=>undefined)
+    load();window.addEventListener('tempo:training-change',load);window.addEventListener('tempo:readiness-change',load)
+    return()=>{alive=false;window.removeEventListener('tempo:training-change',load);window.removeEventListener('tempo:readiness-change',load)}
+  },[onDate])
   useEffect(()=>{void getRecord<EquipmentPreferences>('settings',EQUIPMENT_SETTINGS_ID).then(record=>{if(record?.favourites&&!previousDraft.current?.equipment)setEquipment({studio:record.favourites.studio??{},arbeit:record.favourites.arbeit??{}})}).catch(()=>undefined)},[])
   useEffect(()=>{
     let active=true
@@ -109,7 +130,9 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     const next:Record<string,StrengthInput>={}
     const nextProposals:Record<string,StrengthProposal>={}
     const savedHolds:Record<string,boolean>={}
-    for(const ex of template.exercises)for(let i=1;i<=setsForExercise(ex.id);i++){
+    const activeExercises=(recovered?.exercises&&validSessionExercises(recovered.exercises))?recovered.exercises:exercises
+    if(recovered?.exercises&&validSessionExercises(recovered.exercises)&&!sessionExerciseMap[sessionKey])setSessionExerciseMap(old=>({...old,[sessionKey]:recovered.exercises!}))
+    for(const ex of activeExercises)for(let i=1;i<=Math.max(0,suggestedCounts[ex.id]??ex.sets);i++){
       const stored=existing.find(x=>x.exerciseId===ex.id&&x.setIndex===i)
       const variantName=selectEquipment(ex.id,location,ex.name,equipment[location])
       const proposal=strengthProposal(ex,data.sets.filter(row=>data.completed.some(item=>item.plannedSessionId===row.sessionKey||item.id===`workout:${row.sessionKey}`)),location,variantName,onDate)
@@ -142,26 +165,27 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
       touched.current=true
       for(const key of Object.keys(saved.inputs))dirtyInputs.current.add(key)
       setInputs(prev=>({...prev,...saved.inputs}));setCompletedHolds(prev=>({...prev,...saved.completedHolds}))
+      if(saved.exercises&&validSessionExercises(saved.exercises))setSessionExerciseMap(prev=>({...prev,[sessionKey]:saved.exercises!}))
       setLocation(saved.location);if(saved.equipment)setEquipment(saved.equipment)
       manuallySetDuration.current=Boolean(saved.durationEdited)
       setDuration(saved.duration);setRpe(saved.rpe);setNotes(saved.notes)
       setAutoSaveMessage('Gesichertes Training aus der lokalen Datenbank wiederhergestellt.')
     })
     return()=>{stillHere=false}
-  },[dataLoaded,sessionKey,data.sets,data.completed,suggestedCountKey,location,equipment])
+  },[dataLoaded,sessionKey,data.sets,data.completed,suggestedCountKey,location,equipment,exerciseSignature])
 
   // Every edit is immediately saved in local browser storage. The same snapshot
   // is archived in TEMPO IndexedDB after a short debounce and every 30 seconds.
   useEffect(()=>{
     if(!dataLoaded||hydratedSession!==sessionKey||done||completedSuccessfully.current||!touched.current)return
     const draft:StrengthDraft={version:1,sessionKey,profileId:PROFILE_ID,date:onDate,plannedId:selected?.id??'',
-      variant:kind,location,inputs,completedHolds,equipment,durationEdited:manuallySetDuration.current,duration,rpe,notes,savedAt:new Date().toISOString()}
+      variant:kind,location,inputs,completedHolds,equipment,exercises,durationEdited:manuallySetDuration.current,duration,rpe,notes,savedAt:new Date().toISOString()}
     latestDraft.current=draft
     const localOK=rememberStrengthDraft(draft)
     setAutoSaveMessage(localOK?'Automatisch gesichert · '+new Date(draft.savedAt).toLocaleTimeString('de-DE'):'Speicherung in der TEMPO-Datenbank wird vorbereitet …')
     const later=window.setTimeout(()=>{if(completedSuccessfully.current)return;void archiveStrengthDraft(draft).then(()=>{lastArchived.current=draft.savedAt}).catch(()=>setAutoSaveMessage('Speichern derzeit nicht möglich – bitte Speicherplatz kontrollieren.'))},1200)
     return()=>clearTimeout(later)
-  },[dataLoaded,hydratedSession,sessionKey,done,onDate,selected?.id,kind,location,inputs,completedHolds,equipment,duration,rpe,notes,touchRevision])
+  },[dataLoaded,hydratedSession,sessionKey,done,onDate,selected?.id,kind,location,inputs,completedHolds,equipment,exerciseSignature,duration,rpe,notes,touchRevision])
   useEffect(()=>{
     const flush=()=>{
       const snapshot=latestDraft.current
@@ -190,6 +214,16 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
     touched.current=true
     return {...previous,[k]:{...(previous[k]??blank(id,index)),[key]:value}}
   })
+  const updateExercises=(next:Exercise[])=>{if(done||!validSessionExercises(next))return;markTouched();setSessionExerciseMap(prev=>({...prev,[sessionKey]:next}))}
+  const swapExercise=(oldId:string,nextId:string)=>{
+    if(!nextId||nextId===oldId)return
+    if(exercises.some(ex=>ex.id===nextId)){setMessage('Diese Übung ist in der Einheit bereits enthalten.');return}
+    const candidate=exercisePool([...template.exercises]).find(ex=>ex.id===nextId)
+    if(!candidate)return
+    const hasSets=data.sets.some(row=>row.sessionKey===sessionKey&&row.exerciseId===oldId)
+    if(hasSets&&!window.confirm('Für diese Übung sind bereits Sätze gespeichert. Sie bleiben erhalten, werden nach dem Austausch aber nicht mehr in der aktuellen Übungsliste angezeigt. Trotzdem wechseln?'))return
+    updateExercises(exercises.map(ex=>ex.id===oldId?candidate:ex))
+  }
   const chosen=(id:string,name:string)=>selectEquipment(id,location,name,equipment[location])
   const selectVariant=(id:string,value:string)=>{touched.current=true;setEquipment(previous=>({...previous,[location]:{...previous[location],[id]:value}}))}
   const rememberEquipment=async()=>{
@@ -198,7 +232,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
   }
   const collect=():StrengthSet[]=>{
     const now=new Date().toISOString()
-    return Object.values(inputs).flatMap(row=>{
+    return exercises.flatMap(ex=>Array.from({length:setsForExercise(ex.id)},(_,i)=>inputs[stateKey(ex.id,i+1)]).filter((v):v is StrengthInput=>Boolean(v))).flatMap(row=>{
       const reps=numberField(row.reps,'Wiederholungen',200)
       const weightKg=numberField(row.weightKg,'Gewicht',800)
       const holdSeconds=numberField(row.holdSeconds,'Haltezeit',900)
@@ -209,7 +243,7 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
       if(reps===undefined&&weightKg===undefined&&holdSeconds===undefined&&rir===undefined&&!completedHolds[stateKey(row.exerciseId,row.setIndex)])return []
       if(!reps&&!holdSeconds)throw Error(`Satz ${row.setIndex} von ${row.exerciseId}: Wiederholungen oder Haltezeit fehlt.`)
       const record:StrengthSet={id:`strength:${sessionKey}:${row.exerciseId}:${row.setIndex}`,sessionKey,profileId:PROFILE_ID,
-        date:onDate,plannedSessionId:selected?.id,exerciseId:row.exerciseId,setIndex:row.setIndex,reps,weightKg,holdSeconds,completed:completedHolds[stateKey(row.exerciseId,row.setIndex)]??false,rir,exerciseVariant:chosen(row.exerciseId,template.exercises.find(x=>x.id===row.exerciseId)?.name??row.exerciseId),trainingLocation:location,createdAt:now,updatedAt:now}
+        date:onDate,plannedSessionId:selected?.id,exerciseId:row.exerciseId,setIndex:row.setIndex,reps,weightKg,holdSeconds,completed:completedHolds[stateKey(row.exerciseId,row.setIndex)]??false,rir,exerciseVariant:chosen(row.exerciseId,exercises.find(x=>x.id===row.exerciseId)?.name??row.exerciseId),trainingLocation:location,createdAt:now,updatedAt:now}
       return [record]
     })
   }
@@ -269,14 +303,24 @@ export default function StrengthPanel({focusId}:{focusId?:string}){
       <div className="tw-location"><strong>Trainingsort</strong><div className="tw-location-choices">{(['studio','arbeit'] as const).map(place=><button type="button" key={place} className={location===place?'selected':''} disabled={done} onClick={()=>{touched.current=true;setLocation(place)}}>{placeName[place]}</button>)}</div><p>Gerätevarianten werden für jeden Ort separat gemerkt und mit den Sätzen protokolliert.</p></div>
       <div className="tw-info"><strong>{template.title} · {friendlyDate(onDate)}</strong><span>{template.focus}</span><span>{template.warmup}</span></div>
       {coachingWeek&&kind!=='C'&&<div className="tw-info"><strong>Adaptive Kraftdosierung · {coachingWeek.kind}{coachingWeek.deload?' / Entlastung':''}</strong><span>Empfehlung für die Unterkörperübungen: ca. {coachingWeek.legSets} Arbeitssätze über Kraft A und B zusammen pro Woche (regulär {REGULAR_LEG_SETS}). Oberkörper bleibt erhalten.</span><span>Bereits protokollierte Sätze bleiben sichtbar und werden nicht reduziert oder gelöscht. Dienst, Müdigkeit und Schmerzen haben Vorrang.</span></div>}
+      {coachingWeek?.notes?.length>0&&<details className="tempo40b-coach-notes"><summary>Warum diese Kraftdosierung?</summary><p>{[...coachingWeek.notes,...coachingWeek.safeguards].join(' · ')}</p></details>}
       {warning&&<div className="tw-warning" role="status">{warning} Keine automatische Trainingsfreigabe.</div>}
       {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert gespeichert. Satzprotokoll bleibt lesbar; ein erneuter Abschluss wird verhindert.</div>}
     </section>
     {selected&&<OptionalFuelingNotes session={selected}/>}
     <form onSubmit={finish} className="tw-stack">
-      {template.exercises.map((ex,index)=><section className="panel tw-exercise" key={ex.id}>
+      <section className="panel tw-panel tempo40b-exercise-picker">
+        <div className="eyebrow">SPORTARTSPEZIFISCH · FLEXIBEL</div><h3>Übungen ergänzen oder austauschen</h3>
+        <p>Dein A/B/C-Plan ist der Ausgangspunkt. Ergänzungen werden mit dem laufenden Training zwischengespeichert und lassen sich später fortsetzen. Erfasste Sätze werden nicht gelöscht.</p>
+        <label>Trainingsfokus<select disabled={done} value={sportFocus} onChange={e=>{setSportFocus(e.target.value as SportFocus);setAddedExercise('')}}>{SPORT_FOCI.map(f=><option key={f}>{f}</option>)}</select></label>
+        <div className="tempo40b-picker-actions"><label>Übung auswählen<select value={addedExercise} disabled={done} onChange={e=>setAddedExercise(e.target.value)}><option value="">Bitte auswählen</option>{SPORT_EXERCISES.filter(ex=>ex.focus===sportFocus&&!exercises.some(current=>current.id===ex.id)).map(ex=><option key={ex.id} value={ex.id}>{ex.name}</option>)}</select></label><button type="button" disabled={done||!addedExercise} onClick={()=>{const ex=SPORT_EXERCISES.find(x=>x.id===addedExercise);if(ex){updateExercises([...exercises,ex]);setAddedExercise('')}}}>+ Übung hinzufügen</button></div>
+        <small>Technische Hebeübungen nur mit entsprechender Erfahrung durchführen. Vorschläge sind keine Pflicht und passen sich deinem Wochenbudget an.</small>
+      </section>
+      {exercises.map((ex,index)=><section className="panel tw-exercise" key={ex.id}>
         <div className="tw-exercise-head"><span className="tw-number">{String(index+1).padStart(2,'0')}</span><div><h3>{ex.name}</h3><p>{ex.cue}</p></div></div>
+        <label className="tw-variant">Übung austauschen<select disabled={done} value={ex.id} onChange={e=>swapExercise(ex.id,e.target.value)}>{exercisePool(exercises.concat(template.exercises)).map(candidate=><option key={candidate.id} value={candidate.id} disabled={candidate.id!==ex.id&&exercises.some(x=>x.id===candidate.id)}>{candidate.name}</option>)}</select></label>
         <label className="tw-variant">Übung / Gerät an diesem Ort<select value={chosen(ex.id,ex.name)} disabled={done} onChange={event=>selectVariant(ex.id,event.target.value)}>{exerciseOptions(ex.id,location,ex.name).map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+        {!done&&SPORT_EXERCISES.some(item=>item.id===ex.id)&&<button type="button" className="tempo40b-remove" onClick={()=>{if(exercises.length>1)updateExercises(exercises.filter(x=>x.id!==ex.id))}}>Zusatzübung entfernen</button>}
         <div className="tw-tags"><span>{setsForExercise(ex.id)} Sätze · {ex.reps}{LEG_EXERCISE_IDS.has(ex.id)&&setsForExercise(ex.id)!==ex.sets?' · an Radblock angepasst':''}</span><span>Pause: {restLabel(ex.restSec)}</span>{ex.unilateral&&<span>Je Seite</span>}</div>
         <div className="tw-sets"><div className="tw-set-head"><span>Satz</span><span>{ex.hold?'Halten (s)':'Wdh.'}</span><span>Gewicht (kg)</span><span>RIR</span></div>
           {Array.from({length:setsForExercise(ex.id)},(_,i)=>i+1).map(i=>{

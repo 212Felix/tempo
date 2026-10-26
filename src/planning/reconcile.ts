@@ -1,3 +1,4 @@
+import {activeGarminActivities} from '../garmin/stored-duplicates'
 import {listRecords, openTempoDatabase} from '../db/storage'
 import {PROFILE_ID, type CompletedRecord, type TrainingRecord} from './engine'
 import type {GarminActivity} from '../garmin/csv'
@@ -20,7 +21,7 @@ export type LinkedCompleted = CompletedRecord & {
 export type ReconcileData = {planned:TrainingRecord[];completed:LinkedCompleted[];garmin:GarminActivity[]}
 export async function loadReconcileData():Promise<ReconcileData>{
   const [planned,completed,garmin]=await Promise.all([
-    listRecords<TrainingRecord>('plannedSessions'),listRecords<LinkedCompleted>('completedSessions'),listRecords<GarminActivity>('externalActivities'),
+    listRecords<TrainingRecord>('plannedSessions'),listRecords<LinkedCompleted>('completedSessions'),listRecords<GarminActivity>('externalActivities').then(activeGarminActivities),
   ])
   const mine=<T extends {profileId?:string}>(rows:T[])=>rows.filter(x=>x.profileId===PROFILE_ID)
   return {planned:mine(planned),completed:mine(completed),garmin:mine(garmin).filter(a=>a.source==='garmin-csv'||a.source==='garmin-fit'||a.source==='garmin-personal')}

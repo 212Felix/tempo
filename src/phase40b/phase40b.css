@@ -1,0 +1,29 @@
+/* TEMPO 40B: stable, mobile-first panels and visually coherent readiness. */
+.tempo40b-battery{display:flex;align-items:center;gap:16px;min-width:0;width:100%;padding:7px 2px;color:#eaf7fb}
+.tempo40b-battery-shell{width:118px;min-width:118px;height:56px;padding:7px;position:relative;border:2px solid #89b3c3;border-radius:12px;background:#091f2a;box-shadow:inset 0 0 18px #0c3547}
+.tempo40b-battery-shell::after{content:'';position:absolute;right:-9px;top:17px;height:18px;width:6px;background:#89b3c3;border-radius:0 4px 4px 0}
+.tempo40b-battery-bars{display:flex;gap:4px;height:100%}.tempo40b-battery-bars>span{flex:1;border-radius:3px;background:#203d49}
+.tempo40b-battery-gruen .charged{background:linear-gradient(#83e6b3,#288e79)}.tempo40b-battery-gelb .charged{background:linear-gradient(#ffe29e,#b88b3f)}.tempo40b-battery-rot .charged{background:linear-gradient(#f6a3a3,#ac5661)}
+.tempo40b-battery-copy{display:grid;gap:3px;min-width:0;text-align:left}.tempo40b-battery-copy>span{font-size:15px}.tempo40b-battery-copy strong{font-weight:800;letter-spacing:.06em;font-size:16px;line-height:1.25}.tempo40b-battery-copy small{font-size:11px;color:#a9c1ca}
+.tempo40b-battery-button{display:grid!important;gap:6px!important;text-align:left!important;width:100%!important;justify-items:stretch!important}
+.tempo40b-battery-button .tempo36-ready-open{justify-self:end;max-width:100%}
+/* Deer photograph only on the hero; never repeat it in readiness or today's training. */
+.tempo39-home .tempo36-readiness,.tempo382-home .tempo36-readiness,.tempo39-home .tempo-ready-home-gruen,.tempo39-home .tempo-ready-home-rot,.tempo382-home .tempo-ready-home-gelb,.tempo382-home .tempo-ready-home-rot,.tempo382-home .tempo-ready-home-gruen{background-image:linear-gradient(118deg,#122733,#163643 70%,#244b4a)!important;border-color:#467b87!important}
+.tempo39-home .tempo36-home-train,.tempo382-home .tempo36-home-train{background-image:linear-gradient(115deg,#102638,#193b4e 67%,#275064)!important}
+.tempo40b-training-preview{display:grid;gap:4px;white-space:normal}.tempo40b-training-preview>span{display:block;font-size:12px;line-height:1.4;color:#c4dce7}
+.tempo40b-prescription-small{display:block;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+.tempo40b-exercise-picker label{display:grid;gap:6px;min-width:0}.tempo40b-exercise-picker select{min-width:0;width:100%}
+.tempo40b-picker-actions{display:grid;gap:10px;grid-template-columns:minmax(0,1fr) auto;align-items:end;margin-top:12px}
+.tempo40b-remove{padding:7px 10px;margin:6px 0;font-size:12px;background:#1d3946;border:1px solid #668b98;border-radius:9px}
+.tempo40b-coach-notes{padding:11px 14px;border:1px solid #3f6771;border-radius:10px;background:#142b37}
+.app,.content,.panel,.tw-stack,.tw-panel,.tw-exercise,.tempo40b-exercise-picker{min-width:0;max-width:100%;box-sizing:border-box}
+.app input,.app textarea,.app select{box-sizing:border-box;min-width:0;max-width:100%;font-size:16px!important}
+.app img{max-width:100%}
+html,body,#root{overflow-x:clip;width:100%;max-width:100%}
+@media(max-width:560px){.tempo40b-picker-actions{grid-template-columns:minmax(0,1fr)}.tempo40b-battery-shell{min-width:98px;width:98px;height:51px}.tempo40b-battery{gap:12px}.tempo40b-battery-copy strong{font-size:14px}.tw-set input{font-size:16px!important}}
+
+.tempo40b-duplicate-review{border:1px solid #47798b;border-radius:15px;background:linear-gradient(130deg,#162b3b,#192b36);padding:16px;margin:10px 0}
+.tempo40b-duplicate-review summary{cursor:pointer;line-height:1.6}.tempo40b-duplicate-review p{line-height:1.55}
+.tempo40b-duplicate-group{border-top:1px solid #4f7180;margin-top:13px;padding-top:13px;display:grid;gap:7px;min-width:0}
+.tempo40b-duplicate-group>small{color:#b4c8d2}.tempo40b-duplicate-group>div{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.tempo40b-duplicate-group button{font-size:13px;border:1px solid #6d9baa;border-radius:10px;background:#275062;color:white;padding:8px 11px}

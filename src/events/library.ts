@@ -70,6 +70,15 @@ export function upcomingEvents(events: GoalEvent[], today: string): GoalEvent[] 
     .sort((a,b) => (effectiveDate(a) ?? '9999-12-31').localeCompare(effectiveDate(b) ?? '9999-12-31') || a.name.localeCompare(b.name))
 }
 
+/** Calendar sorting: next future confirmed/unconfirmed event first; past/completed last. */
+export function orderGoalsChronologically(goals:GoalEvent[],today:string):GoalEvent[]{
+ const isFuture=(g:GoalEvent)=>g.status!=='abgeschlossen'&&Boolean(effectiveDate(g)&&effectiveDate(g)!>=today)
+ return [...goals].sort((a,b)=>{
+  const bucket=(g:GoalEvent)=>isFuture(g)?0:(g.status==='abgeschlossen'||(effectiveDate(g)&&effectiveDate(g)!<today))?2:1
+  return bucket(a)-bucket(b)||((effectiveDate(a)??'9999-12-31').localeCompare(effectiveDate(b)??'9999-12-31'))||a.name.localeCompare(b.name,'de')
+ })
+}
+
 export function routeValues(goal: GoalEvent, routes: RouteEntry[]): {km?:number;hm?:number;hours?:number} {
   const route = routes.find(r => r.id === goal.routeId)
   return {km:goal.distanceKm ?? route?.distanceKm, hm:goal.elevationM ?? route?.elevationM, hours:goal.expectedHours ?? route?.expectedHours}

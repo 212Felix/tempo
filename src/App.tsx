@@ -29,6 +29,7 @@ import './phase36/phase36.css'
 import './phase38/phase38.css'
 import './phase382/phase382.css'
 import './phase39/design.css'
+import './phase40b/phase40b.css'
 import {currentKey, type TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
 import './phase33.css'
@@ -224,7 +225,7 @@ export default function App() {
         if(activityPages.includes(item.id)||item.id==='workout-detail')return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40A</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40B</div>
     </aside>
     <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div>{page!=='home'&&<img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/>}</header>
       <main className={`content page-${page}`}>

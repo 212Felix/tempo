@@ -1,3 +1,4 @@
+import {activeGarminActivities} from '../garmin/stored-duplicates'
 import TimeFields from '../time/TimeFields'
 import {formatSeconds,parseHms} from '../time/duration'
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
@@ -31,7 +32,7 @@ export default function BlockDaysPanel({block,onSaved}:{block:TrainingBlock;onSa
   useEffect(()=>{
     if(!open)return
     let live=true
-    Promise.all([listRecords<GarminActivity>('externalActivities'),listRecords<RouteEntry>('routes'),listRecords<FitTrace>('performanceEntries'),listRecords<ProfileRecord>('profiles')]).then(([a,r,t,p])=>{
+    Promise.all([listRecords<GarminActivity>('externalActivities').then(activeGarminActivities),listRecords<RouteEntry>('routes'),listRecords<FitTrace>('performanceEntries'),listRecords<ProfileRecord>('profiles')]).then(([a,r,t,p])=>{
       if(!live)return
       const sports=a.filter(x=>x.profileId===PROFILE_ID&&x.sport==='cycling'&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal'))
       setActivities(sports.sort((x,y)=>y.date.localeCompare(x.date)))

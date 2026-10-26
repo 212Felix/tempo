@@ -3,6 +3,7 @@ import { getRecord, saveRecord } from './storage'
 import type { TempoRecord, ProfileRecord } from './types'
 import './readiness.css'
 import MorningFuelingCheck from '../phase32/MorningFuelingCheck'
+import ReadinessBattery from './ReadinessBattery'
 import {AVAILABILITY_CHOICES,availabilityFlag} from '../planning/availability'
 
 const PROFILE_ID = 'local-primary-profile'
@@ -200,6 +201,7 @@ export default function ReadinessPanel() {
     <section className={`panel tempo-ready-panel tempo-ready-result tempo-ready-result-${assessment.level}`}>
       <div className="eyebrow">DEINE READINESS</div>
       <h2>{assessment.title}</h2>
+      <ReadinessBattery level={assessment.level}/>
       <details className="tempo38-result-help"><summary>ⓘ Einschätzung erklären</summary><p>{assessment.reason}</p><small>Vorläufige Einschätzung anhand deiner Angaben, keine medizinische Diagnose.</small></details>
       <div role="status" className="tempo-ready-save">{status}</div>
 
@@ -266,6 +268,6 @@ export function ReadinessHomeCard({ onOpen }: { onOpen: () => void }) {
   }, [])
   return <section className={`panel tempo36-readiness tempo-ready-home-${state.level}`}>
     <div className="eyebrow">DEINE READINESS</div>
-    <button className="tempo36-readiness-action" type="button" onClick={onOpen}><span className="tempo36-ready-dot"/><strong>{state.loading?'Wird geladen …':state.level==='gruen'?'GRÜN':state.level==='gelb'?'GELB':state.level==='rot'?'ROT':'OFFEN'}</strong><span className="tempo36-ready-note">{state.level==='gruen'?'Gute Ausgangslage':state.level==='gelb'?'Belastung prüfen':state.level==='rot'?'Erholung prüfen':'Check-in ausfüllen'}</span><span className="tempo36-ready-open">Readiness öffnen ›</span></button>
+    <button className="tempo36-readiness-action tempo40b-battery-button" type="button" onClick={onOpen}><ReadinessBattery level={state.level}/><span className="tempo36-ready-open">Readiness öffnen ›</span></button>
   </section>
 }
