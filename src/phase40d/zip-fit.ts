@@ -34,7 +34,11 @@ export async function fitFromZip(buffer:ArrayBuffer,filename='garmin.fit'):Promi
    }catch(e){throw Error(e instanceof Error?`Automatisches ZIP-Entpacken: ${e.message}`:'ZIP-Entpacken nicht unterstützt.')}
   }else throw Error('Unbekannte ZIP-Kompression.')
   if(output.length!==rawLength)throw Error('FIT-Länge stimmt nicht.')
-  return new File([output],filename,{type:'application/octet-stream'})
+  
+const fileBuffer = new ArrayBuffer(output.byteLength)
+new Uint8Array(fileBuffer).set(output)
+return new File([fileBuffer],filename,{type:'application/octet-stream'})
+  
  }
  throw Error('Im Garmin-Archiv wurde keine FIT-Datei gefunden.')
 }
