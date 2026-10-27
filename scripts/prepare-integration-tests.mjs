@@ -6,6 +6,7 @@ const require=createRequire(import.meta.url)
 let ts
 try{ts=require('typescript')}catch{ts=require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript')}
 const files=[
+ 'src/phase40e/analysis.ts','src/phase40e/analysis-metrics.ts',
  'src/phase40d/prescription.ts','src/phase40d/gestures.ts','src/phase40d/hybrid-readiness.ts','src/phase40d/individual-placement.ts','src/phase40d/garmin-matching.ts','src/phase40d/zip-fit.ts',
  'src/phase40c/date.ts','src/phase40c/navigation.ts','src/phase40c/interval-chart.ts','src/phase40c/garmin-review.ts','src/phase40c/wellness.ts',
  'src/phase39/garmin-conflicts.ts','src/workouts/catalog.ts','src/workouts/sportExercises.ts','src/garmin/stored-duplicates.ts','src/planning/session-prescription.ts','src/workouts/strengthDraft.ts','src/phase39/garmin-sync.ts','src/phase37/intervals.ts','src/phase38/strength-progression.ts','src/phase38/calendar-weeks.ts','src/phase382/activity-art.ts',

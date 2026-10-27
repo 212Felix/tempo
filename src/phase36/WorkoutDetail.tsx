@@ -12,6 +12,7 @@ import SessionGarminReview from '../phase37/SessionGarminReview'
 import CyclingIntervalChart from '../phase40c/CyclingIntervalChart'
 import {germanDate} from '../phase40c/date'
 import '../phase37/phase37.css'
+import SessionAnalysis from '../phase40e/SessionAnalysis'
 
 /** One directly executable detail view; saved plan ≠ saved actual, Garmin linking is always reviewed. */
 export default function WorkoutDetail({session,onBack}:{session:TrainingRecord|null;onBack:()=>void}) {
@@ -89,6 +90,7 @@ export default function WorkoutDetail({session,onBack}:{session:TrainingRecord|n
  <small>Fueling ist optional. Garmin-Daten können später nach Bestätigung zugeordnet werden. Kein doppelter Trainingseintrag.</small>
  </form>}
  </section>
+ <SessionAnalysis session={{...session,workoutSteps:visibleSteps??session.workoutSteps}} profile={{id:PROFILE_ID,createdAt:"",updatedAt:"",ftpWatts:ftp}}/>
  <SessionGarminReview session={session}/>
  </div>
 }

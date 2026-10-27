@@ -9,6 +9,7 @@ import {RIDE_SETTINGS_ID} from '../cycling/zones'
 import HelpDisclosure from '../ui/HelpDisclosure'
 import {swimSummary} from './swimming'
 import './stats.css'
+import PerformanceAnalysis from '../phase40e/PerformanceAnalysis'
 
 type RideEnvSettings=TempoRecord & {overrides?:Record<string,RideEnvironment>}
 export default function ProgressPanel(){
@@ -53,6 +54,7 @@ export default function ProgressPanel(){
        <div><small>Frei protokolliert</small><strong>{swimming.manual.count} ×</strong><span>{deNumber(swimming.manual.km,3)} km</span></div></div>
      <p className="tempo-stats-muted">Schwimmkilometer entsprechen den gespeicherten Distanzen. TEMPO zählt bereits verknüpfte Garmin- und TEMPO-Abschlüsse nicht doppelt. {swimming.possibleDuplicates>0?`${swimming.possibleDuplicates} mögliche Doppelmeldung(en) wurden vorsichtshalber nicht zur Gesamtsumme addiert – bitte im Garmin-Abgleich prüfen.`:'Bei mehreren Schwimmeinheiten am selben Tag bitte mögliche Dopplungen im Garmin-Abgleich prüfen.'}</p>
    </section>
+   <PerformanceAnalysis/>
    <p className="tempo-stats-feedback" role="status">{notice}</p>
  </div>
 }

@@ -18,9 +18,11 @@ import WeekReplanner from '../phase30/WeekReplanner'
 import {addDays} from '../phase28/calendar-model'
 import {germanDate} from '../phase40c/date'
 import GarminWellnessCard from '../phase40c/GarminWellnessCard'
+import {useSessionData,SessionStatus,InlineSessionProfile} from '../phase40e/SessionAnalysis'
 
 function HomeTrainingCard({onOpen,onOpenWorkout}:{onOpen:()=>void;onOpenWorkout?:(session:TrainingRecord)=>void}) {
   const [today,setToday]=useState<TrainingRecord[]>([])
+  const sessionData=useSessionData()
   const [profile,setProfile]=useState<ProfileRecord|undefined>()
   useEffect(()=>{void getRecord<ProfileRecord>('profiles',PROFILE_ID).then(setProfile).catch(()=>undefined)},[])
   useEffect(()=>{let live=true
@@ -31,7 +33,7 @@ function HomeTrainingCard({onOpen,onOpenWorkout}:{onOpen:()=>void;onOpenWorkout?
     return()=>{live=false;window.removeEventListener('tempo:training-change',load)}
   },[])
   return <section className="panel tempo36-home-train"><div className="eyebrow">HEUTIGES TRAINING</div>
-    {today.length===0?<p>Heute noch kein Training gespeichert.</p>:<div className="tempo36-home-sessions">{today.map(session=><button className={`tempo36-home-session tempo382-sport-${activityArt(session)}`} type="button" key={session.id} onClick={()=>onOpenWorkout?onOpenWorkout(session):onOpen()}><span className="tempo36-session-icon">{iconForSession(session)}</span><span className="tempo36-session-main"><strong>{session.title}</strong><small>{session.status==='erledigt'?'✓ Absolviert':durationFor(session)+' · '+session.priority}</small><small className="tempo40b-prescription-small">{prescription(session,profile).slice(1,3).join(' · ')}</small></span><span className="tempo36-chevron">›</span></button>)}</div>}
+    {today.length===0?<p>Heute noch kein Training gespeichert.</p>:<div className="tempo36-home-sessions">{today.map(session=><div key={session.id} className="tempo40e-home-training"><button className={`tempo36-home-session tempo382-sport-${activityArt(session)}`} type="button" onClick={()=>onOpenWorkout?onOpenWorkout(session):onOpen()}><span className="tempo36-session-icon">{iconForSession(session)}</span><span className="tempo36-session-main"><strong>{session.title}</strong><small><SessionStatus session={session} data={sessionData} compact/> · {durationFor(session)}</small><small className="tempo40b-prescription-small">{prescription(session,profile).slice(1,3).join(' · ')}</small></span><span className="tempo36-chevron">›</span></button>{hasWorkoutProfile(session)&&<InlineSessionProfile session={session} ftp={profile?.ftpWatts}/>}</div>)}</div>}
     {today.length===0&&<button className="text-action" onClick={onOpen}>Training planen →</button>}
   </section>
 }
@@ -42,6 +44,7 @@ export const iconForSession=(session:TrainingRecord):string=>/strength/.test(ses
 
 export default function TrainingDayPanel({onOpenWorkout,initialDate,autoAddDate,autoOpenShift=false}:{onOpenReadiness:()=>void;onOpenCalendar:()=>void;onOpenWorkout:(session:TrainingRecord)=>void;initialDate?:string;autoAddDate?:string;autoOpenShift?:boolean}){
   const [entries,setEntries]=useState<TrainingRecord[]>([])
+  const sessionData=useSessionData()
   const [profile,setProfile]=useState<ProfileRecord|undefined>()
   useEffect(()=>{void getRecord<ProfileRecord>('profiles',PROFILE_ID).then(setProfile).catch(()=>undefined)},[])
   const [selected,setSelected]=useState(initialDate??currentKey())
@@ -82,7 +85,7 @@ export default function TrainingDayPanel({onOpenWorkout,initialDate,autoAddDate,
       <div className="tempo-workout-nav tempo36-date-nav"><button type="button" onClick={()=>setSelected(previousDate)} aria-label="Vorheriger Kalendertag">‹</button><label className="tempo37-date-label"><span>{friendlyDate(selectedDay)}</span><input aria-label="Datum auswählen" type="date" value={selectedDay} onChange={e=>setSelected(e.target.value||today)}/></label><button type="button" onClick={()=>setSelected(nextDate)} aria-label="Nächster Kalendertag">›</button></div>
       {loading&&<p>{notice}</p>}
       {!loading&&atDate.length===0&&<p>Heute keine fest gespeicherte Einheit. Über „Training hinzufügen“ kannst du selbst planen.</p>}
-      {!loading&&atDate.map(x=><div key={x.id} className="tempo40d-training-card"><button type="button" className={`tempo36-daily-workout tempo382-sport-${activityArt(x)}`} onClick={()=>onOpenWorkout(x)} aria-label={`${x.title} öffnen`}><span className="tempo36-daily-workout-icon">{iconForSession(x)}</span><span className="tempo36-daily-workout-content"><strong>{x.title}</strong><small>{x.status==='erledigt'?'✓ Absolviert':x.priority} · {x.durationMin?durationFor(x):'Dauer offen'}{x.expectedKm?` · ${x.expectedKm} km`:''}</small><span className="tempo40b-training-preview">{prescription(x,profile).slice(1,4).map((line,i)=><span key={i}>{line}</span>)}</span></span><span className="tempo36-chevron">›</span></button>{hasWorkoutProfile(x)&&<WorkoutProfileChart session={x} ftp={profile?.ftpWatts} compact/>}<GarminActualBadge plannedId={x.id}/></div>)}
+      {!loading&&atDate.map(x=><div key={x.id} className="tempo40d-training-card"><button type="button" className={`tempo36-daily-workout tempo382-sport-${activityArt(x)}`} onClick={()=>onOpenWorkout(x)} aria-label={`${x.title} öffnen`}><span className="tempo36-daily-workout-icon">{iconForSession(x)}</span><span className="tempo36-daily-workout-content"><strong>{x.title}</strong><small><SessionStatus session={x} data={sessionData} compact/> · {x.durationMin?durationFor(x):'Dauer offen'}{x.expectedKm?` · ${x.expectedKm} km`:''}</small><span className="tempo40b-training-preview">{prescription(x,profile).slice(1,4).map((line,i)=><span key={i}>{line}</span>)}</span></span><span className="tempo36-chevron">›</span></button>{hasWorkoutProfile(x)&&<InlineSessionProfile session={x} ftp={profile?.ftpWatts}/>}<GarminActualBadge plannedId={x.id}/></div>)}
       <button className="tempo36-add-training" type="button" onClick={()=>setManualOpen(true)}>＋ Training hinzufügen</button>
       <IndividualWorkoutPanel onOpenWorkout={onOpenWorkout}/>
     </section>

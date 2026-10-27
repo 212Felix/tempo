@@ -1,0 +1,23 @@
+name: TEMPO Phase 40E – Prüfung vor Veröffentlichung
+on:
+  push:
+    branches: [phase40e-test]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Abhängigkeiten installieren
+        run: npm install --no-audit --no-fund
+      - name: Sicherheits-, Logik- und vollständige TypeScript-Build-Prüfung
+        run: npm run verify
+      - name: Cloudflare Worker syntaktisch prüfen
+        run: node --check cloudflare/tempo-garmin-worker/worker.mjs

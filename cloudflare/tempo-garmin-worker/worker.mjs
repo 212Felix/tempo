@@ -167,10 +167,10 @@ export function normalizeWellness(date,sleep,hrv,battery){
  const reports=Array.isArray(battery)?battery:Array.isArray(battery?.reports)?battery.reports:[]
  const latest=reports.at(-1)??battery
  let bodyBattery=firstNumber(latest,['bodyBattery','endValue','currentValue'],100)
- const values=latest?.bodyBatteryValues??latest?.bodyBatteryValueDescriptorDTOList
+ const values=latest?.bodyBatteryValues??latest?.bodyBatteryValuesArray??latest?.bodyBatteryValueDescriptorDTOList??battery?.bodyBatteryValuesArray
  if(bodyBattery===undefined&&Array.isArray(values)){
   for(const v of [...values].reverse()){
-   const n=Array.isArray(v)?wellnessNum(v[1],100):firstNumber(v,['bodyBattery','value','bodyBatteryLevel'],100)
+   const n=Array.isArray(v)?wellnessNum(v[1],100):firstNumber(v,['bodyBattery','value','bodyBatteryLevel','bodyBatteryValue'],100)
    if(n!==undefined){bodyBattery=n;break}
   }
  }
@@ -185,8 +185,10 @@ async function fetchWellness(env,date){
  const token=await fetchToken(env)
  const end=date
  const paths=[`/sleep-service/sleep/dailySleep?date=${date}`,`/hrv-service/hrv/${date}`,`/wellness-service/wellness/bodyBattery/reports/daily?startDate=${date}&endDate=${end}`]
- const [sleep,hrv,battery]=await Promise.all(paths.map(path=>garminGet(path,token).catch(()=>null)))
+ const answers=await Promise.all(paths.map(path=>garminGet(path,token).then(value=>({ok:true,value})).catch(()=>({ok:false,value:null}))))
+ const [sleep,hrv,battery]=answers.map(x=>x.value)
  const result=normalizeWellness(date,sleep,hrv,battery)
+ result.sources={sleep:!answers[0].ok?'unavailable':result.sleepHours!==undefined?'ok':'empty',hrv:!answers[1].ok?'unavailable':result.hrvMs!==undefined?'ok':'empty',bodyBattery:!answers[2].ok?'unavailable':result.bodyBattery!==undefined?'ok':'empty'}
  await env.DB.prepare('INSERT INTO sync_meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind('wellness:'+date,JSON.stringify(result)).run()
  return result
 }

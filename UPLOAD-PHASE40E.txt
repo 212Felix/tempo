@@ -1,0 +1,12 @@
+TEMPO PHASE 40E – GITHUB UPLOAD
+
+Basis ist PHASE 40D, einschließlich Fix src/phase40d/zip-fit.ts.
+
+1. In TEMPO auf dem iPhone zuerst JSON-Backup speichern (nicht in GitHub hochladen).
+2. GitHub-Branch 'phase40e-test' von 'main' erstellen.
+3. Kleine ZIP entpacken. Die DATEIEN UNTERHALB des Ordners tempo-phase40e-update in die GLEICHEN Unterordner des vorhandenen Repositories kopieren/hochladen. KEINE zweiten Ordner tempo-main oder tempo-phase40e-update im GitHub-Repository anlegen.
+4. Commit erstellen und Phase-40E-Prüfung in Actions grün abwarten (npm run verify inkl. Build).
+5. Nur nach grünem Prüfungsergebnis PR nach main mergen und Hauptveröffentlichung grün kontrollieren.
+6. Für zusätzliche Body-Battery-Fehlerdiagnose den privaten Garmin-Worker-Workflow NACH dem Merge getrennt auf main ausführen.
+
+Wichtig: Kein neues Datenbankschema, keine Garmin-Zugangscodes im GitHub oder Chat veröffentlichen. Bitte bei ROTEN Prüfungen Screenshot der ERSTEN TypeScript-Fehlermeldung schicken.

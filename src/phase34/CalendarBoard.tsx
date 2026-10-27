@@ -6,6 +6,12 @@ import type {TrainingRecord} from '../planning/engine'
 import WeekReplanner from '../phase30/WeekReplanner'
 import {calendarWeeks,calendarWeekRows} from '../phase38/calendar-weeks'
 import './calendar-board.css'
+import {useSessionData,SessionStatus} from '../phase40e/SessionAnalysis'
+import {activityStatus,sportLabel} from '../phase40e/analysis'
+import SessionAnalysis from '../phase40e/SessionAnalysis'
+import CompletedActivityDetail from '../phase40e/CompletedActivityDetail'
+import {getRecord} from '../db/storage'
+import type {ProfileRecord} from '../db/types'
 
 type Props={days:string[];shifts:ShiftLike[];plans:TrainingRecord[];done:ActivityLike[];restDays:RestDayRecord[];blockKinds:Record<string,string>;onOpenDay:(date:string)=>void;onAddDay:(date:string)=>void;onConfirm:(entry:TrainingRecord)=>Promise<TrainingRecord>;onStart:(session:TrainingRecord)=>void}
 const weekday=(date:string)=>new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00'))
@@ -15,6 +21,11 @@ const movingAllowed=(r:TrainingRecord)=>r.status==='geplant'&&!r.id.startsWith('
 
 export default function CalendarBoard({days,shifts,plans,done,restDays,blockKinds,onOpenDay,onAddDay,onConfirm,onStart}:Props){
  const records=useMemo(()=>buildCalendar(days,shifts,plans,done),[days,shifts,plans,done])
+ const sessionData=useSessionData()
+ const [profile,setProfile]=useState<ProfileRecord>()
+ const [expandedSession,setExpandedSession]=useState<string|null>(null)
+ const [expandedCompleted,setExpandedCompleted]=useState<string|null>(null)
+ useEffect(()=>{void getRecord<ProfileRecord>('profiles','local-primary-profile').then(setProfile).catch(()=>undefined)},[])
  const [selected,setSelected]=useState<string|null>(null)
  const [floatAt,setFloatAt]=useState<{top:number;left:number}|null>(null)
  function openTile(date:string,element?:HTMLElement|null){if(element){const bounds=element.getBoundingClientRect(),w=Math.min(window.innerWidth*.94,460),h=Math.min(window.innerHeight*.78,650);setFloatAt({top:Math.max(12,Math.min(bounds.top-16,window.innerHeight-h-12)),left:Math.max(8,Math.min(bounds.left,window.innerWidth-w-8))})}else setFloatAt(null);setSelected(date)}
@@ -54,8 +65,8 @@ export default function CalendarBoard({days,shifts,plans,done,restDays,blockKind
   else setMessage('Bitte auf einen freien, zukünftigen Trainingstag ziehen. Dienstangaben werden niemals verschoben.')
  }
  function workoutButtons(date:string){return plans.filter(p=>p.date===date).map(p=><div className="tempo34-workout-line" key={p.id}>
-  <button type="button" className={`tempo34-training-pill ${p.id.startsWith('preview:')?'is-preview':''}`} disabled={false} title={movingAllowed(p)?'Lang drücken und auf einen anderen Tag ziehen':'Training ansehen'} onContextMenu={e=>e.preventDefault()} onPointerDown={e=>beginDrag(e,p)} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={()=>{if(held.current)clearTimeout(held.current);pointer.current=null;setDrag(null)}} onClick={e=>{e.stopPropagation();if(!drag)openTile(date,e.currentTarget.closest<HTMLElement>('[data-tempo-date]'))}} aria-label={`${p.title}${movingAllowed(p)?' – zum Verschieben lange gedrückt halten':''}`}>
-   {iconFor(p.sessionType)} {p.title.replace(/^Vorschlag · /,'')} {p.id.startsWith('preview:')?'· Vorschlag':''}
+  <button type="button" className={`tempo34-training-pill ${p.id.startsWith('preview:')?'is-preview':''} tempo40e-calendar-pill tempo40e-${activityStatus(p,sessionData.completed,sessionData.links)}`} disabled={false} title={movingAllowed(p)?'Lang drücken und auf einen anderen Tag ziehen':'Training ansehen'} onContextMenu={e=>e.preventDefault()} onPointerDown={e=>beginDrag(e,p)} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={()=>{if(held.current)clearTimeout(held.current);pointer.current=null;setDrag(null)}} onClick={e=>{e.stopPropagation();if(!drag){setExpandedSession(p.id);openTile(date,e.currentTarget.closest<HTMLElement>('[data-tempo-date]'))}}} aria-label={`${p.title}${movingAllowed(p)?' – zum Verschieben lange gedrückt halten':''}`}>
+   {iconFor(p.sessionType)} {p.title.replace(/^Vorschlag · /,'')} <SessionStatus session={p} data={sessionData} compact/>{p.id.startsWith('preview:')?'· Vorschlag':''}
   </button></div>)}
  async function confirmPreview(session:TrainingRecord,begin=false){if(saving)return;setSaving(true);setMessage('');try{const saved=await onConfirm(session);if(mounted.current){setMessage('Training fest in deinen Plan übernommen.');if(begin){setSelected(null);onStart(saved)}}}catch(e){setMessage(String(e))}finally{if(mounted.current)setSaving(false)}}
  const daySelected=selected?getDay(selected):null
@@ -69,12 +80,12 @@ export default function CalendarBoard({days,shifts,plans,done,restDays,blockKind
     <div className="tempo34-calendar-week-label">{weekday(week[0].date)} – {weekday(week[week.length-1].date)}</div>
     {calendarWeekRows(week).map((row,i)=><div className={`tempo34-calendar-row tempo34-n-${row.length+(week.length===7&&i===2?1:0)}`} key={i}>{row.map(day=>{
      const date=day.date,rest=restDays.find(r=>r.date===date),kind=blockKinds[date];return <div key={date} data-tempo-date={date} className={`tempo34-calendar-tile ${date===todayLocal()?'is-today':''} ${isWeekendOrHoliday(date)?'is-holiday':''} ${hover===date?'is-drop-target':''} ${rest?'is-rest':''}`} role="button" tabIndex={0} onClick={e=>openTile(date,e.currentTarget)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTile(date,e.currentTarget)}}} aria-label={`${weekday(date)} · ${day.service} · ${day.activities.length} Aktivitäten`}>
-      <div className="tempo34-tile-head"><strong>{weekday(date)}</strong>{kind&&<span className={`tempo31-block-label tempo31-block-${kind.toLowerCase()}`}>{kind}</span>}</div>
+      <div className="tempo34-tile-head"><strong>{weekday(date)}</strong>{plans.some(p=>p.date===date)&&<span className="tempo40e-sport-label">{[...new Set(plans.filter(p=>p.date===date).map(p=>sportLabel(p.sessionType)))].join(" · ")}</span>}{kind&&<span className={`tempo31-block-label tempo31-block-${kind.toLowerCase()}`}>{kind}</span>}</div>
       <small className="tempo34-duty">{day.service}{holidaySaxony(date)?' · Feiertag':''}</small>
       {rest&&<span className="tempo34-rest">🌿 {rest.mode==='free'?'Frei 🔒':'Recovery 🔒'}</span>}
       {day.commuteNote&&<span className="tempo34-commute">🚲 {day.commuteNote}</span>}
       {workoutButtons(date)}
-      {day.activities.filter(a=>!plans.some(p=>p.id===a.id)).map(a=><span className="tempo34-training-pill is-done" key={a.id}>{a.icon} {a.title} ✓</span>)}
+      {day.activities.filter(a=>!plans.some(p=>p.id===a.id)).map(a=><button type="button" className="tempo34-training-pill is-done" key={a.id} onClick={e=>{e.stopPropagation();setExpandedCompleted(a.id);openTile(date)}}>{a.icon} {a.title} ✓</button>)}
       {!day.activities.length&&!rest&&!day.commuteNote&&<small className="tempo34-empty">Noch frei</small>}
       <button type="button" className="tempo34-plus" onClick={e=>{e.stopPropagation();onAddDay(date)}} aria-label={`Training am ${weekday(date)} hinzufügen`}>＋</button>
      </div>
@@ -90,8 +101,8 @@ export default function CalendarBoard({days,shifts,plans,done,restDays,blockKind
     {restSelected&&<p className="tempo34-rest">🌿 {restSelected.mode==='free'?'Trainingsfrei':'Recovery'} – fixiert</p>}
     {daySelected.commuteNote&&<p>🚲 {daySelected.commuteNote}</p>}
     <h3>Trainingsinhalt</h3>
-    {plans.filter(p=>p.date===selected).length?plans.filter(p=>p.date===selected).map(p=><div className="tempo34-modal-workout" key={p.id}><strong>{iconFor(p.sessionType)} {p.title}</strong><small>{p.priority} · {p.durationMin} min · {p.target}</small><div className="tempo34-modal-actions">{p.id.startsWith('preview:')?<button type="button" disabled={saving} onClick={()=>void confirmPreview(p,true)}>▶ Übernehmen & Start</button>:<button type="button" onClick={()=>{setSelected(null);onStart(p)}}>▶ Start</button>}{p.id.startsWith('preview:')&&<button type="button" disabled={saving} onClick={()=>void confirmPreview(p)}>✓ Bestätigen</button>}<button type="button" onClick={()=>{setSelected(null);onOpenDay(selected)}}>✎ Bearbeiten</button><button type="button" disabled={!movingAllowed(p)} onClick={()=>{setSelected(null);setReplan({session:p,target:p.date})}}>↔ Verschieben</button></div></div>):<p>Keine feste Trainingseinheit für diesen Tag.</p>}
-    {daySelected.activities.filter(a=>!plans.some(p=>p.id===a.id)).map(a=><p key={a.id}>{a.icon} {a.title} ✓ absolviert</p>)}
+    {plans.filter(p=>p.date===selected).length?plans.filter(p=>p.date===selected).map(p=><div className="tempo34-modal-workout" key={p.id}><strong>{iconFor(p.sessionType)} {p.title} · <SessionStatus session={p} data={sessionData} compact/></strong><small>{p.priority} · {p.durationMin} min · {p.target}</small><div className="tempo34-modal-actions">{p.id.startsWith('preview:')?<button type="button" disabled={saving} onClick={()=>void confirmPreview(p,true)}>▶ Übernehmen & Start</button>:<button type="button" onClick={()=>{setSelected(null);onStart(p)}}>{activityStatus(p,sessionData.completed,sessionData.links)==="erledigt"?"◎ Analyse öffnen":"▶ Training öffnen"}</button>}{!p.id.startsWith('preview:')&&<button type="button" onClick={()=>setExpandedSession(expandedSession===p.id?null:p.id)}>◎ {expandedSession===p.id?'Analyse schließen':'SOLL / IST & Garmin-Daten'}</button>}{p.id.startsWith('preview:')&&<button type="button" disabled={saving} onClick={()=>void confirmPreview(p)}>✓ Bestätigen</button>}<button type="button" onClick={()=>{setSelected(null);onOpenDay(selected)}}>✎ Bearbeiten</button><button type="button" disabled={!movingAllowed(p)} onClick={()=>{setSelected(null);setReplan({session:p,target:p.date})}}>↔ Verschieben</button></div>{expandedSession===p.id&&!p.id.startsWith('preview:')&&<SessionAnalysis session={p} profile={profile}/>}</div>):<p>Keine feste Trainingseinheit für diesen Tag.</p>}
+    {daySelected.activities.filter(a=>!plans.some(p=>p.id===a.id)).map(a=><div key={a.id}><button type="button" onClick={()=>setExpandedCompleted(expandedCompleted===a.id?null:a.id)}>{a.icon} {a.title} ✓ absolviert · Details {expandedCompleted===a.id?'schließen':'öffnen'}</button>{expandedCompleted===a.id&&<CompletedActivityDetail id={a.id}/>}</div>)}
     <div className="tempo34-modal-actions"><button type="button" onClick={()=>{setSelected(null);onAddDay(selected)}}>＋ Aktivität</button><button type="button" onClick={()=>{setSelected(null);onOpenDay(selected)}}>🌿 Recovery / Tagesdetails</button></div>
     <small className="tempo34-modal-hint">Außerhalb der Kachel tippen, um zu schließen. Der Dienst wird beim Verschieben niemals geändert.</small>
    </div>

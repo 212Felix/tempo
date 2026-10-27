@@ -32,6 +32,7 @@ import './phase39/design.css'
 import './phase40b/phase40b.css'
 import './phase40c/phase40c.css'
 import './phase40d/phase40d.css'
+import './phase40e/phase40e.css'
 import {gestureBlocked} from './phase40c/navigation'
 import {gestureDirection,dragOffset} from './phase40d/gestures'
 import {validateWellness,type Wellness} from './phase40c/wellness'
@@ -237,9 +238,9 @@ export default function App() {
   function openWorkout(session: TrainingRecord) {
     setFocusWorkout(session.id)
     setDayFocus(session.date)
-    if(!isStrength(session) && !isRun(session))setDetailWorkout(session)
+    if(!isStrength(session)&&(!isRun(session)||session.status==='erledigt'))setDetailWorkout(session)
     else setDetailWorkout(null)
-    setPage(isStrength(session)?'strength':isRun(session)?'running':'workout-detail')
+    setPage(isStrength(session)?'strength':isRun(session)&&session.status!=='erledigt'?'running':'workout-detail')
    
   }
   function resumeStrength(draft:StrengthDraft){setFocusWorkout(draft.plannedId);setPage('strength');setMenuOpen(false)}
@@ -261,7 +262,7 @@ export default function App() {
         if(activityPages.includes(item.id)||item.id==='workout-detail')return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40D</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40E</div>
     </aside>
     <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div>{page!=='home'&&<img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/>}</header>
       <main key={page} className={`content page-${page} tempo40d-enter tempo40d-swipeable`} style={{"--tempo40d-enter":swipeDirection>0?"11px":"-11px"} as CSSProperties} onTouchStart={touchBegin} onTouchMove={touchMove} onTouchEnd={touchFinish} onTouchCancel={e=>{touchStart.current=null;e.currentTarget.classList.remove('tempo40d-dragging');e.currentTarget.style.transform=''}}>
