@@ -1,4 +1,6 @@
 import {germanDate} from '../phase40c/date'
+import IndividualWorkoutPanel from '../phase40d/IndividualWorkoutPanel'
+import WorkoutProfileChart from '../phase40d/WorkoutProfileChart'
 import TimeFields from '../time/TimeFields'
 import SessionGarminReview from '../phase37/SessionGarminReview'
 import {recoveryValid,runRecoveryText,defaultsForRunRecovery,type RunningRecovery} from '../phase37/intervals'
@@ -17,7 +19,7 @@ import './workouts.css'
 import HelpDisclosure from '../ui/HelpDisclosure'
 
 type Data=Awaited<ReturnType<typeof loadWorkoutData>>
-export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onOpenEvents?:()=>void}){
+export default function RunningPanel({focusId,onOpenEvents,onOpenWorkout}:{focusId?:string;onOpenEvents?:()=>void;onOpenWorkout?:(session:TrainingRecord)=>void}){
   const [data,setData]=useState<Data>({planned:[],completed:[],readiness:[],sets:[]})
   const [cooper,setCooper]=useState<GoalEvent|undefined>()
   const [plannedId,setPlannedId]=useState('')
@@ -72,6 +74,7 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
     }catch(err){setMessage(`Nicht gespeichert: ${err instanceof Error?err.message:String(err)}`)}finally{setBusy(false)}
   }
   return <div className="tw-stack">
+    {!focusId&&onOpenWorkout&&<IndividualWorkoutPanel onOpenWorkout={onOpenWorkout}/>}
     {!focusId&&cooper&&<section className="panel tw-panel tempo-running-goal"><div className="eyebrow">LAUFZIEL · COOPER-TEST</div><h2>3.200 Meter in 12:00</h2><p>Zieltempo: <strong>{paceText(3.2,720)}</strong> · {cooper.date?`Testtermin: ${dateLabel(cooper.date)}`:'Testtermin noch offen'}</p><p>Wir bauen zuerst lockere Laufkilometer und Laufverträglichkeit auf. Das Zieltempo ist noch keine Vorgabe für die nächste Einheit.</p>{onOpenEvents&&<button type="button" className="outline" onClick={onOpenEvents}>{cooper.date?'Laufziel bearbeiten':'Testdatum festlegen'} ↗</button>}</section>}
 
     {!focusId&&<section className="panel tw-panel"><div className="eyebrow">LAUFEN · KONSERVATIVER AUFBAU</div><h2>Locker laufen, konstant aufbauen</h2>
@@ -86,6 +89,7 @@ export default function RunningPanel({focusId,onOpenEvents}:{focusId?:string;onO
       {done&&<div className="tw-success">Diese Einheit ist bereits als absolviert dokumentiert.</div>}
     </section>}
     <section className="panel tw-panel"><div className="eyebrow">LAUFABLAUF</div><h3>{session?.title??"Deine Einheit"}</h3>
+      {session?.workoutSteps?.length&&<WorkoutProfileChart session={session} compact={false}/>}
       {session&&<div className="tw-info"><strong>{friendlyDate(session.date)} · {durationFor(session)} · {session.priority}</strong><span>{session.target}</span>{session.notes&&<span>{session.notes}</span>}</div>}
       {hasIntervals&&<div className="tw-info"><strong>Geplanter Intervallreiz</strong><span>{session?.target}</span><span>Zwischen den Intervallen: {recoveryValid(recovery)?runRecoveryText(recovery):'Pausenart bitte festlegen'}</span></div>}
       <HelpDisclosure id="running-run-notes"><p>Wähle die Gesamtdauer je nach geplanter Einheit und Tagesform. Steigt die muskuläre Belastung oder treten Schmerzen auf, beende den Lauf.</p></HelpDisclosure>

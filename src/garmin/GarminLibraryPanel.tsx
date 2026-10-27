@@ -42,6 +42,19 @@ export default function GarminLibraryPanel(){
     setStored(data);setNotice(data.length?`${data.length} importierte Garmin-Aktivitäten lokal verfügbar.`:'Noch keine Garmin-Aktivitäten importiert.')
   }).catch(error=>{if(live)setNotice('Datenbankfehler: '+String(error))});return()=>{live=false}},[])
 
+  // Garmin's authenticated auto-import runs in the background while TEMPO is open.
+  // Refresh both activity cards and FIT graphs without forcing the user to reopen this page.
+  useEffect(()=>{
+    let live=true
+    const reload=()=>void listRecords<GarminActivity>('externalActivities').then(rows=>{
+      if(!live)return
+      const available=rows.filter(x=>x.profileId===PROFILE_ID&&(x.source==='garmin-csv'||x.source==='garmin-fit'||x.source==='garmin-personal'))
+        .sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id))
+      setStored(available);setFitVersion(v=>v+1)
+    }).catch(()=>undefined)
+    window.addEventListener('tempo:garmin-import-change',reload)
+    return()=>{live=false;window.removeEventListener('tempo:garmin-import-change',reload)}
+  },[])
   useEffect(()=>{
     let live=true
     const record=stored.find(x=>x.id===selected)

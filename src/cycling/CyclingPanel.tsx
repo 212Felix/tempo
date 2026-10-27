@@ -1,4 +1,6 @@
 import {activeGarminActivities} from '../garmin/stored-duplicates'
+import IndividualWorkoutPanel from '../phase40d/IndividualWorkoutPanel'
+import type {TrainingRecord} from '../planning/engine'
 import {useEffect,useMemo,useState} from 'react'
 import {getRecord,listRecords,saveRecord} from '../db/storage'
 import type {ProfileRecord,TempoRecord} from '../db/types'
@@ -21,7 +23,7 @@ const targetNames=['Aktive Erholung','Grundlage','Tempo','Schwelle','VO₂max','
 const hrNames=['Regeneration','Locker','Aerob','Intensiv','Sehr hoch']
 
 type Environments=TempoRecord & {overrides?:Record<string,RideEnvironment>}
-export default function CyclingPanel(){
+export default function CyclingPanel({onOpenWorkout}:{onOpenWorkout?:(session:TrainingRecord)=>void}){
   const [profile,setProfile]=useState<ProfileRecord>()
   const [activities,setActivities]=useState<RideWithLocation[]>([])
   const [completed,setCompleted]=useState<DoneWithContext[]>([])
@@ -68,6 +70,7 @@ export default function CyclingPanel(){
     catch(err){setNotice('Zuordnung fehlgeschlagen: '+String(err))}
   }
   return <div className="cycle-stack">
+    {onOpenWorkout&&<IndividualWorkoutPanel onOpenWorkout={onOpenWorkout}/>}
     <section className="panel cycle-panel">
       <div className="eyebrow">RADFAHREN · DEINE LEISTUNG</div><h2>Watt- & Herzfrequenzzonen</h2>
       <HelpDisclosure id="cycle-zones">Zonengrenzen sind anfangs FTP-/HFmax-basierte Vorschläge und keine Live-Kopie deiner Garmin-Einstellungen. Du kannst die Grenzen in Prozent bearbeiten; FTP- und HFmax-Änderungen im Profil berechnen Watt und Puls automatisch neu. Nutze die angezeigten Werte als Orientierung.</HelpDisclosure>

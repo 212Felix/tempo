@@ -6,7 +6,7 @@ compatibility_date = "2026-10-01"
 TEMPO_ALLOWED_ORIGIN = "https://212felix.github.io"
 
 [triggers]
-crons = ["0 */6 * * *"]
+crons = ["*/15 * * * *"]
 
 [observability.logs]
 enabled = false

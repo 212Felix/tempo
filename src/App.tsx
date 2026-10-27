@@ -1,6 +1,6 @@
 import MetricsPanel from './metrics/MetricsPanel'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties, type TouchEvent } from 'react'
-import {getRecord} from './db/storage'
+import {getRecord,listRecords} from './db/storage'
 import type {TempoRecord} from './db/types'
 import {evaluateReadiness} from './db/ReadinessPanel'
 import { HelpProvider } from './ui/HelpDisclosure'
@@ -31,7 +31,11 @@ import './phase382/phase382.css'
 import './phase39/design.css'
 import './phase40b/phase40b.css'
 import './phase40c/phase40c.css'
-import {gestureBlocked,swipeDelta} from './phase40c/navigation'
+import './phase40d/phase40d.css'
+import {gestureBlocked} from './phase40c/navigation'
+import {gestureDirection,dragOffset} from './phase40d/gestures'
+import {validateWellness,type Wellness} from './phase40c/wellness'
+import {hrvReference} from './phase40d/hybrid-readiness'
 import {currentKey, type TrainingRecord } from './planning/engine'
 import { ensureCooperGoal } from './events/running'
 import './phase33.css'
@@ -153,7 +157,7 @@ function Placeholder({ id, go }: { id: PageId; go: (id: PageId) => void }) {
 
 export default function App() {
   const [page, setPage] = useState<PageId>('home')
-  const touchStart=useRef<{x:number;y:number}|null>(null)
+  const touchStart=useRef<{x:number;y:number;at:number;axis:'x'|'y'|null}|null>(null)
   const [swipeDirection,setSwipeDirection]=useState(1)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activitiesOpen,setActivitiesOpen]=useState(false)
@@ -169,17 +173,18 @@ export default function App() {
     const check=()=>{const now=new Date();const day=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
       setActiveDay(day)
       setTodayReadiness('offen')
-      void getRecord<TempoRecord&{ratings?:Record<string,number>;illness?:'nein'|'ja'|''}>('readinessEntries',`local-primary-profile:${day}`).then(entry=>{
-        if(active)setTodayReadiness(evaluateReadiness({ratings:entry?.ratings??{},illness:entry?.illness??''}).level)
+      void Promise.all([getRecord<TempoRecord&{ratings?:Record<string,number>;illness?:'nein'|'ja'|''}>('readinessEntries',`local-primary-profile:${day}`),getRecord<TempoRecord&{wellness?:Wellness}>('settings',`garmin-wellness:local-primary-profile:${day}`),listRecords<TempoRecord&{wellness?:Wellness}>('settings')]).then(([entry,wellness,history])=>{
+        const baseline=hrvReference(history.filter(r=>r.id.startsWith('garmin-wellness:local-primary-profile:')).map(r=>validateWellness(r.wellness)).filter((r):r is Wellness=>Boolean(r)),day)
+        if(active)setTodayReadiness(evaluateReadiness({ratings:entry?.ratings??{},illness:entry?.illness??''},validateWellness(wellness?.wellness),baseline).level)
       }).catch(()=>{if(active)setTodayReadiness('offen')})
     }
     check()
-    window.addEventListener('tempo:readiness-change',check);window.addEventListener('focus',check)
+    window.addEventListener('tempo:readiness-change',check);window.addEventListener('tempo:garmin-wellness-change',check);window.addEventListener('focus',check)
     const midnight=()=>{const now=new Date();const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);return Math.max(1000,next.getTime()-now.getTime()+50)}
     let timer:ReturnType<typeof setTimeout>
     const rollover=()=>{check();window.dispatchEvent(new Event('tempo:day-rollover'));timer=setTimeout(rollover,midnight())}
     timer=setTimeout(rollover,midnight())
-    return()=>{active=false;clearTimeout(timer);window.removeEventListener('tempo:readiness-change',check);window.removeEventListener('focus',check)}
+    return()=>{active=false;clearTimeout(timer);window.removeEventListener('tempo:readiness-change',check);window.removeEventListener('tempo:garmin-wellness-change',check);window.removeEventListener('focus',check)}
   },[])
   useEffect(()=>{void ensureCooperGoal().then(()=>window.dispatchEvent(new Event('tempo:events-change'))).catch(error=>console.warn('Cooper-Ziel konnte nicht angelegt werden:',error))},[])
   // Reset after the destination has mounted. Smooth scrolling before setPage used
@@ -202,13 +207,28 @@ export default function App() {
   function navigate(id: PageId) { if(id!==page)setSwipeDirection(primary.indexOf(id)>=primary.indexOf(page)?1:-1); if(activityPages.includes(id))setActivitiesOpen(true); if(id==='training'){setDayFocus('');setAddFocus('')} setFocusWorkout(''); setDetailWorkout(null);setAutoOpenShift(false); setPage(id); setMenuOpen(false); }
   function touchBegin(event:TouchEvent<HTMLElement>){
     if(!primary.includes(page)||menuOpen||event.touches.length!==1||gestureBlocked(event.target)){touchStart.current=null;return}
-    touchStart.current={x:event.touches[0].clientX,y:event.touches[0].clientY}
+    touchStart.current={x:event.touches[0].clientX,y:event.touches[0].clientY,at:performance.now(),axis:null}
+  }
+  function touchMove(event:TouchEvent<HTMLElement>){
+    const start=touchStart.current
+    if(!start||event.touches.length!==1)return
+    const dx=event.touches[0].clientX-start.x,dy=event.touches[0].clientY-start.y
+    if(!start.axis&&Math.max(Math.abs(dx),Math.abs(dy))>12)start.axis=Math.abs(dx)>Math.abs(dy)*1.25?'x':'y'
+    if(start.axis!=='x')return
+    const index=primary.indexOf(page),drag=dragOffset(dx,window.innerWidth)
+    const bounded=(dx<0&&index===primary.length-1||dx>0&&index===0)?drag*.25:drag
+    event.currentTarget.classList.add('tempo40d-dragging')
+    event.currentTarget.style.transform=`translate3d(${bounded}px,0,0)`
   }
   function touchFinish(event:TouchEvent<HTMLElement>){
     const start=touchStart.current;touchStart.current=null
-    if(!start||!primary.includes(page)||menuOpen||event.changedTouches.length!==1)return
+    const el=event.currentTarget
+    el.classList.remove('tempo40d-dragging')
+    el.style.transition='transform .25s cubic-bezier(.18,.78,.26,1)'
+    el.style.transform=''
+    if(!start||start.axis!=='x'||!primary.includes(page)||menuOpen||event.changedTouches.length!==1)return
     const end=event.changedTouches[0]
-    const direction=swipeDelta(end.clientX-start.x,end.clientY-start.y,start.x,window.innerWidth)
+    const direction=gestureDirection(end.clientX-start.x,end.clientY-start.y,performance.now()-start.at,start.x,window.innerWidth)
     const index=primary.indexOf(page)+direction
     if(direction&&index>=0&&index<primary.length){setSwipeDirection(direction);navigate(primary[index])}
   }
@@ -241,12 +261,12 @@ export default function App() {
         if(activityPages.includes(item.id)||item.id==='workout-detail')return null
         return <button key={item.id} className={`nav-item ${page===item.id?'active':''}`} onClick={()=>navigate(item.id)}><Icon name={item.icon} size={19}/><span>{item.name}</span>{page===item.id&&<span className="active-marker"/>}</button>
       })}</nav>
-      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40C</div>
+      <div className="sidebar-footer"><span className="mini-dot good-dot"/> V0.39 · TEMPO · Phase 40D</div>
     </aside>
     <div className="workspace"><header className="topbar"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="topbar-brand"><span className="tempo36-brand-name">TEMPO</span><span className="topbar-sep">/</span><strong className="tempo36-current-page">{active.name}</strong></div>{page!=='home'&&<img className="tempo36-nav-logo" src={`${import.meta.env.BASE_URL}tempo-icon-v22-192.png`} alt="TEMPO Hirsch"/>}</header>
-      <main key={page} className={`content page-${page} tempo40c-enter`} style={{"--tempo40c-dir":swipeDirection>0?"14px":"-14px"} as CSSProperties} onTouchStart={touchBegin} onTouchEnd={touchFinish} onTouchCancel={()=>{touchStart.current=null}}>
+      <main key={page} className={`content page-${page} tempo40d-enter tempo40d-swipeable`} style={{"--tempo40d-enter":swipeDirection>0?"11px":"-11px"} as CSSProperties} onTouchStart={touchBegin} onTouchMove={touchMove} onTouchEnd={touchFinish} onTouchCancel={e=>{touchStart.current=null;e.currentTarget.classList.remove('tempo40d-dragging');e.currentTarget.style.transform=''}}>
       <HelpProvider key={page}>
-      {page === 'home' ? <Home go={navigate} openWorkout={openWorkout} openDuty={openDuty}/> : page === 'readiness' ? <ReadinessPanel key={activeDay}/> : page === 'calendar' ? <CalendarSafeguard onBack={()=>navigate('home')}><ShiftCalendarPanel key={activeDay} onOpenDay={openCalendarDay} onAddDay={addCalendarTraining} onStartWorkout={openWorkout}/></CalendarSafeguard> : page === 'training' ? <><StrengthResumeBanner onResume={resumeStrength}/><TrainingDayPanel key={`${dayFocus}:${addFocus}:${autoOpenShift}`} autoOpenShift={autoOpenShift} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/></> : page === 'workout-detail' ? <WorkoutDetail session={detailWorkout} onBack={()=>openCalendarDay(detailWorkout?.date??currentKey())}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel key={focusWorkout} focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'golf' || page === 'sportspiel' ? <ManualTrainingPanel autoStartDate={currentKey()} initialSport={page} autoStartMode="completed"/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
+      {page === 'home' ? <Home go={navigate} openWorkout={openWorkout} openDuty={openDuty}/> : page === 'readiness' ? <ReadinessPanel key={activeDay}/> : page === 'calendar' ? <CalendarSafeguard onBack={()=>navigate('home')}><ShiftCalendarPanel key={activeDay} onOpenDay={openCalendarDay} onAddDay={addCalendarTraining} onStartWorkout={openWorkout}/></CalendarSafeguard> : page === 'training' ? <><StrengthResumeBanner onResume={resumeStrength}/><TrainingDayPanel key={`${dayFocus}:${addFocus}:${autoOpenShift}`} autoOpenShift={autoOpenShift} autoAddDate={addFocus||undefined} initialDate={dayFocus||undefined} onOpenReadiness={() => navigate('readiness')} onOpenCalendar={() => navigate('calendar')} onOpenWorkout={openWorkout}/></> : page === 'workout-detail' ? <WorkoutDetail session={detailWorkout} onBack={()=>openCalendarDay(detailWorkout?.date??currentKey())}/> : page === 'profile' ? <DatabasePanel/> : page === 'events' ? <EventsPanel/> : page === 'routes' ? <RoutesPanel/> : page === 'garmin' ? <GarminLibraryPanel/> : page === 'blocks' ? <BlocksPanel onOpenEvents={() => navigate('events')}/> : page === 'cycling' ? <CyclingPanel onOpenWorkout={openWorkout}/> : page === 'progress' ? <ProgressPanel/> : page === 'strength' ? <StrengthPanel key={focusWorkout} focusId={focusWorkout}/> : page === 'running' ? <RunningPanel focusId={focusWorkout} onOpenWorkout={openWorkout} onOpenEvents={()=>navigate('events')}/> : page === 'swimming' ? <SwimmingPanel/> : page === 'golf' || page === 'sportspiel' ? <ManualTrainingPanel autoStartDate={currentKey()} initialSport={page} autoStartMode="completed"/> : page === 'recovery' ? <RecoveryPanel/> : page === 'fueling' ? <FuelingPanel onOpenLibrary={()=>navigate('fuel-library')}/> : page === 'fuel-library' ? <FuelLibraryPanel/> : page === 'metrics' ? <MetricsPanel/> : <Placeholder id={page} go={navigate}/>}
       </HelpProvider>
       <footer className="content-footer">TEMPO · dein Training, dein System</footer></main>
       <nav className="bottom-tabs" aria-label="Schnellnavigation">{primary.map(id => {const item=pages.find(p => p.id === id)!; return <button key={id} className={`${page===id?'active':''} ${id==='readiness'?`tempo38-heart-${todayReadiness}`:''}`} onClick={()=>navigate(id)}><Icon name={item.icon} size={22}/><span>{item.name}</span></button>})}</nav>

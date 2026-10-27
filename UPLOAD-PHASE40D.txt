@@ -1,0 +1,23 @@
+TEMPO PHASE 40D – UPDATE NUR FÜR BESTEHENDES GITHUB-REPOSITORY
+
+1) Auf dem iPhone vorhandene Trainingsdaten als JSON-Backup sichern.
+2) GitHub Desktop öffnen, Repository TEMPO auswählen, main synchronisieren (Fetch/Pull).
+3) Neuen Branch "phase40d-test" von main erstellen.
+4) TEMPO_Phase40D_NUR_AENDERUNGEN.zip nach Downloads entpacken.
+   Der entpackte Ordner heißt "tempo-phase40d-update".
+5) Im Mac-Terminal diesen Befehl einfügen (Repo-Pfad von den vorherigen TEMPO-Phasen):
+   rsync -a --exclude='.DS_Store' "$HOME/Downloads/tempo-phase40d-update/" "$HOME/Documents/GitHub/tempo/"
+6) In GitHub Desktop die Änderungen prüfen, committen, Publish branch.
+7) Actions: "TEMPO Phase 40D – Prüfung" muss GRÜN werden. Erst dann PR nach main mergen,
+   danach "TEMPO veröffentlichen" auf main ebenfalls GRÜN prüfen.
+8) WICHTIG: Cloudflare Worker getrennt veröffentlichen: Actions >
+   "TEMPO Phase 39 – Garmin Worker (privat)" > Run workflow (main). Auf GRÜN prüfen.
+9) TEMPO auf dem iPhone testen. Für Garmin nach Neustart erneut privaten TEMPO-Zugangscode
+   eingeben. Bestehende D1-Daten, Trainingsdaten, Secrets NICHT löschen.
+
+Hinweise: Der Garmin-Abruf kann nicht in Echtzeit garantiert werden. Der Worker kann im
+Hintergrund synchronisieren, aber die lokale iPhone-Datenbank wird bei geöffneter,
+authentifizierter Sitzung aktualisiert. FIT-Detailimport hängt von der Browserunterstützung ab.
+Die gesonderte Funktion "TEMPO-Workouts an Garmin Edge/Uhr senden" ist nicht enthalten.
+
+Dokumentation: docs/PHASE40D-RELEASE.md

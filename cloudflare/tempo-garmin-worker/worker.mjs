@@ -98,6 +98,20 @@ async function fetchToken(env) {
   }
   return token
 }
+/** Original Garmin export is on-demand only; never persisted to the public project or D1. */
+async function activityArchive(env,activityId){
+ if(!/^\d{5,20}$/.test(activityId))throw new Error('Ungültige Garmin-Aktivität.')
+ const own=await env.DB.prepare('SELECT id FROM activities WHERE id=?').bind(activityId).first()
+ if(!own)throw new Error('Aktivität nicht in deinem privaten Archiv vorhanden.')
+ const token=await fetchToken(env)
+ const response=rejectGarminRedirect(await fetch(`${GARMIN_BASE}/download-service/files/activity/${activityId}`,{headers:{Authorization:`Bearer ${token}`,Accept:'application/zip'},redirect:'manual'}))
+ if(!response.ok)throw new Error(`Garmin FIT-Datei nicht verfügbar (HTTP ${response.status}).`)
+ const bytes=await response.arrayBuffer()
+ if(bytes.byteLength<18||bytes.byteLength>75_000_000)throw new Error('Ungültige oder zu große FIT-Datei.')
+ const sig=new DataView(bytes).getUint32(0,true)
+ if(sig!==0x04034b50)throw new Error('Garmin lieferte kein ZIP-Archiv.')
+ return bytes
+}
 async function sync(env) {
   if (!env.DB) throw new Error('Private D1-Datenbank ist noch nicht verbunden.')
   const token=await fetchToken(env)
@@ -191,7 +205,7 @@ const api = {
     if(origin && !h['Access-Control-Allow-Origin'])return json({error:'Origin nicht freigeschaltet.'},403)
     const parsed=new URL(request.url)
     const path=parsed.pathname
-    if(!['/v1/status','/v1/activities','/v1/sync','/v1/wellness'].includes(path))return json({error:'Nicht gefunden.'},404,h)
+    if(!['/v1/status','/v1/activities','/v1/sync','/v1/wellness','/v1/activity-file'].includes(path))return json({error:'Nicht gefunden.'},404,h)
     if(!env.TEMPO_BRIDGE_TOKEN || !await secureEqual(request.headers.get('Authorization')?.replace(/^Bearer /,'')||'',env.TEMPO_BRIDGE_TOKEN))return json({error:'Zugangscode ungültig.'},401,h)
     if(!env.DB)return json({error:'D1-Datenbank fehlt.'},503,h)
     try{
@@ -210,6 +224,11 @@ const api = {
         if(Math.abs(Date.now()-Date.parse(date+'T12:00:00Z'))>32*DAY)return json({error:'Erholungsdaten nur für die letzten 31 Tage verfügbar.'},400,h)
         return json(await cachedWellness(env,date),200,h)
       }
+      if(path==='/v1/activity-file'&&request.method==='GET'){
+        const activityId=parsed.searchParams.get('id')||''
+        const archive=await activityArchive(env,activityId)
+        return new Response(archive,{status:200,headers:{...h,'Content-Type':'application/zip','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`attachment; filename="garmin-${activityId}.zip"`}})
+      }
       if(path==='/v1/sync'&&request.method==='POST'){
         return json({ok:true,...await sync(env)},200,h)
       }
@@ -218,6 +237,14 @@ const api = {
       return json({error:err instanceof Error ? err.message.slice(0,140):'Synchronisierung fehlgeschlagen.'},502,h)
     }
   },
-  async scheduled(_event,env,ctx){ctx.waitUntil(sync(env).catch(()=>{/* no sensitive logging */}))},
+  async scheduled(_event,env,ctx){
+    ctx.waitUntil((async()=>{
+      await sync(env).catch(()=>{/* no sensitive logging */})
+      // Only two recent dates; older history can be fetched by authorized client on demand.
+      const now=new Date().toISOString().slice(0,10)
+      const yesterday=new Date(Date.now()-DAY).toISOString().slice(0,10)
+      await Promise.allSettled([cachedWellness(env,now),cachedWellness(env,yesterday)])
+    })())
+  },
 }
 export default api

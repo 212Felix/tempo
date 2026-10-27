@@ -8,6 +8,7 @@ import './garmin-sync.css'
 import {germanDate} from '../phase40c/date'
 import {pendingRows,selectedRows,unresolvedIds} from '../phase40c/garmin-review'
 import {validateWellness} from '../phase40c/wellness'
+import {activateAutoGarmin,autoGarminStatus} from '../phase40d/automatic-garmin'
 
 const CONFIG_ID='garmin-personal-bridge:local-primary-profile'
 const PROFILE='local-primary-profile'
@@ -23,6 +24,8 @@ export default function GarminSyncPanel({onSaved}:{onSaved:()=>void}){
  const [endpoint,setEndpoint]=useState('')
  const [accessCode,setAccessCode]=useState(activeBridgeCode)
  const [connected,setConnected]=useState(false)
+ const [automatic,setAutomatic]=useState(autoGarminStatus())
+ useEffect(()=>{const reload=()=>setAutomatic(autoGarminStatus());window.addEventListener('tempo:garmin-auto-status',reload);return()=>window.removeEventListener('tempo:garmin-auto-status',reload)},[])
  const [lastSuccess,setLastSuccess]=useState<string|null>(null)
  const [remoteCount,setRemoteCount]=useState(0)
  const [rows,setRows]=useState<PersonalCandidate[]>([])
@@ -71,6 +74,7 @@ export default function GarminSyncPanel({onSaved}:{onSaved:()=>void}){
   setConnected(status.connected)
   setLastSuccess(status.lastSuccess);setRemoteCount(status.stored);setLastChecked(new Date().toISOString())
   activeBridgeCode=code
+  activateAutoGarmin(url,code)
   setNotice(`${safe.length} unterstützte Garmin-Aktivitäten gefunden. ${imported} eindeutige neue Aktivitäten direkt übernommen. Überschneidungen bitte prüfen.`)
   if(imported)await recordLocalTransfer()
   // Unsupported metrics remain empty, but they never block activity import.
@@ -138,6 +142,7 @@ export default function GarminSyncPanel({onSaved}:{onSaved:()=>void}){
      </label>
      <div className="tempo39-buttons"><button type="button" onClick={()=>void authorize()} disabled={loading||!endpoint||!accessCode}>{loading?'Bitte warten…':'Verbindung prüfen & Aktivitäten laden'}</button><button type="button" onClick={()=>void syncNow()} disabled={loading||!connected}>Jetzt synchronisieren</button></div>
    </div>
+   <section className="tempo40d-auto-notice" role="status"><strong>Automatischer Garmin-Abgleich</strong><p>{automatic.note}</p><small>Worker prüft Garmin künftig alle 15 Minuten. Auf dem iPhone wird bei geöffneter, angemeldeter TEMPO-Sitzung und beim erneuten Anzeigen abgeglichen. Nach App-Neustart ist der private Zugangscode erneut nötig. FIT-Verläufe sind abhängig von Gerätedaten und ZIP-Unterstützung.</small></section>
    <p className="tempo39-small">Der Zugangscode wird aus Sicherheitsgründen nicht dauerhaft gespeichert. Die Worker-Adresse merkt sich TEMPO lokal. Die automatische Server-Abfrage läuft unabhängig davon im Hintergrund; für den Abruf aufs iPhone musst du dich erneut legitimieren, nachdem die App geschlossen wurde.</p>
    <p className="tempo39-notice" role="status">{notice}</p>
    {rows.length>0&&<section className="tempo39-candidates"><h3>Aktivitäten abgleichen</h3>

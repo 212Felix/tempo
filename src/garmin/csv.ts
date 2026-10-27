@@ -21,6 +21,8 @@ export type GarminActivity = TempoRecord & {
   avgSpeedKmh?: number
   calories?: number
   importBatchId: string
+  garminActivityId?:string
+  fitSeriesId?:string
 }
 export type CsvParseResult = { activities: GarminActivity[]; skipped: number; notes: string[] }
 const PROFILE_ID = 'local-primary-profile'

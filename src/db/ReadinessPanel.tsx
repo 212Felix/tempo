@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { getRecord, saveRecord } from './storage'
+import { getRecord, saveRecord,listRecords } from './storage'
 import type { TempoRecord, ProfileRecord } from './types'
 import './readiness.css'
 import MorningFuelingCheck from '../phase32/MorningFuelingCheck'
 import ReadinessBattery from './ReadinessBattery'
 import GarminWellnessCard from '../phase40c/GarminWellnessCard'
+import {assessHybrid,hrvReference} from '../phase40d/hybrid-readiness'
+import GarminRecoveryHistory from '../phase40d/GarminRecoveryHistory'
+import {validateWellness,type Wellness} from '../phase40c/wellness'
 import {AVAILABILITY_CHOICES,availabilityFlag} from '../planning/availability'
 
 const PROFILE_ID = 'local-primary-profile'
@@ -57,28 +60,15 @@ const fresh: ReadyData = {
   afterWorkRide: 'egal', commute: 'nein',
 }
 
-export function evaluateReadiness(data: Pick<ReadyData, 'ratings' | 'illness'>): { level: 'offen' | 'gruen' | 'gelb' | 'rot'; title: string; reason: string } {
-  const allRated = fields.every(f => data.ratings[f.key] != null)
-  if (!allRated || data.illness === '') return { level: 'offen', title: 'Check-in noch unvollständig', reason: 'Bitte die fünf Bereiche und die Frage zu Krankheit/Auffälligkeiten beantworten.' }
-  if (data.illness === 'ja') return { level: 'rot', title: 'ROT · Belastung prüfen', reason: 'Du hast Beschwerden angegeben. Harte Belastungen lieber zurückstellen und gesundheitliche Symptome beachten.' }
-  const unfavorable = fields.filter(f => {
-    const value = data.ratings[f.key]!
-    return f.positive ? value <= 2 : value >= 4
-  })
-  const middling = fields.filter(f => data.ratings[f.key] === 3)
-  const named = unfavorable.map(f => f.title.toLowerCase())
-  if (unfavorable.length >= 3 || (data.ratings.energy! <= 2 && data.ratings.fatigue! >= 4)) {
-    return { level: 'rot', title: 'ROT · Erholung bevorzugen', reason: `Mehrere Belastungssignale (${named.join(', ')}). Keine harte Einheit erzwingen; Umfang und Intensität heute deutlich reduzieren.` }
-  }
-  if (unfavorable.length || middling.length >= 3) {
-    return { level: 'gelb', title: 'GELB · Heute flexibel bleiben', reason: unfavorable.length ? `Auffällig: ${named.join(', ')}. Trainieren ggf. möglich, aber Intensität und Zeit kritisch prüfen.` : 'Mehrere Werte sind mittelmäßig. Belastung nach Gefühl dosieren und gegebenenfalls reduzieren.' }
-  }
-  return { level: 'gruen', title: 'GRÜN · Gute Ausgangslage', reason: 'Deine heutigen Angaben sind insgesamt unauffällig. Geplantes Training grundsätzlich möglich; Tagesform weiterhin beachten.' }
+export function evaluateReadiness(data: Pick<ReadyData, 'ratings' | 'illness'>, wellness?:Wellness|null, baseline?:number): { level: 'offen' | 'gruen' | 'gelb' | 'rot'; title: string; reason: string } {
+ const result=assessHybrid(data.ratings,data.illness,wellness,baseline)
+ const title=result.level==='offen'?'Check-in noch unvollständig':result.level==='rot'?'ROT · Erholung bevorzugen':result.level==='gelb'?'GELB · Belastung prüfen':'GRÜN · Tagesform günstig'
+ return {level:result.level,title,reason:`${result.reason} ${result.mode==='garmin+checkin'?'Garmin-Daten und subjektive Angaben kombiniert.':'Subjektiver Check-in; Garmin-Erholungswerte fehlen.'}`}
 }
 
 function prettifyDate(date: string) {
-  const [y, m, d] = date.split('-').map(Number)
-  return new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(y, m - 1, d))
+  const [y,m,d]=date.split('-').map(Number)
+  return new Intl.DateTimeFormat('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(y,m-1,d))
 }
 
 function BubbleSet({ label, selected, positive, onSelect }: { label: string; selected?: number; positive: boolean; onSelect: (n: number) => void }) {
@@ -98,6 +88,9 @@ export default function ReadinessPanel() {
   const [day] = useState(dateKey)
   const [oneWayKm, setOneWayKm] = useState<number | null>(null)
   const [data, setData] = useState<ReadyData>(fresh)
+  const [garmin,setGarmin]=useState<Wellness|null>(null)
+  const [baseline,setBaseline]=useState<number|undefined>()
+  useEffect(()=>{let alive=true;const reload=()=>void Promise.all([getRecord<TempoRecord&{wellness?:Wellness}>('settings',`garmin-wellness:${PROFILE_ID}:${day}`),listRecords<TempoRecord&{wellness?:Wellness}>('settings')]).then(([today,all])=>{if(!alive)return;const value=validateWellness(today?.wellness);setGarmin(value);setBaseline(hrvReference(all.filter(x=>x.id.startsWith(`garmin-wellness:${PROFILE_ID}:`)).map(x=>validateWellness(x.wellness)).filter((x):x is Wellness=>Boolean(x)),day))}).catch(()=>undefined);reload();window.addEventListener('tempo:garmin-wellness-change',reload);return()=>{alive=false;window.removeEventListener('tempo:garmin-wellness-change',reload)}},[day])
   const latest = useRef<ReadyData>(fresh)
   const writing = useRef<Promise<void>>(Promise.resolve())
   const revision = useRef(0)
@@ -165,17 +158,17 @@ export default function ReadinessPanel() {
       .catch(e => { if (myRevision === revision.current) setStatus(`Speichern fehlgeschlagen: ${String(e)}`) })
   }
 
-  const assessment = evaluateReadiness(data)
+  const assessment = evaluateReadiness(data,garmin,baseline)
   const commuteKm = oneWayKm == null ? null : (data.commute === 'beide' ? 2 * oneWayKm : data.commute === 'nein' ? 0 : oneWayKm)
   const distanceText = (factor: number) => oneWayKm == null ? 'km offen' : `${Math.round(oneWayKm * factor * 10) / 10} km`
 
   return <div className="tempo-ready">
-    <GarminWellnessCard date={day}/>
+    <GarminWellnessCard date={day}/><GarminRecoveryHistory/>
     <section className="panel tempo-ready-panel tempo38-ratings">
       <div className="eyebrow">HEUTE · {prettifyDate(day).toUpperCase()}</div>
-      <h2>Wie fühlst du dich heute?</h2>
+      <h2>Wie fühlst du dich heute?</h2>{garmin&&<p className="tempo40d-status">Garmin übernimmt verfügbare Schlaf- und Erholungswerte. Du bewertest weiter Stress, Müdigkeit und Beine. Bei fehlenden Garmin-Daten bleiben die bisherigen Fragen sichtbar.</p>}
       <details className="tempo38-readiness-help"><summary>ⓘ Skalen erklären</summary><p>Bei Stress, Müdigkeit und schweren Beinen bedeutet 1 = wenig und 5 = viel. Bei Schlaf und Erholung ist 5 = sehr gut.</p></details>
-      {fields.map(f => <div className="tempo-ready-field" key={f.key}>
+      {(garmin?fields.filter(f=>!(f.key==='sleep'&&garmin.sleepHours!==undefined)&&!(f.key==='energy'&&(garmin.bodyBattery!==undefined||(garmin.hrvMs!==undefined&&baseline!==undefined)))):fields).map(f => <div className="tempo-ready-field" key={f.key}>
         <div className="tempo-ready-field-head"><strong>{f.title}</strong><small>{f.left} → {f.right}</small></div>
         <BubbleSet label={f.title} positive={f.positive} selected={data.ratings[f.key]} onSelect={n => change({ ratings: { ...latest.current.ratings, [f.key]: n } })}/>
       </div>)}
@@ -256,17 +249,18 @@ export function ReadinessHomeCard({ onOpen }: { onOpen: () => void }) {
   useEffect(() => {
     let active = true
     const load = () => {
-      void getRecord<DayEntry>('readinessEntries', `${PROFILE_ID}:${dateKey()}`)
-        .then(entry => {
+      void Promise.all([getRecord<DayEntry>('readinessEntries', `${PROFILE_ID}:${dateKey()}`),getRecord<TempoRecord&{wellness?:Wellness}>('settings',`garmin-wellness:${PROFILE_ID}:${dateKey()}`),listRecords<TempoRecord&{wellness?:Wellness}>('settings')])
+        .then(([entry,wellness,history]) => {
           if (!active) return
-          const score = evaluateReadiness({ ratings: entry?.ratings ?? {}, illness: entry?.illness ?? '' })
+          const baseline = hrvReference(history.filter(r=>r.id.startsWith(`garmin-wellness:${PROFILE_ID}:`)).map(r=>validateWellness(r.wellness)).filter((r):r is Wellness=>Boolean(r)),dateKey())
+          const score = evaluateReadiness({ ratings: entry?.ratings ?? {}, illness: entry?.illness ?? '' },validateWellness(wellness?.wellness),baseline)
           setState({ loading: false, title: entry ? score.title : 'Noch offen', description: entry ? score.reason : 'Dein heutiger Check-in wartet auf dich.', level: score.level })
         })
         .catch(() => { if (active) setState({ loading: false, title: 'Nicht verfügbar', description: 'Lokale Daten konnten nicht gelesen werden.', level: 'offen' }) })
     }
     load()
-    window.addEventListener('tempo:readiness-change',load);window.addEventListener('tempo:day-rollover',load)
-    return () => { active = false; window.removeEventListener('tempo:readiness-change',load);window.removeEventListener('tempo:day-rollover',load) }
+    window.addEventListener('tempo:readiness-change',load);window.addEventListener('tempo:garmin-wellness-change',load);window.addEventListener('tempo:day-rollover',load)
+    return () => { active = false; window.removeEventListener('tempo:readiness-change',load);window.removeEventListener('tempo:garmin-wellness-change',load);window.removeEventListener('tempo:day-rollover',load) }
   }, [])
   return <section className={`panel tempo36-readiness tempo-ready-home-${state.level}`}>
     <div className="eyebrow">DEINE READINESS</div>
